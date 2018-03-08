@@ -55,6 +55,10 @@ class ModuleInfo(nr.named.named):
     return False
 
   @property
+  def isroot(self):
+    return self.name.count('.') == 0
+
+  @property
   def relative_filename(self):
     if not self.filename:
       return None
@@ -65,6 +69,19 @@ class ModuleInfo(nr.named.named):
         return os.path.join(*self.name.split('.')) + '.py'
     else:
       return os.path.basename(self.filename)
+
+  def join_import_from(self, import_spec):
+    """
+    Joins a relative import like `from .foo import bar` with this module as
+    its parent module. If the module is not a root module or package root,
+    it will be joined with the package root.
+    """
+
+    if not self.isroot and not self.ispkg:
+      parent = self.name.rpartition('.')[0]
+    else:
+      parent = self.name
+    return join_import_from(import_spec, parent)
 
 
 def _find_nodes(ast_node, predicate):
@@ -107,7 +124,11 @@ def join_import_from(import_spec, parent_module):
   if level == 0:
     return import_spec
   elif level == 1:
-    return parent_module
+    submodule = import_spec.lstrip('.')
+    if submodule:
+      return parent_module + '.' + submodule
+    else:
+      return parent_module
   else:
     prefix = '.'.join(parent_module.split('.')[:-level+1])
     if not prefix:
@@ -185,7 +206,7 @@ class ModuleFinder(object):
     stack = collections.deque()
 
     for imp in get_imports(module.filename, source):
-      stack.appendleft((join_import_from(imp.name, module.name), [module.name]))
+      stack.appendleft((module.join_import_from(imp.name), [module.name]))
 
     yield module
     while stack:
@@ -201,4 +222,4 @@ class ModuleFinder(object):
       if module.type == ModuleInfo.SRC:
         imported_from = [module.name] + imported_from
         for imp in get_imports(module.filename):
-          stack.append((join_import_from(imp.name, module.name), imported_from))
+          stack.append((module.join_import_from(imp.name), imported_from))
