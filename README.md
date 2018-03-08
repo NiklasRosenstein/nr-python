@@ -1,5 +1,7 @@
 # Python Bundler
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Bundler is a tool for collecting all modules used by a Python package and
 placing them in one common directory. Its aim is to follow into cx_Freeze's
 footsteps and to offer a simpler (if not as elaborate) solution to PyInstaller.

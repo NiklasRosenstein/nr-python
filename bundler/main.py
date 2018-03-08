@@ -21,24 +21,43 @@
 # IN THE SOFTWARE.
 
 import argparse
+import nr.path
 import os
 import sys
 from .modules import ModuleFinder
 
 
 def get_argument_parser(prog=None):
-  parser = argparse.ArgumentParser(prog=prog)
+  class SubParsersAction(argparse._SubParsersAction):
+    def add_parser(self, name, **kwargs):
+      kwargs.setdefault('add_help', False)
+      return super(SubParsersAction, self).add_parser(name, **kwargs)
+
+  parser = argparse.ArgumentParser(prog=prog, add_help=False)
+  parser.register('action', 'parsers', SubParsersAction)
   subparser = parser.add_subparsers(dest='command')
 
-  tree = subparser.add_parser('tree', help='Show the import tree of a '
-    'Python module or source file.')
-  tree.add_argument('module', help='The name of a Python module or path to '
-    'a Python source file.')
-
+  collect = subparser.add_parser('collect', help='Collect all Python modules '
+    'in a directory.')
+  help = subparser.add_parser('help', help='Print this help information.')
   dotviz = subparser.add_parser('dotviz', help='Produce a Dotviz graph from '
     'the imports in the specified Python module or source file.')
-  dotviz.add_argument('module', help='The name of a Python module or path to '
-    'a Python source file.')
+  tree = subparser.add_parser('tree', help='Show the import tree of a '
+    'Python module or source file.')
+
+  help.add_argument('help_command', nargs='?', help='The command to show '
+    'the help for.')
+
+  for p in (tree, dotviz, collect):
+    p.add_argument('module', help='The name of a Python module or path to '
+      'a Python source file.')
+
+  collect.add_argument('-D', '--dist-directory', metavar='DIRECTORY',
+    default='dist/modules', help='The name of the output directory (default: '
+      'dist/modules)')
+  collect.add_argument('-f', '--force', action='store_true', help='Do not '
+    'copy modules to the dest directory if they seem unchanged (from the file '
+    'timestamp).')
 
   return parser
 
@@ -49,6 +68,7 @@ def main(argv=None, prog=None):
   if not args.command:
     parser.print_usage()
     return 0
+  args._parser = parser
   globals()['do_' + args.command](args)
 
 
@@ -78,3 +98,62 @@ def do_dotviz(args):
   for a, b in edges:
     print('  "{}" -> "{}";'.format(a, b))
   print('}')
+
+
+def do_collect(args):
+  import shutil
+  nr.path.makedirs(args.dist_directory)
+
+  print('Collecting modules ...')
+  seen = set()
+  modules = []
+  for mod in _iter_modules(args.module):
+    if mod.type == mod.BUILTIN: continue
+    if mod.name in seen: continue
+    seen.add(mod.name)
+    if mod.type == mod.NOTFOUND:
+      print('  warning: module not found: {!r}'.format(mod.name))
+      continue
+    modules.append(mod)
+
+  print('Copying {} modules to "{}" ...'.format(len(modules), args.dist_directory))
+  unchanged = 0
+  for mod in modules:
+    dest = os.path.join(args.dist_directory, mod.relative_filename)
+    if not args.force and not nr.path.compare_timestamp(mod.filename, dest):
+      unchanged += 1
+      continue
+    nr.path.makedirs(os.path.dirname(dest))
+    shutil.copy(mod.filename, dest)
+
+  if unchanged:
+    print('  note: Skipped {} modules that seem unchanged.'.format(unchanged))
+
+  print('Done.')
+
+
+def do_help(args):
+  parser = args._parser
+  if parser.description:
+    print(parser.description)
+
+  subparser_actions = [action for action in parser._actions
+                       if isinstance(action, argparse._SubParsersAction)]
+
+  if args.help_command:
+    found = False
+    for action in subparser_actions:
+      for choice in action._choices_actions:
+        if choice.dest == args.help_command:
+          action._name_parser_map[choice.dest].print_help()
+          found = True
+          break
+    if not found:
+      parser.error('{!r} is not a command'.format(args.help_command))
+    return 0
+  else:
+    parser.print_usage()
+    print('\ncommands:')
+    for action in subparser_actions:
+      for choice in action._choices_actions:
+        print('  {:<19} {}'.format(choice.dest, choice.help))

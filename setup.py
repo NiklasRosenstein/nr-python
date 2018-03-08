@@ -13,6 +13,9 @@ if os.path.isfile('README.rst'):
 else:
   long_description = ''
 
+with open('requirements.txt') as fp:
+  reqs = fp.readlines()
+
 setuptools.setup(
   name='bundler',
   version='0.0.2',
@@ -23,6 +26,7 @@ setuptools.setup(
   description='Bundle the modules of a Python application. (WIP)',
   long_description=long_description,
   packages=setuptools.find_packages(),
+  install_requires=reqs,
   entry_points=dict(
     console_scripts=[
       'python-bundler{d} = bundler.main:_entry_point'.format(d=d)

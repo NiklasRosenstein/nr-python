@@ -1,5 +1,3 @@
-# The MIT License (MIT)
-#
 # Copyright (c) 2018 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,13 +21,50 @@
 import ast
 import collections
 import itertools
+import nr.named
 import os
 import sys
 import sysconfig
 
 
-_Import = collections.namedtuple('_Import', 'name filename lineno')
-_Module = collections.namedtuple('_Module', 'name filename type imported_from')
+class ImportInfo(nr.named.named):
+  __annotations__ = [
+    ('name', str),
+    ('filename', str),
+    ('lineno', int)
+  ]
+
+
+class ModuleInfo(nr.named.named):
+  __annotations__ = [
+    ('name', str),
+    ('filename', str),
+    ('type', type),
+    ('imported_from', list, nr.named.initializer(list))
+  ]
+
+  SRC = 'src'
+  NATIVE = 'native'
+  BUILTIN = 'builtin'
+  NOTFOUND = 'notfound'
+
+  @property
+  def ispkg(self):
+    if self.type == self.SRC:
+      return os.path.basename(self.filename) == '__init__.py'
+    return False
+
+  @property
+  def relative_filename(self):
+    if not self.filename:
+      return None
+    if self.type == self.SRC:
+      if self.ispkg:
+        return os.path.join(os.path.join(*self.name.split('.')), '__init__.py')
+      else:
+        return os.path.join(*self.name.split('.')) + '.py'
+    else:
+      return os.path.basename(self.filename)
 
 
 def _find_nodes(ast_node, predicate):
@@ -45,7 +80,7 @@ def _find_nodes(ast_node, predicate):
 
 def get_imports(filename, source=None):
   """
-  Returns a list of #Import tuples for all module imports in the specified
+  Returns a list of #ImportInfo tuples for all module imports in the specified
   Python source file or the *source* string.
   """
 
@@ -58,10 +93,10 @@ def get_imports(filename, source=None):
 
   for node in _find_nodes(module, lambda x: isinstance(x, ast.Import)):
     for alias in node.names:
-      result.append(_Import(alias.name, filename, node.lineno))
+      result.append(ImportInfo(alias.name, filename, node.lineno))
   for node in _find_nodes(module, lambda x: isinstance(x, ast.ImportFrom)):
     import_name = '.' * node.level + (node.module or '')
-    result.append(_Import(import_name, filename, node.lineno))
+    result.append(ImportInfo(import_name, filename, node.lineno))
 
   result.sort(key=lambda x: x.lineno)
   return result
@@ -91,23 +126,17 @@ class ModuleFinder(object):
   def find_module(self, module_name):
     """
     Attempts to find the module specified by *module_name* in the
-    ModuleFinder's search path and returns a #_Module tuple. The following
-    module types can be returned:
+    ModuleFinder's search path and returns a #ModuleInfo object.
 
-    * `"builtin"`
-    * `"native"`
-    * `"src"`
-    * `"notfound"`
-
-    For the native and notfound types, the module's filename will be #None.
-    The *imported_from* member of the returned tuple will be an empty list.
-    This list is filled when using #iter_modules().
+    For builtin modules, the #ModuleInfo.filename will be None. Note that
+    the #ModuleInfo.imported_from is not filled by this method. It is used
+    with #ModuleFinder.iter_modules().
     """
 
     if not module_name:
       raise ValueError('empty module name')
     if module_name in sys.builtin_module_names:
-      return _Module(module_name, None, 'builtin', [])
+      return ModuleInfo(module_name, None, 'builtin', [])
     if module_name in self.modules:
       return self.modules[module_name]
 
@@ -119,18 +148,18 @@ class ModuleFinder(object):
       #       supported.
       script_file = os.path.join(dirname, os.sep.join(parts)) + '.py'
       if os.path.isfile(script_file):
-        result = _Module(module_name, script_file, 'src', [])
+        result = ModuleInfo(module_name, script_file, ModuleInfo.SRC)
         break
       package_file = os.path.join(dirname, os.sep.join(parts), '__init__.py')
       if os.path.isfile(package_file):
-        result = _Module(module_name, package_file, 'src', [])
+        result = ModuleInfo(module_name, package_file, ModuleInfo.SRC)
         break
       native_file = os.path.join(dirname, os.sep.join(parts)) + so
       if os.path.isfile(native_file):
-        result = _Module(module_name, native_file, 'native', [])
+        result = ModuleInfo(module_name, native_file, ModuleInfo.NATIVE)
         break
     else:
-      return _Module(module_name, None, 'notfound', [])
+      return ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
 
     self.modules[module_name] = result
     return result
@@ -138,7 +167,7 @@ class ModuleFinder(object):
   def iter_modules(self, module=None, filename=None, source=None):
     """
     An iterator for the modules that are imported by the specified *module*
-    or Python source file. The returned #_Module tuples have the
+    or Python source file. The returned #ModuleInfo objects have their
     *imported_from* member filled in order to be able to track how a module
     was imported.
     """
@@ -150,7 +179,7 @@ class ModuleFinder(object):
       if not module.filename or module.type == 'native':
         return
     else:
-      module = _Module('__main__', filename, 'src', [])
+      module = ModuleInfo('__main__', filename, ModuleInfo.SRC)
 
     seen = set()
     stack = collections.deque()
@@ -169,7 +198,7 @@ class ModuleFinder(object):
       module.imported_from[:] = imported_from
       yield module
 
-      if module.type == 'src':
+      if module.type == ModuleInfo.SRC:
         imported_from = [module.name] + imported_from
         for imp in get_imports(module.filename):
           stack.append((join_import_from(imp.name, module.name), imported_from))
