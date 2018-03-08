@@ -35,6 +35,11 @@ def get_argument_parser(prog=None):
   tree.add_argument('module', help='The name of a Python module or path to '
     'a Python source file.')
 
+  dotviz = subparser.add_parser('dotviz', help='Produce a Dotviz graph from '
+    'the imports in the specified Python module or source file.')
+  dotviz.add_argument('module', help='The name of a Python module or path to '
+    'a Python source file.')
+
   return parser
 
 
@@ -50,13 +55,26 @@ def main(argv=None, prog=None):
 _entry_point = lambda: sys.exit(main())
 
 
-def do_tree(args):
-  if os.sep in args.module or os.path.isfile(args.module):
-    module = None
-    filename = args.module
+def _iter_modules(module):
+  if os.sep in module or os.path.isfile(module):
+    module, filename = None, module
   else:
-    module = args.module
-    filename = None
+    module, filename = module, None
   finder = ModuleFinder()
-  for mod in finder.iter_modules(module, filename):
+  return finder.iter_modules(module, filename)
+
+
+def do_tree(args):
+  for mod in _iter_modules(args.module):
     print('  ' * len(mod.imported_from) + mod.name)
+
+
+def do_dotviz(args):
+  edges = set()
+  for mod in _iter_modules(args.module):
+    if not mod.imported_from: continue
+    edges.add((mod.name, mod.imported_from[0]))
+  print('digraph {')
+  for a, b in edges:
+    print('  "{}" -> "{}";'.format(a, b))
+  print('}')
