@@ -17,16 +17,10 @@ __Features__
 
 __To do__
 
-* The `collect` command should be able to accept additional module names for
-  explicit inclusion in the collection.
 * The `collect` command should also be able to collect dependencies of native
   Python modules (C extensions).
-* The `collect` command should accept arguments to exclude certain modules
-  when they are encountered.
 * The `collect` command should accept arguments to search for modules only
   in a specific list of directories
-* The `collect` command should accept options to byte-compile all collected
-  modules to a separate directory.
 * The `collect` command should by default exclude Python modules that are
   imported yet commonly unused in the Python standard library (eg. `pydoc`
   imported from `pdb`).
@@ -37,7 +31,7 @@ __To do__
   be able to detect additional Python modules or shared library dependencies
   that may not be automatically discovered.
 * The `collect` command needs to take package-data into account and include
-  it in the generated bundle/
+  it in the generated bundle.
 * The `collect` command should accept an option to include full packages
   and not just modules that have actually been determined to be imported.
 

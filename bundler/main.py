@@ -23,7 +23,10 @@
 import argparse
 import nr.path
 import os
+import py_compile
 import sys
+import shutil
+from nr.stream import stream
 from .modules import ModuleFinder
 
 
@@ -52,12 +55,29 @@ def get_argument_parser(prog=None):
     p.add_argument('module', help='The name of a Python module or path to '
       'a Python source file.')
 
-  collect.add_argument('-D', '--dist-directory', metavar='DIRECTORY',
-    default='dist/modules', help='The name of the output directory (default: '
-      'dist/modules)')
-  collect.add_argument('-f', '--force', action='store_true', help='Do not '
-    'copy modules to the dest directory if they seem unchanged (from the file '
-    'timestamp).')
+  collect.add_argument('include', nargs='*', help='The name of additional '
+    'Python modules to include.')
+  collect.add_argument('-D', '--dist-dir', metavar='DIRECTORY',
+    help='The name of the distribution directory. This is only used to alter '
+      'the prefix of the default output directories. Defaults to "dist".')
+  collect.add_argument('-d', '--collect-dir', metavar='DIRECTORY',
+    help='The name of the directory where the modules will be collected. If '
+      'this is not specified, it will default to the "modules" directory in '
+      'the -D, --dist-dir.')
+  collect.add_argument('-c', '--compile-dir', metavar='DIRECTORY',
+    help='The name of the directory where the byte-compiled and native '
+      'Python modules will be placed in. If this is not specified, it '
+      'defaults to the "modules-compiled" directory in the -D, --dist-dir. '
+      'If this option is explicitly specified, it implies -b, --bytecompile.')
+  collect.add_argument('-b', '--bytecompile', action='store_true',
+    help='Compile the collected Python modules to .pyc files.')
+  collect.add_argument('-f', '--force', action='store_true',
+    help='Do not copy modules to the dest directory if they seem unchanged '
+      'from their timestamp.')
+  collect.add_argument('--exclude', action='append', default=[],
+    help='A comma-separated list of module names to exclude. Any sub-modules '
+      'of the listed package will also be excluded. This argument can be '
+      'specified multiple times.')
 
   return parser
 
@@ -75,12 +95,13 @@ def main(argv=None, prog=None):
 _entry_point = lambda: sys.exit(main())
 
 
-def _iter_modules(module):
+def _iter_modules(module, finder=None):
   if os.sep in module or os.path.isfile(module):
     module, filename = None, module
   else:
     module, filename = module, None
-  finder = ModuleFinder()
+  if not finder:
+    finder = ModuleFinder()
   return finder.iter_modules(module, filename)
 
 
@@ -101,13 +122,27 @@ def do_dotviz(args):
 
 
 def do_collect(args):
-  import shutil
-  nr.path.makedirs(args.dist_directory)
+  if not args.dist_dir:
+    args.dist_dir = 'dist'
+  if not args.collect_dir:
+    args.collect_dir = os.path.join(args.dist_dir, 'modules')
+  if not args.compile_dir:
+    args.compile_dir = os.path.join(args.dist_dir, 'modules-compiled')
+  else:
+    # -c, --compile-dir implies -b, --bytecompile.
+    args.bytecompile = True
+
+  # Prepare the module finder.
+  excludes = list(stream.concat([x.split(',') for x in args.exclude]))
+  finder = ModuleFinder(excludes=excludes)
 
   print('Collecting modules ...')
   seen = set()
   modules = []
-  for mod in _iter_modules(args.module):
+
+  it = _iter_modules(args.module, finder)
+  it = stream.chain(it, *[finder.iter_modules(x) for x in args.include])
+  for mod in it:
     if mod.type == mod.BUILTIN: continue
     if mod.name in seen: continue
     seen.add(mod.name)
@@ -116,10 +151,16 @@ def do_collect(args):
       continue
     modules.append(mod)
 
-  print('Copying {} modules to "{}" ...'.format(len(modules), args.dist_directory))
+  print('Copying {} modules to "{}" ...'.format(len(modules), args.collect_dir))
   unchanged = 0
+  compile_files = []
+  copy_files = []
   for mod in modules:
-    dest = os.path.join(args.dist_directory, mod.relative_filename)
+    dest = os.path.join(args.collect_dir, mod.relative_filename)
+    if mod.type == mod.SRC:
+      compile_files.append((dest, os.path.join(args.compile_dir, mod.relative_filename) + 'c'))
+    else:
+      copy_files.append((dest, os.path.join(args.compile_dir, mod.relative_filename)))
     if not args.force and not nr.path.compare_timestamp(mod.filename, dest):
       unchanged += 1
       continue
@@ -128,6 +169,32 @@ def do_collect(args):
 
   if unchanged:
     print('  note: Skipped {} modules that seem unchanged.'.format(unchanged))
+
+  if args.bytecompile and compile_files:
+    print('Byte-compiling {} files to "{}" ...'.format(len(compile_files), args.compile_dir))
+    unchanged = 0
+    for src, dst in compile_files:
+      if not args.force and not nr.path.compare_timestamp(src, dst):
+        unchanged += 1
+        continue
+      nr.path.makedirs(os.path.dirname(dst))
+      py_compile.compile(src, dst, doraise=True)
+
+    if unchanged:
+      print('  note: Skipped {} modules that seem unchaged.'.format(unchanged))
+
+  if args.bytecompile and copy_files:
+    print('Copying remaining {} non-source file(s) to "{}" ...'.format(len(copy_files), args.compile_dir))
+    unchanged = 0
+    for src, dst in copy_files:
+      if not args.force and not nr.path.compare_timestamp(src, dst):
+        unchanged += 1
+        continue
+      nr.path.makedirs(os.path.dirname(dst))
+      shutil.copy(src, dst)
+
+    if unchanged:
+      print('  note: Skipped {} files that seem unchaged.'.format(unchanged))
 
   print('Done.')
 
