@@ -26,6 +26,13 @@ import os
 import sys
 import sysconfig
 
+if os.name == 'nt':
+  import pip.pep425tags as tags
+  NATIVE_SUFFIXES = ['.pyd', '.' + tags.implementation_tag + '-' + tags.get_platform() + '.pyd']
+  del tags
+else:
+  NATIVE_SUFFIXES = [sysconfig.get_config_var('SO')]
+
 
 class ImportInfo(nr.named.named):
   __annotations__ = [
@@ -137,12 +144,22 @@ def join_import_from(import_spec, parent_module):
     return prefix + '.' + import_spec[level:]
 
 
+def check_module_exclude(module_name, excludes):
+  for exclude in excludes:
+    if exclude == module_name or module_name.startswith(exclude + '.'):
+      return True
+  return False
+
+
 class ModuleFinder(object):
 
-  def __init__(self, path=None, excludes=None):
+  def __init__(self, path=None, excludes=None, native_suffixes=None):
     self.path = path or sys.path
     self.excludes = excludes or []
     self.modules = {}
+    if native_suffixes is None:
+      native_suffixes = list(NATIVE_SUFFIXES)
+    self.native_suffixes = native_suffixes
 
   def find_module(self, module_name):
     """
@@ -162,7 +179,7 @@ class ModuleFinder(object):
       return self.modules[module_name]
 
     parts = module_name.split('.')
-    so = sysconfig.get_config_var('SO')
+    result = None
     for dirname in self.path:
       # TODO: Configurable behaviour for Python 2 where __init__.py is
       #       required and namespace packages are not automatically
@@ -175,9 +192,13 @@ class ModuleFinder(object):
       if os.path.isfile(package_file):
         result = ModuleInfo(module_name, package_file, ModuleInfo.SRC)
         break
-      native_file = os.path.join(dirname, os.sep.join(parts)) + so
-      if os.path.isfile(native_file):
-        result = ModuleInfo(module_name, native_file, ModuleInfo.NATIVE)
+
+      for suffix in self.native_suffixes:
+        native_file = os.path.join(dirname, os.sep.join(parts)) + suffix
+        if os.path.isfile(native_file):
+          result = ModuleInfo(module_name, native_file, ModuleInfo.NATIVE)
+          break
+      if result:
         break
     else:
       return ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
@@ -185,13 +206,16 @@ class ModuleFinder(object):
     self.modules[module_name] = result
     return result
 
-  def iter_modules(self, module=None, filename=None, source=None):
+  def iter_modules(self, module=None, filename=None, source=None, excludes=None):
     """
     An iterator for the modules that are imported by the specified *module*
     or Python source file. The returned #ModuleInfo objects have their
     *imported_from* member filled in order to be able to track how a module
     was imported.
     """
+
+    if excludes is None:
+      excludes = self.excludes
 
     if not filename:
       if not module:
@@ -214,6 +238,8 @@ class ModuleFinder(object):
       if import_name in seen:
         continue
       seen.add(import_name)
+      if check_module_exclude(import_name, excludes):
+        continue
 
       module = self.find_module(import_name)
       module.imported_from[:] = imported_from
