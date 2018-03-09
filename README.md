@@ -34,6 +34,7 @@ __To do__
   it in the generated bundle.
 * The `collect` command should accept an option to include full packages
   and not just modules that have actually been determined to be imported.
+* Support packing binaries with [UPX](https://upx.github.io/).
 
 ---
 
