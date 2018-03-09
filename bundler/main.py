@@ -1,5 +1,3 @@
-# The MIT License (MIT)
-#
 # Copyright (c) 2018 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,12 +19,15 @@
 # IN THE SOFTWARE.
 
 import argparse
+import logging
 import nr.path
 import os
 import py_compile
 import sys
 import shutil
+import zipfile
 from nr.stream import stream
+from . import nativedeps
 from .modules import ModuleFinder
 
 
@@ -78,11 +79,19 @@ def get_argument_parser(prog=None):
     help='A comma-separated list of module names to exclude. Any sub-modules '
       'of the listed package will also be excluded. This argument can be '
       'specified multiple times.')
+  collect.add_argument('-z', '--zipmodules', action='store_true',
+    help='Create a ZIP file from the modules. If -b, --bytecompile is set '
+      'or implied, the compiled modules directory will be zipped.')
+  collect.add_argument('-s', '--standalone', action='store_true',
+    help='Create a standalone package that includes the Python interpreter.')
+  collect.add_argument('-S', '--standalone-dir',
+    help='The output directory for the standalone package.')
 
   return parser
 
 
 def main(argv=None, prog=None):
+  logging.basicConfig(level=logging.INFO)
   parser = get_argument_parser(prog)
   args = parser.parse_args(argv)
   if not args.command:
@@ -131,6 +140,14 @@ def do_collect(args):
   else:
     # -c, --compile-dir implies -b, --bytecompile.
     args.bytecompile = True
+  if not args.standalone_dir:
+    args.standalone_dir = os.path.join(args.dist_dir, 'package')
+  else:
+    # -S, --standalone-dir implies -s, --standalone.
+    args.standalone = True
+  if args.standalone:
+    args.bytecompile = True
+    args.zipmodules = True
 
   # Prepare the module finder.
   excludes = list(stream.concat([x.split(',') for x in args.exclude]))
@@ -195,6 +212,54 @@ def do_collect(args):
 
     if unchanged:
       print('  note: Skipped {} files that seem unchaged.'.format(unchanged))
+
+  if args.zipmodules:
+    if args.bytecompile:
+      base_dir = args.compile_dir
+    else:
+      base_dir = args.collect_dir
+    filename = base_dir + '.zip'
+    print('Creating {} archive "{}" ...'.format(
+      'dist' if args.bytecompile else 'source', os.path.basename(filename)))
+    with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+      # TODO: Also include package data files.
+      for src, pyc in compile_files:
+        src = pyc if args.bytecompile else src
+        arcname = os.path.relpath(src, base_dir).replace(os.sep, '/')
+        zipf.write(src, arcname)
+    zipball = filename
+
+  if args.standalone:
+    copy_files = [sys.executable]
+
+    print('Analyzing C-extensions and Python executable ...')
+    shared_deps = nativedeps.get_dependencies(sys.executable)
+    for mod in modules:
+      if mod.type == mod.NATIVE:
+        shared_deps += nativedeps.get_dependencies(mod.filename)
+        copy_files.append(mod.filename)
+
+    print('Resolving shared dependencies ...')
+    deps_mapping = {}
+    for dep in shared_deps:
+      if dep.name not in deps_mapping:
+        filename = nativedeps.resolve_dependency(dep)
+        deps_mapping[dep.name] = filename
+        if not filename:
+          print('  warning: Could not resolve "{}"'.format(dep.name))
+        else:
+          copy_files.append(filename)
+
+    print('Creating standalone package ...')
+    for src in copy_files:
+      dst = os.path.join(args.standalone_dir, 'runtime', os.path.basename(src))
+      if not args.force and not nr.path.compare_timestamp(src, dst):
+        continue
+      nr.path.makedirs(os.path.dirname(dst))
+      shutil.copy(src, dst)
+
+    shutil.copy(zipball, os.path.join(args.standalone_dir, 'libs.zip'))
+
 
   print('Done.')
 

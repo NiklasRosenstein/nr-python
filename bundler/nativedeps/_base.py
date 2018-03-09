@@ -18,5 +18,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.2'
+import nr.named
+
+
+class Dependency(nr.named.named):
+  __annotations__ = [
+    ('name', str)
+  ]

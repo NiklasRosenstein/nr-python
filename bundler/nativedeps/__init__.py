@@ -17,6 +17,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
+"""
+This is a cross-platform module to allow finding dependencies of shared
+libraries and executables.
+"""
 
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.2'
+import sys
+from ._base import Dependency
+
+if sys.platform.startswith('win32'):
+  from .windll import get_dependencies, resolve_dependency
+else:
+  raise NotImplemntedError(sys.platform)
