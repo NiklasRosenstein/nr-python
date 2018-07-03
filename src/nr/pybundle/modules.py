@@ -27,7 +27,10 @@ import sysconfig
 from nr.types import Named
 
 if os.name == 'nt':
-  import pip.pep425tags as tags
+  try:
+    import pip._internal.pep425tags as tags
+  except ImportError:
+    import pip.pep425tags as tags
   NATIVE_SUFFIXES = ['.pyd', '.' + tags.implementation_tag + '-' + tags.get_platform() + '.pyd']
   del tags
 else:
