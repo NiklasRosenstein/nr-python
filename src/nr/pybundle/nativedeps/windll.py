@@ -29,7 +29,7 @@ import ctypes
 import hashlib
 import logging
 import io
-import nr.path
+import nr.fs
 import os
 import shutil
 import subprocess
@@ -38,7 +38,7 @@ import zipfile
 from ._base import Dependency
 
 logger = logging.getLogger(__name__)
-CACHE_DIR = os.path.join(appdirs.user_cache_dir('python-bundler'), 'windll')
+CACHE_DIR = os.path.join(appdirs.user_cache_dir(__name__))
 
 
 def _get_long_path_name(path):
@@ -105,10 +105,10 @@ def get_dependencies(pefile):
   cachefile = hasher.hexdigest() + '_' + os.path.basename(pefile) + '-deps.csv'
   cachefile = os.path.join(CACHE_DIR, cachefile)
 
-  if nr.path.compare_timestamp(pefile, cachefile):
+  if nr.fs.compare_timestamp(pefile, cachefile):
     # Cachefile doesn't exist or is older than changes to pefile.
     logger.info('Analyzing "{}" ...'.format(pefile))
-    nr.path.makedirs(os.path.dirname(cachefile))
+    nr.fs.makedirs(os.path.dirname(cachefile))
 
     command = [get_dependency_walker(), '/c', '/oc:' + cachefile, pefile]
     logger.debug('Running command: {}'.format(command))

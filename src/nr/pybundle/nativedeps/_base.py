@@ -18,10 +18,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import nr.named
+from nr.types import Named
 
 
-class Dependency(nr.named.named):
+class Dependency(Named):
   __annotations__ = [
     ('name', str)
   ]

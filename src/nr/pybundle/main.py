@@ -20,7 +20,7 @@
 
 import argparse
 import logging
-import nr.path
+import nr.fs
 import os
 import py_compile
 import sys
@@ -178,10 +178,10 @@ def do_collect(args):
       compile_files.append((dest, os.path.join(args.compile_dir, mod.relative_filename) + 'c'))
     else:
       copy_files.append((dest, os.path.join(args.compile_dir, mod.relative_filename)))
-    if not args.force and not nr.path.compare_timestamp(mod.filename, dest):
+    if not args.force and not nr.fs.compare_timestamp(mod.filename, dest):
       unchanged += 1
       continue
-    nr.path.makedirs(os.path.dirname(dest))
+    nr.fs.makedirs(os.path.dirname(dest))
     shutil.copy(mod.filename, dest)
 
   if unchanged:
@@ -191,10 +191,10 @@ def do_collect(args):
     print('Byte-compiling {} files to "{}" ...'.format(len(compile_files), args.compile_dir))
     unchanged = 0
     for src, dst in compile_files:
-      if not args.force and not nr.path.compare_timestamp(src, dst):
+      if not args.force and not nr.fs.compare_timestamp(src, dst):
         unchanged += 1
         continue
-      nr.path.makedirs(os.path.dirname(dst))
+      nr.fs.makedirs(os.path.dirname(dst))
       py_compile.compile(src, dst, doraise=True)
 
     if unchanged:
@@ -204,10 +204,10 @@ def do_collect(args):
     print('Copying remaining {} non-source file(s) to "{}" ...'.format(len(copy_files), args.compile_dir))
     unchanged = 0
     for src, dst in copy_files:
-      if not args.force and not nr.path.compare_timestamp(src, dst):
+      if not args.force and not nr.fs.compare_timestamp(src, dst):
         unchanged += 1
         continue
-      nr.path.makedirs(os.path.dirname(dst))
+      nr.fs.makedirs(os.path.dirname(dst))
       shutil.copy(src, dst)
 
     if unchanged:
@@ -253,9 +253,9 @@ def do_collect(args):
     print('Creating standalone package ...')
     for src in copy_files:
       dst = os.path.join(args.standalone_dir, 'runtime', os.path.basename(src))
-      if not args.force and not nr.path.compare_timestamp(src, dst):
+      if not args.force and not nr.fs.compare_timestamp(src, dst):
         continue
-      nr.path.makedirs(os.path.dirname(dst))
+      nr.fs.makedirs(os.path.dirname(dst))
       shutil.copy(src, dst)
 
     shutil.copy(zipball, os.path.join(args.standalone_dir, 'libs.zip'))

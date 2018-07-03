@@ -21,10 +21,10 @@
 import ast
 import collections
 import itertools
-import nr.named
 import os
 import sys
 import sysconfig
+from nr.types import Named
 
 if os.name == 'nt':
   import pip.pep425tags as tags
@@ -34,7 +34,7 @@ else:
   NATIVE_SUFFIXES = [sysconfig.get_config_var('SO')]
 
 
-class ImportInfo(nr.named.named):
+class ImportInfo(Named):
   __annotations__ = [
     ('name', str),
     ('filename', str),
@@ -42,12 +42,12 @@ class ImportInfo(nr.named.named):
   ]
 
 
-class ModuleInfo(nr.named.named):
+class ModuleInfo(Named):
   __annotations__ = [
     ('name', str),
     ('filename', str),
     ('type', type),
-    ('imported_from', list, nr.named.initializer(list))
+    ('imported_from', list, Named.Initializer(list))
   ]
 
   SRC = 'src'

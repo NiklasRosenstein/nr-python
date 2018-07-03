@@ -1,36 +1,24 @@
-import io
-import os
+
 import setuptools
-import sys
+import io
 
-if any('dist' in x for x in sys.argv):
-  import setuptools_readme
-  setuptools_readme.convert('README.md', encoding='utf8')
-if os.path.isfile('README.rst'):
-  with io.open('README.rst', encoding='utf8') as fp:
-    long_description = fp.read()
-    del fp
-else:
-  long_description = ''
+with io.open('README.md') as fp:
+  readme = fp.read()
 
-with open('requirements.txt') as fp:
-  reqs = fp.readlines()
+with io.open('requirements.txt') as fp:
+  requirements = fp.readlines()
 
 setuptools.setup(
-  name='bundler',
-  version='0.0.2',
-  license='MIT',
-  url='https://github.com/NiklasRosenstein/py-bundler',
-  author='Niklas Rosenstein',
-  author_email='rosensteinniklas@gmail.com',
-  description='Bundle the modules of a Python application. (WIP)',
-  long_description=long_description,
-  packages=setuptools.find_packages(),
-  install_requires=reqs,
-  entry_points=dict(
-    console_scripts=[
-      'python-bundler{d} = bundler.main:_entry_point'.format(d=d)
-      for d in ('', sys.version[0], sys.version[:3])
-    ]
-  )
+  name = 'nr.pybundle',
+  version = '1.0.0',
+  author = 'Niklas Rosenstein',
+  author_email = 'rosensteinniklas@gmail.com',
+  description = 'Bundle the modules of a Python application. (WIP)',
+  long_description = readme,
+  long_description_content_type = 'text/markdown',
+  url = 'https://gitlab.niklasrosenstein.com/NiklasRosenstein/python/nr.pybundle',
+  license = 'MIT',
+  packages = setuptools.find_packages('src'),
+  package_dir = {'': 'src'},
+  install_requires = requirements
 )
