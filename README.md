@@ -26,6 +26,7 @@ Python application and placing them in a common directory.
 * The `collect` command should be extensible with Python code in order to be able to detect additional Python modules or shared library dependencies that may not be automatically discovered
 * The `collect` command needs to take package-data into account and include it in the generated bundle
 * The `collect` command should accept an option to include full packages and not just modules that have actually been determined to be imported
+* The `collect` command should skip DLLs/shared libraries that are a core part of the OS (eg. `user32.dll` on Windows)
 * Support packing binaries with [UPX](https://upx.github.io/)
 
 ---
