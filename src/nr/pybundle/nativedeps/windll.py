@@ -24,15 +24,17 @@ except ImportError:
   from urllib2 import urlopen
 
 import appdirs
-import csv
 import ctypes
+import functools
 import hashlib
 import logging
 import io
+import json
 import nr.fs
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 from ._base import Dependency
@@ -57,52 +59,67 @@ def _get_long_path_name(path):
     return buf.value
 
 
-def get_dependency_walker():
+@functools.lru_cache()
+def _get_dependencies_tool():
   """
-  Checks if `depends.exe` is in the system PATH. If not, it will be downloaded
-  and extracted to a temporary directory. Note that the file will not be
-  deleted afterwards.
+  Checks if `Dependencies.exe` is in the system PATH. If not, it will be
+  downloaded from GitHub to a temporary directory. The download will not
+  be deleted afterwards as it may be used again later.
 
-  Returns the path to the Dependency Walker executable.
+  Returns the path to `Dependencies.exe`.
   """
 
   for dirname in os.getenv('PATH', '').split(os.pathsep):
-    filename = os.path.join(dirname, 'depends.exe')
+    filename = os.path.join(dirname, 'Dependencies.exe')
     if os.path.isfile(filename):
-      logger.info('Dependency Walker found at "{}"'.format(filename))
+      logger.info('Dependencies Tool found at "{}"'.format(filename))
       return filename
 
-  temp_exe = os.path.join(tempfile.gettempdir(), 'depends.exe')
-  temp_dll = os.path.join(tempfile.gettempdir(), 'depends.dll')
+  arch = 'x64' if sys.maxsize > 2**32 else 'x86'
+  temp_dir = os.path.join(CACHE_DIR, 'Dependencies_' + arch)
+  temp_exe = os.path.join(temp_dir, 'Dependencies.exe')
+  url = 'https://github.com/lucasg/Dependencies/releases/download/v1.8/Dependencies_{}_Release.zip'.format(arch)
+
   if os.path.isfile(temp_exe):
-    logger.info('Dependency Walker found at "{}"'.format(temp_exe))
+    logger.info('Dependencies Tool found at "{}"'.format(temp_exe))
     return temp_exe
 
-  logger.info('Dependency Walker not found. Downloading ...')
-  with urlopen('http://dependencywalker.com/depends22_x64.zip') as fp:
+  logger.info('Dependencies Tool not found. Downloading ...')
+  with urlopen(url) as fp:
     data = fp.read()
 
-  logger.info('Extracting Dependency Walker to "{}"'.format(temp_exe))
-  with zipfile.ZipFile(io.BytesIO(data)) as fp:
-    with fp.open('depends.exe') as src:
-      with open(temp_exe, 'wb') as dst:
-        shutil.copyfileobj(src, dst)
-    with fp.open('depends.dll') as src:
-      with open(temp_dll, 'wb') as dst:
-        shutil.copyfileobj(src, dst)
+  logger.info('Extracting Dependencies Tool to "{}"'.format(temp_dir))
+  with zipfile.ZipFile(io.BytesIO(data)) as zipf:
+    nr.fs.makedirs(temp_dir)
+    zipf.extractall(temp_dir)
+
+  if not os.path.isfile(temp_exe):
+    raise RuntimeError('"{}" does not exist after extraction'.format(temp_exe))
 
   return temp_exe
 
 
+@functools.lru_cache()
+def _get_known_dlls():
+  """
+  Returns a list of the known DLLs as reported by the Dependencies tool.
+  """
+
+  command = [_get_dependencies_tool(), '-json', '-knowndll']
+  data = json.loads(subprocess.check_output(command))
+  return list(set(data['x64'] + data['x86']))
+
+
 def get_dependencies(pefile):
   """
-  Uses Dependency Walker to get a list of dependencies for the specified
-  PE file (a Windows executable or dynamic link library).
+  Returns a list of the Windows DLL names that the specified *pefile* imports.
+  This list is non-recursive, thus containing only the directly imported DLL
+  names.
   """
 
   # Check if we already analyzed this file before.
   hasher = hashlib.sha1(os.path.normpath(pefile).encode('utf8'))
-  cachefile = hasher.hexdigest() + '_' + os.path.basename(pefile) + '-deps.csv'
+  cachefile = hasher.hexdigest() + '_' + os.path.basename(pefile) + '-deps.json'
   cachefile = os.path.join(CACHE_DIR, cachefile)
 
   if nr.fs.compare_timestamp(pefile, cachefile):
@@ -110,24 +127,22 @@ def get_dependencies(pefile):
     logger.info('Analyzing "{}" ...'.format(pefile))
     nr.fs.makedirs(os.path.dirname(cachefile))
 
-    command = [get_dependency_walker(), '/c', '/oc:' + cachefile, pefile]
+    command = [_get_dependencies_tool(), '-json', '-imports', pefile]
     logger.debug('Running command: {}'.format(command))
-    code = subprocess.call(command)
-
-    if code > 0x00010000:  # Processing error and no work was done
-      raise RuntimeError('Dependency Walker exited with non-zero returncode {}.'.format(code))
-
+    with open(cachefile, 'wb') as fp:
+      subprocess.check_call(command, stdout=fp, stderr=sys.stderr)
   else:
     logger.info('Using cached dependency information for "{}"'.format(pefile))
 
-  result = []
   with io.open(cachefile) as src:
-    src.readline()  # header
-    for line in csv.reader(src):
-      dep = Dependency(line[1])
-      if dep.name.lower()[:6] in ('api-ms', 'ext-ms'):
-        continue
-      result.append(dep)
+    data = json.load(src)
+
+  result = []
+  knowns = [x.lower() for x in _get_known_dlls()]
+  for module in data['Imports']:
+    if module['Name'].lower() in knowns:
+      continue
+    result.append(Dependency(module['Name']))
 
   return result
 
