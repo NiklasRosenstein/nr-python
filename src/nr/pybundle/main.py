@@ -38,6 +38,7 @@ def get_argument_parser(prog=None):
       return super(SubParsersAction, self).add_parser(name, **kwargs)
 
   parser = argparse.ArgumentParser(prog=prog, add_help=False)
+  parser.add_argument('-v', '--verbose', action='store_true')
   parser.register('action', 'parsers', SubParsersAction)
   subparser = parser.add_subparsers(dest='command')
 
@@ -91,13 +92,13 @@ def get_argument_parser(prog=None):
 
 
 def main(argv=None, prog=None):
-  logging.basicConfig(level=logging.INFO)
   parser = get_argument_parser(prog)
   args = parser.parse_args(argv)
   if not args.command:
     parser.print_usage()
     return 0
   args._parser = parser
+  logging.basicConfig(level=logging.INFO if args.verbose else logging.WARN)
   globals()['do_' + args.command](args)
 
 
@@ -237,7 +238,7 @@ def do_collect(args):
     for mod in modules:
       if mod.type == mod.NATIVE:
         shared_deps += nativedeps.get_dependencies(mod.filename)
-        copy_files.append(mod.filename)
+        #copy_files.append(mod.filename)
 
     print('Resolving shared dependencies ...')
     deps_mapping = {}
@@ -259,7 +260,6 @@ def do_collect(args):
       shutil.copy(src, dst)
 
     shutil.copy(zipball, os.path.join(args.standalone_dir, 'libs.zip'))
-
 
   print('Done.')
 
