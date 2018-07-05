@@ -74,6 +74,9 @@ def get_argument_parser(prog=None):
       help='Do not automatically include core packages that are required to '
         'run the Python interpreter.')
 
+  tree.add_argument('--package', action='store_true',
+    help='Show the hierarchy of a package, no dependencies.')
+
   collect.add_argument('include', nargs='*', help='The name of additional '
     'Python modules to include.')
   collect.add_argument('-D', '--dist-dir', metavar='DIRECTORY',
@@ -193,8 +196,15 @@ def do_tree(args):
   if not args.no_defaults:
     args.exclude += exclude_defaults
   finder = ModuleFinder(excludes=args.exclude)
-  for mod in _iter_modules(args.module, finder):
-    print('  ' * len(mod.imported_from) + mod.name, '({})'.format(mod.type))
+  show = lambda mod: print('  ' * len(mod.imported_from) + mod.name, '({})'.format(mod.type))
+  if args.package:
+    module = finder.find_module(args.module)
+    show(module)
+    for submod in finder.iter_package_modules(module):
+      show(submod)
+  else:
+    for mod in _iter_modules(args.module, finder):
+      show(mod)
 
 
 def do_dotviz(args):
