@@ -1,5 +1,6 @@
-appdirs
-pip
+appdirs>=1.4.3
+distlib>=0.2.7
+pip>=9.0.0
 nr.fs>=1.0.0
 nr.stream>=1.0.0
 nr.types>=1.0.3

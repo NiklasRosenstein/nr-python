@@ -412,3 +412,7 @@ def do_help(args):
     for action in subparser_actions:
       for choice in action._choices_actions:
         print('  {:<19} {}'.format(choice.dest, choice.help))
+
+
+if __name__ == '__main__':
+  sys.exit(main())
