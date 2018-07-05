@@ -355,6 +355,7 @@ def do_collect(args):
       maker.script_template = textwrap.dedent('''
         # -*- coding: utf-8 -*-
         if __name__ == '__main__':
+          import sys
           module = __import__('%(module)s', fromlist=[None])
           func = getattr(module, '%(func)s')
           sys.exit(func())
