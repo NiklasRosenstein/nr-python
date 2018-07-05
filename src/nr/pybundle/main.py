@@ -69,10 +69,12 @@ def get_argument_parser(prog=None):
   collect.add_argument('-c', '--compile-dir', metavar='DIRECTORY',
     help='The name of the directory where the byte-compiled and native '
       'Python modules will be placed in. If this is not specified, it '
-      'defaults to the "modules-compiled" directory in the -D, --dist-dir. '
-      'If this option is explicitly specified, it implies -b, --bytecompile.')
-  collect.add_argument('-b', '--bytecompile', action='store_true',
+      'defaults to the "modules-compiled" directory in the -D, --dist-dir.')
+  collect.add_argument('-b', '--bytecompile', action='store_true', default=None,
     help='Compile the collected Python modules to .pyc files.')
+  collect.add_argument('--no-bytecompile', action='store_false', dest='bytecompile',
+    help='Turn off byte compilation, use if --bytecompile would otherwise be '
+      'implied by another option.')
   collect.add_argument('-f', '--force', action='store_true',
     help='Do not copy modules to the dest directory if they seem unchanged '
       'from their timestamp.')
@@ -84,9 +86,20 @@ def get_argument_parser(prog=None):
     help='Create a ZIP file from the modules. If -b, --bytecompile is set '
       'or implied, the compiled modules directory will be zipped.')
   collect.add_argument('-s', '--standalone', action='store_true',
-    help='Create a standalone package that includes the Python interpreter.')
+    help='Create a standalone package that includes the Python interpreter. '
+      'This implies the --bytecompile option. Use --no-bytecompile to '
+      'turn off this implication.')
   collect.add_argument('-S', '--standalone-dir',
     help='The output directory for the standalone package.')
+  collect.add_argument('--whole-package', action='store_true',
+    help='Collect encountered packages as a whole. While this option is '
+      'turned on, you can turn the behavior off for certain packages by '
+      'adding a - (minus) to the module-name in the command-line. You can '
+      'also leave this option off and turn it on for a specific package by '
+      'adding a + (plus) to the module-name.')
+  collect.add_argument('--no-srcs', action='store_true',
+    help='Do not include source files in the lib/ directory of the '
+      'standalone package.')
 
   return parser
 
@@ -115,6 +128,41 @@ def _iter_modules(module, finder=None):
   return finder.iter_modules(module, filename)
 
 
+def copy_directory(src, dst, force=False):
+  """
+  Copies the contents of directory *src* into *dst* recursively. Files that
+  already exist in *dst* will be timestamp-compared to avoid unnecessary
+  copying, unless *force* is specified.
+
+  Returns the number the total number of files and the number of files
+  copied.
+  """
+
+  total_files = 0
+  copied_files = 0
+
+  for srcroot, dirs, files in os.walk(src):
+    dstroot = os.path.join(dst, os.path.relpath(srcroot, src))
+    for filename in files:
+      srcfile = os.path.join(srcroot, filename)
+      dstfile = os.path.join(dstroot, filename)
+
+      total_files += 1
+      if force or nr.fs.compare_timestamp(srcfile, dstfile):
+        nr.fs.makedirs(dstroot)
+        shutil.copyfile(srcfile, dstfile)
+        copied_files += 1
+
+  return total_files, copied_files
+
+
+def parse_package_spec(spec, collect_whole, collect_sparse):
+  if spec[-1] in '+-':
+    spec, mode = spec[:-1], spec[-1]
+    {'+': collect_whole, '-': collect_sparse}[mode].add(spec)
+  return spec
+
+
 def do_tree(args):
   for mod in _iter_modules(args.module):
     print('  ' * len(mod.imported_from) + mod.name)
@@ -138,17 +186,12 @@ def do_collect(args):
     args.collect_dir = os.path.join(args.dist_dir, 'modules')
   if not args.compile_dir:
     args.compile_dir = os.path.join(args.dist_dir, 'modules-compiled')
-  else:
-    # -c, --compile-dir implies -b, --bytecompile.
-    args.bytecompile = True
   if not args.standalone_dir:
     args.standalone_dir = os.path.join(args.dist_dir, 'package')
-  else:
-    # -S, --standalone-dir implies -s, --standalone.
-    args.standalone = True
-  if args.standalone:
+  if args.standalone and args.bytecompile is None:
     args.bytecompile = True
-    args.zipmodules = True
+  if args.bytecompile is None:
+    args.bytecompile = False
 
   # Prepare the module finder.
   excludes = list(stream.concat([x.split(',') for x in args.exclude]))
@@ -157,7 +200,11 @@ def do_collect(args):
   print('Collecting modules ...')
   seen = set()
   modules = []
-
+  collect_whole = set()
+  collect_sparse = set()
+  args.module = parse_package_spec(args.module, collect_whole, collect_sparse)
+  for i, module in enumerate(args.include):
+    args.include[i] = parse_package_spec(module, collect_whole, collect_sparse)
   it = _iter_modules(args.module, finder)
   it = stream.chain(it, *[finder.iter_modules(x) for x in args.include])
   for mod in it:
@@ -168,6 +215,12 @@ def do_collect(args):
       print('  warning: module not found: {!r}'.format(mod.name))
       continue
     modules.append(mod)
+
+    if args.whole_package or (mod.name in collect_whole and not mod.name in collect_sparse):
+      for submod in finder.iter_package_modules(mod):
+        if submod.name in seen: continue
+        seen.add(submod.name)
+        modules.append(submod)
 
   print('Copying {} modules to "{}" ...'.format(len(modules), args.collect_dir))
   unchanged = 0
@@ -259,7 +312,27 @@ def do_collect(args):
       nr.fs.makedirs(os.path.dirname(dst))
       shutil.copy(src, dst)
 
-    shutil.copy(zipball, os.path.join(args.standalone_dir, 'libs.zip'))
+    if args.zipmodules:
+      print('  Copying zipped modules ...')
+      shutil.copy(zipball, os.path.join(args.standalone_dir, 'libs.zip'))
+      # TODO: We need to copy at least some basic files to the standalone's
+      #       lib/ directory, including at least the abc, codecs, encodings,
+      #       os and site modules.
+      #       The site module must be altered so that there is a zipimporter
+      #       for `libs.zip`.
+      print('  [TODO]: Add core Python modules to lib/ directory ...')
+      nr.fs.makedirs(os.path.join(args.standalone_dir, 'lib'))
+      with open(os.path.join(args.standalone_dir, 'lib', 'os.py'), 'w') as fp:
+        fp.write('# TODO: Standard os module here ...')
+      with open(os.path.join(args.standalone_dir, 'lib', 'site.py'), 'w') as fp:
+        fp.write('# TODO: Created zipimporter for libs.zip')
+    else:
+      if not args.no_srcs:
+        print('  Copying module sources ...')
+        copy_directory(args.collect_dir, os.path.join(args.standalone_dir, 'lib'))
+      if args.bytecompile:
+        print('  Copying compiled modules ...')
+        copy_directory(args.compile_dir, os.path.join(args.standalone_dir, 'lib'))
 
   print('Done.')
 

@@ -187,22 +187,8 @@ class ModuleFinder(object):
       # TODO: Configurable behaviour for Python 2 where __init__.py is
       #       required and namespace packages are not automatically
       #       supported.
-      script_file = os.path.join(dirname, os.sep.join(parts)) + '.py'
-      if os.path.isfile(script_file):
-        result = ModuleInfo(module_name, script_file, ModuleInfo.SRC)
-        break
-      package_file = os.path.join(dirname, os.sep.join(parts), '__init__.py')
-      if os.path.isfile(package_file):
-        result = ModuleInfo(module_name, package_file, ModuleInfo.SRC)
-        break
-
-      for suffix in self.native_suffixes:
-        native_file = os.path.join(dirname, os.sep.join(parts)) + suffix
-        if os.path.isfile(native_file):
-          result = ModuleInfo(module_name, native_file, ModuleInfo.NATIVE)
-          break
-      if result:
-        break
+      result = self.get_module_info_from_basename(module_name, os.path.join(dirname, *parts))
+      if result: break
     else:
       return ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
 
@@ -252,3 +238,42 @@ class ModuleFinder(object):
         imported_from = [module.name] + imported_from
         for imp in get_imports(module.filename):
           stack.append((module.join_import_from(imp.name), imported_from))
+
+  def iter_package_modules(self, module, recursive=True):
+    if os.path.basename(module.filename) != '__init__.py':
+      return; yield  # not a package
+    dirname = os.path.dirname(module.filename)
+    for name in os.listdir(dirname):
+      if name.endswith('.py'):
+        name = name[:-3]
+      if name == '__init__':
+        continue
+      path = os.path.join(dirname, name)
+      submodule = self.get_module_info_from_basename(module.name + '.' + name, path)
+      if submodule:
+        yield submodule
+        if recursive:
+          yield from self.iter_package_modules(submodule)
+
+  def get_module_type(self, filename):
+    if not os.path.isfile(filename):
+      return None
+    if filename.endswith('.py'):
+      return ModuleInfo.SRC
+    for suffix in self.native_suffixes:
+      if filename.endswith(suffix):
+        return ModuleInfo.NATIVE
+    return None
+
+  def get_module_info_from_basename(self, module_name, basename):
+    kind = self.get_module_type(basename + '.py')
+    if kind is not None:
+      return ModuleInfo(module_name, basename + '.py', kind)
+    kind = self.get_module_type(os.path.join(basename, '__init__.py'))
+    if kind:
+      return ModuleInfo(module_name, os.path.join(basename, '__init__.py'), kind)
+    for suffix in self.native_suffixes:
+      kind = self.get_module_type(basename + suffix)
+      if kind:
+        return ModuleInfo(module_name, basename + suffix, kind)
+    return None
