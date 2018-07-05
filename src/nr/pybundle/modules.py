@@ -73,13 +73,15 @@ class ModuleInfo(Named):
   def relative_filename(self):
     if not self.filename:
       return None
+    parts = self.name.split('.')
+    parent = os.path.join(*parts[:-1]) if len(parts) > 1 else ''
     if self.type == self.SRC:
       if self.ispkg:
-        return os.path.join(os.path.join(*self.name.split('.')), '__init__.py')
+        return os.path.join(parent, parts[-1], '__init__.py')
       else:
-        return os.path.join(*self.name.split('.')) + '.py'
+        return os.path.join(parent, parts[-1] + '.py')
     else:
-      return os.path.basename(self.filename)
+      return os.path.join(parent, os.path.basename(self.filename))
 
   def join_import_from(self, import_spec):
     """
@@ -235,6 +237,7 @@ class ModuleFinder(object):
     for imp in get_imports(module.filename, source):
       stack.appendleft((module.join_import_from(imp.name), [module.name]))
 
+    yield module
     while stack:
       import_name, imported_from = stack.pop()
       if import_name in seen:
@@ -249,8 +252,10 @@ class ModuleFinder(object):
 
       hook = self.hooks.find_hook(module.name)
       if hook:
-        result = hook(HookData(self, module))
-        yield from result.modules
+        data = HookData()
+        hook(self, module, data)
+        for import_name in data.imports:
+          stack.append((import_name, [module.name] + imported_from))
 
       if module.type == ModuleInfo.SRC:
         imported_from = [module.name] + imported_from
@@ -345,12 +350,5 @@ class HookFinder(object):
 
 class HookData(Named):
   __annotations__ = [
-    ('finder', ModuleFinder),
-    ('module', ModuleInfo)
-  ]
-
-
-class HookResult(Named):
-  __annotations__ = [
-    ('modules', 'Iterable[ModuleInfo]')
+    ('imports', 'Iterable[str]', Named.Initializer(list))
   ]

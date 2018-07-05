@@ -63,6 +63,17 @@ def get_argument_parser(prog=None):
     p.add_argument('module', help='The name of a Python module or path to '
       'a Python source file.')
 
+  for p in (collect, tree):
+    p.add_argument('--exclude', action='append', default=[],
+      help='A comma-separated list of module names to exclude. Any sub-modules '
+        'of the listed package will also be excluded. This argument can be '
+        'specified multiple times. A module name may also include a specific '
+        'import from a specific module that should be ignored in the form of '
+        'X->Y.')
+    p.add_argument('--no-defaults', action='store_true',
+      help='Do not automatically include core packages that are required to '
+        'run the Python interpreter.')
+
   collect.add_argument('include', nargs='*', help='The name of additional '
     'Python modules to include.')
   collect.add_argument('-D', '--dist-dir', metavar='DIRECTORY',
@@ -84,12 +95,6 @@ def get_argument_parser(prog=None):
   collect.add_argument('-f', '--force', action='store_true',
     help='Do not copy modules to the dest directory if they seem unchanged '
       'from their timestamp.')
-  collect.add_argument('--exclude', action='append', default=[],
-    help='A comma-separated list of module names to exclude. Any sub-modules '
-      'of the listed package will also be excluded. This argument can be '
-      'specified multiple times. A module name may also include a specific '
-      'import from a specific module that should be ignored in the form of '
-      'X->Y.')
   collect.add_argument('-z', '--zipmodules', action='store_true',
     help='Create a ZIP file from the modules. If -b, --bytecompile is set '
       'or implied, the compiled modules directory will be zipped.')
@@ -112,9 +117,6 @@ def get_argument_parser(prog=None):
     default=None,
     help='Create an application entry point. Must be of the format '
       'name=module:func.')
-  collect.add_argument('--no-defaults', action='store_true',
-    help='Do not automatically include core packages that are required to '
-      'run the Python interpreter.')
 
   return parser
 
@@ -188,7 +190,10 @@ def parse_package_spec(spec, collect_whole, collect_sparse):
 
 
 def do_tree(args):
-  for mod in _iter_modules(args.module):
+  if not args.no_defaults:
+    args.exclude += exclude_defaults
+  finder = ModuleFinder(excludes=args.exclude)
+  for mod in _iter_modules(args.module, finder):
     print('  ' * len(mod.imported_from) + mod.name, '({})'.format(mod.type))
 
 
