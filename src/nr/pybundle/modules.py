@@ -220,7 +220,8 @@ class ModuleFinder(object):
     if not filename:
       if not module:
         raise ValueError('need either module or filename parameter')
-      module = self.find_module(module)
+      if not isinstance(module, ModuleInfo):
+        module = self.find_module(module)
       if not module.filename or module.type == 'native':
         return
     else:

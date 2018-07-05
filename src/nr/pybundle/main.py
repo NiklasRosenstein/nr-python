@@ -33,7 +33,7 @@ from . import nativedeps
 from .modules import ModuleFinder
 
 
-collect_defaults = ['abc', 'codecs', 'encodings+', 'os', 'site']
+include_defaults = ['abc', 'codecs', 'encodings+', 'os', 'site']
 exclude_defaults = ['heapq->doctest', 'pickle->doctest', '_sitebuiltins->pydoc']
 
 
@@ -133,15 +133,24 @@ def main(argv=None, prog=None):
 _entry_point = lambda: sys.exit(main())
 
 
-def _iter_modules(module, finder=None):
-  if os.sep in module or os.path.isfile(module):
-    module, filename = None, module
+def _iter_modules(arg, finder=None):
+  if os.sep in arg or os.path.isfile(arg):
+    module_name, filename = None, arg
   else:
-    module, filename = module, None
+    module_name, filename = arg, None
   if not finder:
-    finder = ModuleFinder(excludes=exclude_defaults)
-  yield finder.find_module(module)
-  yield from finder.iter_modules(module, filename)
+    finder = ModuleFinder()
+
+  if module_name:
+    module = finder.find_module(module_name)
+    if not module:
+      raise RuntimeError('module not found: {}'.format(module_name))
+  else:
+    module = ModuleInfo('__main__', filename, ModuleInfo.SRC)
+
+  yield module
+  yield from finder.iter_modules(module)
+
 
 
 def copy_directory(src, dst, force=False):
@@ -219,7 +228,7 @@ def do_collect(args):
   if not args.no_defaults:
     if args.entrypoints:
       args.include.append('runpy')
-    args.include += collect_defaults
+    args.include += include_defaults
     args.exclude += exclude_defaults
 
   # Prepare the module finder.
@@ -233,7 +242,7 @@ def do_collect(args):
   collect_sparse = set()
   for i, module in enumerate(args.include):
     args.include[i] = parse_package_spec(module, collect_whole, collect_sparse)
-  it = stream.chain(*[finder.iter_modules(x) for x in args.include])
+  it = stream.chain(*[_iter_modules(x, finder) for x in args.include])
   for mod in it:
     if mod.type == mod.BUILTIN: continue
     if mod.name in seen: continue
