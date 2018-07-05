@@ -33,6 +33,10 @@ from . import nativedeps
 from .modules import ModuleFinder
 
 
+collect_defaults = ['abc', 'codecs', 'encodings+', 'os', 'site']
+exclude_defaults = ['heapq->doctest', 'pickle->doctest', '_sitebuiltins->pydoc']
+
+
 def get_argument_parser(prog=None):
   class SubParsersAction(argparse._SubParsersAction):
     def add_parser(self, name, **kwargs):
@@ -55,7 +59,7 @@ def get_argument_parser(prog=None):
   help.add_argument('help_command', nargs='?', help='The command to show '
     'the help for.')
 
-  for p in (tree, dotviz, collect):
+  for p in (tree, dotviz):
     p.add_argument('module', help='The name of a Python module or path to '
       'a Python source file.')
 
@@ -83,7 +87,9 @@ def get_argument_parser(prog=None):
   collect.add_argument('--exclude', action='append', default=[],
     help='A comma-separated list of module names to exclude. Any sub-modules '
       'of the listed package will also be excluded. This argument can be '
-      'specified multiple times.')
+      'specified multiple times. A module name may also include a specific '
+      'import from a specific module that should be ignored in the form of '
+      'X->Y.')
   collect.add_argument('-z', '--zipmodules', action='store_true',
     help='Create a ZIP file from the modules. If -b, --bytecompile is set '
       'or implied, the compiled modules directory will be zipped.')
@@ -106,6 +112,9 @@ def get_argument_parser(prog=None):
     default=None,
     help='Create an application entry point. Must be of the format '
       'name=module:func.')
+  collect.add_argument('--no-defaults', action='store_true',
+    help='Do not automatically include core packages that are required to '
+      'run the Python interpreter.')
 
   return parser
 
@@ -206,8 +215,12 @@ def do_collect(args):
     if not match:
       args._parser.error('invalid entrypoint specification: {}'.format(entry))
     args.include.append(match.group(1))
-  if args.entrypoints:
-    args.include.append('runpy')
+
+  if not args.no_defaults:
+    if args.entrypoints:
+      args.include.append('runpy')
+    args.include += collect_defaults
+    args.exclude += exclude_defaults
 
   # Prepare the module finder.
   excludes = list(stream.concat([x.split(',') for x in args.exclude]))
@@ -218,11 +231,9 @@ def do_collect(args):
   modules = []
   collect_whole = set()
   collect_sparse = set()
-  args.module = parse_package_spec(args.module, collect_whole, collect_sparse)
   for i, module in enumerate(args.include):
     args.include[i] = parse_package_spec(module, collect_whole, collect_sparse)
-  it = _iter_modules(args.module, finder)
-  it = stream.chain(it, *[finder.iter_modules(x) for x in args.include])
+  it = stream.chain(*[finder.iter_modules(x) for x in args.include])
   for mod in it:
     if mod.type == mod.BUILTIN: continue
     if mod.name in seen: continue

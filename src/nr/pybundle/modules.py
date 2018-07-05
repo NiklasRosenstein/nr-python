@@ -156,8 +156,10 @@ def join_import_from(import_spec, parent_module):
     return prefix + '.' + import_spec[level:]
 
 
-def check_module_exclude(module_name, excludes):
+def check_module_exclude(module_name, imported_from, excludes):
   for exclude in excludes:
+    if imported_from and exclude == (imported_from + '->' + module_name):
+      return True
     if exclude == module_name or module_name.startswith(exclude + '.'):
       return True
   return False
@@ -235,7 +237,7 @@ class ModuleFinder(object):
       if import_name in seen:
         continue
       seen.add(import_name)
-      if check_module_exclude(import_name, excludes):
+      if check_module_exclude(import_name, imported_from[0] if imported_from else None, excludes):
         continue
 
       module = self.find_module(import_name)
