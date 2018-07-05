@@ -24,6 +24,7 @@ import itertools
 import os
 import sys
 import sysconfig
+import types
 from nr.types import Named
 
 if os.name == 'nt':
@@ -167,13 +168,14 @@ def check_module_exclude(module_name, imported_from, excludes):
 
 class ModuleFinder(object):
 
-  def __init__(self, path=None, excludes=None, native_suffixes=None):
+  def __init__(self, path=None, excludes=None, native_suffixes=None, hooks=None):
     self.path = path or sys.path
     self.excludes = excludes or []
     self.modules = {}
     if native_suffixes is None:
       native_suffixes = list(NATIVE_SUFFIXES)
     self.native_suffixes = native_suffixes
+    self.hooks = hooks or HookFinder()
 
   def find_module(self, module_name):
     """
@@ -245,6 +247,11 @@ class ModuleFinder(object):
       module.imported_from[:] = imported_from
       yield module
 
+      hook = self.hooks.find_hook(module.name)
+      if hook:
+        result = hook(HookData(self, module))
+        yield from result.modules
+
       if module.type == ModuleInfo.SRC:
         imported_from = [module.name] + imported_from
         for imp in get_imports(module.filename):
@@ -288,3 +295,62 @@ class ModuleFinder(object):
       if kind:
         return ModuleInfo(module_name, basename + suffix, kind)
     return None
+
+
+class HookFinder(object):
+  """
+  This class finds a hook for a module when examining its imports and
+  dependencies. A hook is a file called `hook-module.py` where `module` is
+  the name of the module that is being hooked. It must provide a `examine()`
+  method that accepts a #HookData as its first argument and return a
+  #HookResult object.
+  """
+
+  package_dir = os.path.join(os.path.dirname(__file__), 'hooks')
+
+  def __init__(self):
+    self.cache = {}
+
+  def find_hook(self, module_name):
+    parts = module_name.split('.')
+    for i in range(len(parts), 0, -1):
+      module_name = '.'.join(parts[:i])
+
+      # Load the hook into the cache, or fill the cache with
+      # None if the hook does not exist.
+      if module_name not in self.cache:
+        filename = os.path.join(os.getcwd(), 'hooks', 'hook-{}.py'.format(module_name))
+        if not os.path.isfile(filename):
+          filename = os.path.join(self.package_dir, 'hook-{}.py'.format(module_name))
+        if os.path.isfile(filename):
+          module = self._load_module(filename)
+          hook = module.examine
+        else:
+          hook = None
+        self.cache[module_name] = hook
+
+      hook = self.cache[module_name]
+      if hook is not None:
+        return hook
+    return hook
+
+  def _load_module(self, filename):
+    with open(filename) as fp:
+      name = os.path.basename(filename).rstrip('.py')
+      module = types.ModuleType(name)
+      module.__file__ = filename
+      exec(compile(fp.read(), filename, 'exec'), vars(module))
+      return module
+
+
+class HookData(Named):
+  __annotations__ = [
+    ('finder', ModuleFinder),
+    ('module', ModuleInfo)
+  ]
+
+
+class HookResult(Named):
+  __annotations__ = [
+    ('modules', 'Iterable[ModuleInfo]')
+  ]

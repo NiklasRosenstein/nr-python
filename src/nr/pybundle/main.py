@@ -152,7 +152,6 @@ def _iter_modules(arg, finder=None):
   yield from finder.iter_modules(module)
 
 
-
 def copy_directory(src, dst, force=False):
   """
   Copies the contents of directory *src* into *dst* recursively. Files that
