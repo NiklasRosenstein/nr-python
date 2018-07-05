@@ -230,7 +230,6 @@ class ModuleFinder(object):
     for imp in get_imports(module.filename, source):
       stack.appendleft((module.join_import_from(imp.name), [module.name]))
 
-    yield module
     while stack:
       import_name, imported_from = stack.pop()
       if import_name in seen:
