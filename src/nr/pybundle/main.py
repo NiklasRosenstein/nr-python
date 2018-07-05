@@ -130,8 +130,9 @@ def _iter_modules(module, finder=None):
   else:
     module, filename = module, None
   if not finder:
-    finder = ModuleFinder()
-  return finder.iter_modules(module, filename)
+    finder = ModuleFinder(excludes=exclude_defaults)
+  yield finder.find_module(module)
+  yield from finder.iter_modules(module, filename)
 
 
 def copy_directory(src, dst, force=False):
@@ -171,7 +172,7 @@ def parse_package_spec(spec, collect_whole, collect_sparse):
 
 def do_tree(args):
   for mod in _iter_modules(args.module):
-    print('  ' * len(mod.imported_from) + mod.name)
+    print('  ' * len(mod.imported_from) + mod.name, '({})'.format(mod.type))
 
 
 def do_dotviz(args):
