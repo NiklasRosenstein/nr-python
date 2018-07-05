@@ -23,9 +23,11 @@ import logging
 import nr.fs
 import os
 import py_compile
+import re
 import sys
 import shutil
 import zipfile
+from distlib.scripts import ScriptMaker
 from nr.stream import stream
 from . import nativedeps
 from .modules import ModuleFinder
@@ -100,6 +102,10 @@ def get_argument_parser(prog=None):
   collect.add_argument('--no-srcs', action='store_true',
     help='Do not include source files in the lib/ directory of the '
       'standalone package.')
+  collect.add_argument('-e', '--entry', dest='entrypoints', action='append',
+    default=None,
+    help='Create an application entry point. Must be of the format '
+      'name=module:func.')
 
   return parser
 
@@ -192,6 +198,15 @@ def do_collect(args):
     args.bytecompile = True
   if args.bytecompile is None:
     args.bytecompile = False
+  if args.entrypoints is None:
+    args.entrypoints = []
+  for entry in args.entrypoints:
+    match = re.match('^[\w_\.\-]+=([\w_\.]+):[\w_\.]+$', entry)
+    if not match:
+      args._parser.error('invalid entrypoint specification: {}'.format(entry))
+    args.include.append(match.group(1))
+  if args.entrypoints:
+    args.include.append('runpy')
 
   # Prepare the module finder.
   excludes = list(stream.concat([x.split(',') for x in args.exclude]))
@@ -333,6 +348,20 @@ def do_collect(args):
       if args.bytecompile:
         print('  Copying compiled modules ...')
         copy_directory(args.compile_dir, os.path.join(args.standalone_dir, 'lib'))
+
+    for entry in args.entrypoints:
+      import textwrap
+      maker = ScriptMaker(None, args.standalone_dir)
+      maker.script_template = textwrap.dedent('''
+        # -*- coding: utf-8 -*-
+        if __name__ == '__main__':
+          module = __import__('%(module)s', fromlist=[None])
+          func = getattr(module, '%(func)s')
+          sys.exit(func())
+        ''').strip()
+      maker.executable = os.path.join('runtime', os.path.basename(sys.executable))
+      maker.variants = set([''])
+      maker.make(entry)
 
   print('Done.')
 
