@@ -108,7 +108,9 @@ def _find_nodes(ast_node, predicate):
 def get_imports(filename, source=None):
   """
   Returns a list of #ImportInfo tuples for all module imports in the specified
-  Python source file or the *source* string.
+  Python source file or the *source* string. Note that `from X import Y`
+  imports could also refer to a member of the module X named Y and not the
+  module X.Y.
   """
 
   if source is None:
@@ -122,8 +124,15 @@ def get_imports(filename, source=None):
     for alias in node.names:
       result.append(ImportInfo(alias.name, filename, node.lineno))
   for node in _find_nodes(module, lambda x: isinstance(x, ast.ImportFrom)):
-    import_name = '.' * node.level + (node.module or '')
-    result.append(ImportInfo(import_name, filename, node.lineno))
+    parent_name = '.' * node.level + (node.module or '')
+    result.append(ImportInfo(parent_name, filename, node.lineno))
+    for alias in node.names:
+      import_name = parent_name
+      if alias.name != '*':
+        if not import_name.endswith('.'):
+          import_name += '.'
+        import_name += alias.name
+      result.append(ImportInfo(import_name, filename, node.lineno))
 
   result.sort(key=lambda x: x.lineno)
   return result
