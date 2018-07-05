@@ -267,8 +267,7 @@ class ModuleFinder(object):
       return; yield  # not a package
     dirname = os.path.dirname(module.filename)
     for name in os.listdir(dirname):
-      if name.endswith('.py'):
-        name = name[:-3]
+      name = os.path.splitext(name)[0]
       if name == '__init__':
         continue
       path = os.path.join(dirname, name)
