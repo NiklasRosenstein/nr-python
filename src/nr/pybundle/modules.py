@@ -131,7 +131,9 @@ class ModuleInfo(Named):
     ('package_data', list, Named.Initializer(list)),  #: A list of paths relative to the package directory that need to be included with the module.
     ('do_default_search', bool, True),  #: ModuleFinder.iter_modules() will check the imports
     ('do_hooks', bool, True), #: ModuleFinder.iter_modules() will check hooks
-    ('do_native_deps', bool, True)  #: Do look for native dependencies of this module (only for C extensions)
+    ('do_native_deps', bool, True),  #: Do look for native dependencies of this module (only for C extensions)
+    ('native_deps_exclude', list, Named.Initializer(list)),  #: A list of native dependencies that should be excluded (absolute paths)
+    ('native_deps_path', list, Named.Initializer(list)),  #: A list of paths to resolve native dependencies in, in priority to the standard PATH
   ]
 
   SRC = 'src'
@@ -338,14 +340,14 @@ class ModuleFinder(object):
     self.modules[module_name] = module
     return module
 
-  def find_modules(self, modules, whole_package=False):
+  def find_modules(self, modules, sparse=False):
     """
     Attempts to find all modules in the list of module names *modules*.
-    If *whole_package* is #True, all package members are gathered even
-    if some of the package members haven't been imported.
+    If *sparse* is #False, all package members are gathered even if some of
+    the package members haven't been imported.
 
     The module names in *modules* may be suffixed with a + or - sign
-    to indicate that for the specific package the *whole_package* flag
+    to indicate that for the specific package the *sparse* flag
     should be explicitly turned on or off.
     """
 
@@ -368,7 +370,7 @@ class ModuleFinder(object):
       if mod.name in seen: continue
       seen.add(mod.name)
 
-      if whole_package or (mod.name in collect_whole and not mod.name in collect_sparse):
+      if not sparse or (mod.name in collect_whole and not mod.name in collect_sparse):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
           seen.add(submod.name)
@@ -461,7 +463,7 @@ class ModuleFinder(object):
     Iterates over the modules
     """
 
-    if os.path.basename(module.filename) != '__init__.py':
+    if not module.filename or os.path.basename(module.filename) != '__init__.py':
       return; yield  # not a package
     dirname = os.path.dirname(module.filename)
     for name in os.listdir(dirname):
@@ -504,20 +506,21 @@ class HookFinder(object):
     self.catch_all_hooks = None
 
   def find_hook(self, module_name):
-    parts = module_name.split('.')
     hook = None
+    parts = module_name.split('.')
     for i in range(len(parts), 0, -1):
       module_name = '.'.join(parts[:i])
-      hook_filename = 'hook-{}.py'.format(module_name)
-      hook = self._load_hook(hook_filename)
+      hook = self._load_hook(module_name)
       if hook is not None:
         break
+
     if self.catch_all_hooks is None:
       self.catch_all_hooks = []
       for dirname in self.search_path:
         filename = os.path.join(dirname, 'hook.py')
         if os.path.isfile(filename):
           self.catch_all_hooks.append(self._load_module(filename).examine)
+
     return self._combine_hooks(hook, *self.catch_all_hooks)
 
   def _combine_hooks(self, *hooks):
@@ -555,3 +558,29 @@ class HookData(Named):
     ('imports', 'Iterable[str]', Named.Initializer(list)), #: A list of absolute module names
     ('modules', 'Iterable[ModuleInfo]', Named.Initializer(list))  #: A list of already resolved ModuleInfo objects
   ]
+
+
+# A list of core modules that should be included when creating a standalone
+# distribution of the CPython interpreter.
+# TODO: Are those the same for all CPython versions? Recorded in CPython 3.6
+core_libs = ['abc', 'codecs', 'encodings+', 'os', 'site', 'runpy']
+
+# A list of exclude specifiers for imports that commonly make sense to be
+# ignored when searching for modules to collect into a standalone distribution
+# of the CPython interpreter.
+common_excludes = [
+  '_sitebuiltins->pydoc',
+  'heapq->doctest',
+  'pickle->doctest',
+  'keyword->re',
+  'token->re',
+  'tokenize->argparse',
+  'pickle->argparse',
+]
+
+if sys.platform.startswith('win'):
+  common_excludes.append('_bootlocale->locale')
+  common_excludes.append('os->posixpath')
+else:
+  common_excludes.append('encodings->_bootlocale')
+  common_excludes.append('os->ntpath')

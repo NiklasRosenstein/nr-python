@@ -22,6 +22,7 @@ This is a cross-platform module to allow finding dependencies of shared
 libraries and executables.
 """
 
+import os
 import sys
 from ._base import Dependency
 
@@ -29,3 +30,48 @@ if sys.platform.startswith('win32'):
   from .windll import get_dependencies, resolve_dependency
 else:
   raise NotImplemntedError(sys.platform)
+
+
+class Collection(object):
+  """
+  Represents a collection of native dependencies. A useful data structure
+  when recursively collecting dependencies of one or multiple binaries.
+  """
+
+  def __init__(self, exclude_system_deps=False):
+    self.cache = {}  # lower-case filename -> get_dependencies() result
+    self.deps = {}  # lower-case filename -> Dependency
+    self.search_path = os.environ['PATH'].split(os.pathsep)
+    self.recursively_visited = set()
+    self.exclude_system_deps = exclude_system_deps
+
+  def __iter__(self):
+    return iter(self.deps.values())
+
+  def add(self, filename, dependencies_only=False, recursive=False):
+    """
+    Add *filename* as a binary and its resolved dependencies to the
+    collection. If *dependencies_only* is #True, the *filename* itself
+    will not be added to the collection.
+    """
+
+    dep = Dependency(os.path.basename(filename), filename)
+    if not dependencies_only:
+      dep = self.deps.setdefault(dep.name.lower(), dep)
+
+    try:
+      dependencies = self.cache[dep.name.lower()]
+    except KeyError:
+      dependencies = get_dependencies(filename, self.exclude_system_deps)
+      self.cache[dep.name.lower()] = dependencies
+
+    if dep.name.lower() in self.recursively_visited:
+      return
+    if recursive:
+      self.recursively_visited.add(dep.name.lower())
+
+    for dep in dependencies:
+      dep = self.deps.setdefault(dep.name.lower(), dep)
+      resolve_dependency(dep, self.search_path)
+      if recursive and dep.filename:
+        self.add(dep.filename, recursive=True)

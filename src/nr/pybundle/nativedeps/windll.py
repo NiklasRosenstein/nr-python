@@ -31,113 +31,216 @@ import io
 import json
 import nr.fs
 import os
+import pefile
 import shutil
 import subprocess
 import sys
 import tempfile
 import zipfile
 from ._base import Dependency
+from six import PY3
 
 logger = logging.getLogger(__name__)
-CACHE_DIR = os.path.join(appdirs.user_cache_dir(__name__))
+
+_known_dlls = [
+  # https://windowssucks.wordpress.com/knowndlls/
+  'wow64.dll',
+  'wow64cpu.dll',
+  'wow64win.dll',
+  'wowarmhw.dll',
+  'advapi32.dll',
+  'clbcatq.dll',
+  'combase.dll',
+  'COMDLG32.dll',
+  'coml2.dll',
+  'difxapi.dll',
+  'gdi32.dll',
+  'gdiplus.dll',
+  'IMAGEHLP.dll',
+  'IMM32.dll',
+  'kernel32.dll',
+  'MSCTF.dll',
+  'MSVCRT.dll',
+  'NORMALIZ.dll',
+  'NSI.dll',
+  'ole32.dll',
+  'OLEAUT32.dll',
+  'PSAPI.DLL',
+  'rpcrt4.dll',
+  'sechost.dll',
+  'Setupapi.dll',
+  'SHCORE.dll',
+  'SHELL32.dll',
+  'SHLWAPI.dll',
+  'user32.dll',
+  'WLDAP32.dll',
+  'WS2_32.dll',
+ 	'kernelbase.dll',
+  'IMAGEHLP.dll',
+  'gdi32.dll',
+  'NORMALIZ.dll',
+  'combase.dll',
+  'ole32.dll',
+  'kernel.appcore.dll',
+  'cfgmgr32.dll',
+  'WLDAP32.dll',
+  'SHELL32.dll',
+  'gdiplus.dll',
+  'coml2.dll',
+  'FLTLIB.DLL',
+  'win32u.dll',
+  'profapi.dll',
+  'user32.dll',
+  'MSASN1.dll',
+  'powrprof.dll',
+  'gdi32full.dll',
+  'COMCTL32.dll',
+  'CRYPT32.dll',
+  'PSAPI.DLL',
+  'SHCORE.dll',
+  'bcryptPrimitives.dll',
+  'OLEAUT32.dll',
+  'advapi32.dll',
+  'ntdll.dll',
+  'SHLWAPI.dll',
+  'msvcp_win.dll',
+  'WS2_32.dll',
+  'sechost.dll',
+  'COMDLG32.dll',
+  'difxapi.dll',
+  'Setupapi.dll',
+  'MSCTF.dll',
+  'WINTRUST.dll',
+  'IMM32.dll',
+  'windows.storage.dll',
+  'MSVCRT.dll',
+  'clbcatq.dll',
+  'rpcrt4.dll',
+  'kernel32.dll',
+  'NSI.dll',
+  'ucrtbase.dll',  # TODO: Node packages contain this dll
+
+  # Some manually added things
+  'aclui.dll',
+  'activeds.dll',
+  'adsldpc.dll',
+  'apphelp.dll',
+  'authz.dll',
+  'bcrypt.dll',
+  'combase.dll',
+  'devmgr.dll',
+  'dbgeng.dll',
+  'dbghelp.dll',
+  'dcomp.dll',
+  'dnsapi.dll',
+  'dsparse.dll',
+  'dhcpcsvc.dll',
+  'dsreg.dll',
+  'dwmapi.dll',
+  'EDPUTIL.dll',
+  'FIREWALLAPI.dll',
+  'gdi32.dll',
+  'hid.dll',
+  'IPHLPAPI.dll',
+  'logoncli.dll',
+  'mpr.dll',
+  'mshtml.dll',
+  'netutils.dll',
+  'netapi32.dll',
+  'propsys.dll',
+  'SCECLI.dll',
+  'secur32.dll',
+  'SETUPAPI.dll',
+  'srvcli.dll',
+  'SHLWAPI.dll',
+  'srpapi.dll',
+  'urlmon.dll',
+  'userenv.dll',
+  'uxtheme.dll',
+  'version.dll',
+  'webio.dll',
+  'winhttp.dll',
+  'wintrust.dll',
+  'wininet.dll',
+  'wer.dll',
+  'WEVTAPI.dll',
+  'WLDAP32.dll',
+  'wkscli.dll',
+  'wpaxholder.dll',
+  'winspool.drv',
+  'WINMMBASE.dll',
+  'winmm.dll',
+
+  'usp10.dll',
+  'd3d9.dll',
+  'd3d10.dll',
+  'd3d11.dll',
+  'DWrite.dll',
+  'dxgi.dll',
+  'dxva2.dll',
+]
+_known_dlls = set(x.lower() for x in _known_dlls)
 
 
-@functools.lru_cache()
-def _get_dependencies_tool():
-  """
-  Checks if `Dependencies.exe` is in the system PATH. If not, it will be
-  downloaded from GitHub to a temporary directory. The download will not
-  be deleted afterwards as it may be used again later.
+def get_dependencies(filename, exclude_system_deps=False):
+  pe = pefile.PE(filename, fast_load=True)
+  pe.parse_data_directories(
+    directories=[
+      pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_IMPORT'],
+      pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_EXPORT'],
+    ],
+    forwarded_exports_only=True,
+    import_dllnames_only=True,
+  )
 
-  Returns the path to `Dependencies.exe`.
-  """
+  def convert_dll_name_to_str(dll_name):
+    if PY3 and isinstance(dll_name, bytes):
+      dll_name = dll_name.decode('utf8')
+    return dll_name
 
-  for dirname in os.getenv('PATH', '').split(os.pathsep):
-    filename = os.path.join(dirname, 'Dependencies.exe')
-    if os.path.isfile(filename):
-      logger.info('Dependencies Tool found at "{}"'.format(filename))
-      return filename
+  dlls = set()
 
-  arch = 'x64' if sys.maxsize > 2**32 else 'x86'
-  temp_dir = os.path.join(CACHE_DIR, 'Dependencies_' + arch)
-  temp_exe = os.path.join(temp_dir, 'Dependencies.exe')
-  url = 'https://github.com/lucasg/Dependencies/releases/download/v1.8/Dependencies_{}_Release.zip'.format(arch)
+  # Some libraries have no other binary dependencies. Use empty list
+  # in that case. Otherwise pefile would return None.
+  # e.g. C:\windows\system32\kernel32.dll on Wine
+  for entry in getattr(pe, 'DIRECTORY_ENTRY_IMPORT', []):
+    dll_str = convert_dll_name_to_str(entry.dll)
+    dlls.add(dll_str)
 
-  if os.path.isfile(temp_exe):
-    logger.info('Dependencies Tool found at "{}"'.format(temp_exe))
-    return temp_exe
+  # We must also read the exports table to find forwarded symbols:
+  # http://blogs.msdn.com/b/oldnewthing/archive/2006/07/19/671238.aspx
+  export_symbols = getattr(pe, 'DIRECTORY_ENTRY_EXPORT', None)
+  if export_symbols:
+    for sym in export_symbols.symbols:
+      if sym.forwarder is not None:
+        # sym.forwarder is a bytes object. Convert it to a string.
+        forwarder = convert_dll_name_to_str(sym.forwarder)
+        # sym.forwarder is for example 'KERNEL32.EnterCriticalSection'
+        dll, _ = forwarder.split('.')
+        dlls.add(dll + ".dll")
 
-  logger.info('Dependencies Tool not found. Downloading ...')
-  with urlopen(url) as fp:
-    data = fp.read()
+  pe.close()
 
-  logger.info('Extracting Dependencies Tool to "{}"'.format(temp_dir))
-  with zipfile.ZipFile(io.BytesIO(data)) as zipf:
-    nr.fs.makedirs(temp_dir)
-    zipf.extractall(temp_dir)
+  if exclude_system_deps:
+    dlls = set(x for x in dlls if x.lower() not in _known_dlls)
 
-  if not os.path.isfile(temp_exe):
-    raise RuntimeError('"{}" does not exist after extraction'.format(temp_exe))
-
-  return temp_exe
-
-
-@functools.lru_cache()
-def _get_known_dlls():
-  """
-  Returns a list of the known DLLs as reported by the Dependencies tool.
-  """
-
-  command = [_get_dependencies_tool(), '-json', '-knowndll']
-  data = json.loads(subprocess.check_output(command))
-  return list(set(data['x64'] + data['x86']))
+  return [Dependency(x) for x in dlls]
 
 
-def get_dependencies(pefile):
-  """
-  Returns a list of the Windows DLL names that the specified *pefile* imports.
-  This list is non-recursive, thus containing only the directly imported DLL
-  names.
-  """
-
-  # Check if we already analyzed this file before.
-  hasher = hashlib.sha1(os.path.normpath(pefile).encode('utf8'))
-  cachefile = hasher.hexdigest() + '_' + os.path.basename(pefile) + '-deps.json'
-  cachefile = os.path.join(CACHE_DIR, cachefile)
-
-  if nr.fs.compare_timestamp(pefile, cachefile):
-    # Cachefile doesn't exist or is older than changes to pefile.
-    logger.info('Analyzing "{}" ...'.format(pefile))
-    nr.fs.makedirs(os.path.dirname(cachefile))
-
-    command = [_get_dependencies_tool(), '-json', '-imports', pefile]
-    logger.debug('Running command: {}'.format(command))
-    with open(cachefile, 'wb') as fp:
-      subprocess.check_call(command, stdout=fp, stderr=sys.stderr)
-  else:
-    logger.info('Using cached dependency information for "{}"'.format(pefile))
-
-  with io.open(cachefile) as src:
-    data = json.load(src)
-
-  result = []
-  knowns = [x.lower() for x in _get_known_dlls()]
-  for module in data['Imports']:
-    if module['Name'].lower() in knowns:
-      continue
-    result.append(Dependency(module['Name']))
-
-  return result
-
-
-def resolve_dependency(dep):
+def resolve_dependency(dep, search_path=None):
   """
   Attempts to find the #Dependency on the system. Returns the filename of the
-  native library or None if it can not be found.
+  native library or None if it can not be found and also assigns it to the
+  passed #Dependency object.
   """
 
-  for dirname in os.getenv('PATH', '').split(os.pathsep):
+  if dep.filename:
+    return dep.filename
+  if search_path is None:
+    search_path = os.environ['PATH'].split(os.pathsep)
+  for dirname in search_path:
     filename = os.path.join(dirname, dep.name)
     if os.path.isfile(filename):
-      return nr.fs.get_long_path_name(filename)
+      dep.filename = nr.fs.get_long_path_name(filename)
+      return dep.filename
   return None

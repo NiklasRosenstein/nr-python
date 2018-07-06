@@ -23,5 +23,6 @@ from nr.types import Named
 
 class Dependency(Named):
   __annotations__ = [
-    ('name', str)
+    ('name', str),
+    ('filename', str, None)
   ]
