@@ -24,7 +24,6 @@ except ImportError:
   from urllib2 import urlopen
 
 import appdirs
-import ctypes
 import functools
 import hashlib
 import logging
@@ -41,22 +40,6 @@ from ._base import Dependency
 
 logger = logging.getLogger(__name__)
 CACHE_DIR = os.path.join(appdirs.user_cache_dir(__name__))
-
-
-def _get_long_path_name(path):
-  """
-  Returns the long path name for a Windows path, i.e. the properly cased
-  path of an existing file or directory.
-  """
-
-  # Thanks to http://stackoverflow.com/a/3694799/791713
-  buf = ctypes.create_unicode_buffer(len(path) + 1)
-  GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
-  res = GetLongPathNameW(path, buf, len(path) + 1)
-  if res == 0 or res > 260:
-    return path
-  else:
-    return buf.value
 
 
 @functools.lru_cache()
@@ -156,5 +139,5 @@ def resolve_dependency(dep):
   for dirname in os.getenv('PATH', '').split(os.pathsep):
     filename = os.path.join(dirname, dep.name)
     if os.path.isfile(filename):
-      return _get_long_path_name(filename)
+      return nr.fs.get_long_path_name(filename)
   return None

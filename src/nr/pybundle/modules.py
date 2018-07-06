@@ -19,8 +19,10 @@
 # IN THE SOFTWARE.
 
 import ast
+import copy
 import collections
 import itertools
+import nr.fs
 import os
 import sys
 import sysconfig
@@ -44,6 +46,69 @@ class ImportInfo(Named):
     ('filename', str),
     ('lineno', int)
   ]
+
+  @property
+  def isabs(self):
+    return not self.name.startswith('.')
+
+  def to_abs(self, parent_module):
+    """
+    If *self* represents an absolute import, a copy will be returned.
+    Otherwise, the relative module spec will be converted to an absolute
+    module name using the specified *parent_module*.
+
+    If *parent_module* is a #ModuleInfo object, the relative import will
+    be treated properly depending on whether the module is the root of a
+    package or not.
+
+    Alternatively, if *parent_module* is a string, it will be treated as
+    if it was the root of a package.
+
+    For a root package, the full package name will be used when resolving
+    the relative module spec. For submodules, the parent package name will
+    be used for resolving the module spec.
+
+    Examples:
+
+        parent_module: pkg_a.bar
+        module spec: .foo
+        result: pkg_a.bar.foo
+
+        parent_module: pkg_a.bar (as a submodule)
+        module spec: .foo
+        result: pkg_a.foo
+    """
+
+    if isinstance(parent_module, ModuleInfo):
+      if parent_module.issubmodule:
+        parent_module = parent_module.name.rpartition('.')[0]
+      else:
+        parent_module = parent_module.name
+
+    if not isinstance(parent_module, str):
+      raise TypeError('parent_module: expected str or ModuleInfo, got {}'
+        .format(type(parent_module).__name__))
+
+    if self.isabs:
+      return copy.copy(self)
+
+    level = sum(1 for _ in itertools.takewhile(lambda x: x == '.', self.name))
+    if level == 0:
+      module_name = self.name
+    elif level == 1:
+      submodule = self.name.lstrip('.')
+      if submodule:
+        module_name = parent_module + '.' + submodule
+      else:
+        module_name = parent_module
+    else:
+      prefix = '.'.join(parent_module.split('.')[:-level+1])
+      if not prefix:
+        raise ValueError('import {!r} from {!r} is invalid'.format(
+          self.name, parent_module))
+      module_name = prefix + '.' + self.name[level:]
+
+    return ImportInfo(module_name, self.filename, self.lineno)
 
 
 class ModuleInfo(Named):
@@ -70,6 +135,10 @@ class ModuleInfo(Named):
     return self.name.count('.') == 0
 
   @property
+  def issubmodule(self):
+    return not (self.isroot or self.ispkg)
+
+  @property
   def relative_filename(self):
     if not self.filename:
       return None
@@ -82,19 +151,6 @@ class ModuleInfo(Named):
         return os.path.join(parent, parts[-1] + '.py')
     else:
       return os.path.join(parent, os.path.basename(self.filename))
-
-  def join_import_from(self, import_spec):
-    """
-    Joins a relative import like `from .foo import bar` with this module as
-    its parent module. If the module is not a root module or package root,
-    it will be joined with the package root.
-    """
-
-    if not self.isroot and not self.ispkg:
-      parent = self.name.rpartition('.')[0]
-    else:
-      parent = self.name
-    return join_import_from(import_spec, parent)
 
 
 def _find_nodes(ast_node, predicate):
@@ -141,24 +197,6 @@ def get_imports(filename, source=None):
   return result
 
 
-def join_import_from(import_spec, parent_module):
-  level = sum(1 for _ in itertools.takewhile(lambda x: x == '.', import_spec))
-  if level == 0:
-    return import_spec
-  elif level == 1:
-    submodule = import_spec.lstrip('.')
-    if submodule:
-      return parent_module + '.' + submodule
-    else:
-      return parent_module
-  else:
-    prefix = '.'.join(parent_module.split('.')[:-level+1])
-    if not prefix:
-      raise ValueError('import {!r} from {!r} is invalid'.format(
-        import_spec, parent_module))
-    return prefix + '.' + import_spec[level:]
-
-
 def check_module_exclude(module_name, imported_from, excludes):
   for exclude in excludes:
     if imported_from and exclude == (imported_from + '->' + module_name):
@@ -179,6 +217,34 @@ class ModuleFinder(object):
     self.native_suffixes = native_suffixes
     self.hooks = hooks or HookFinder()
 
+  def _try_module_at_path(self, path, module_name):
+    # TODO: Add configurable behaviour for Python 2 where __init__.py is
+    #       required and namespace packages are not automatically
+    #       supported.
+    parts = module_name.split('.')
+    basename = os.path.join(path, *parts)
+    kind = self._get_module_type(basename + '.py')
+    if kind is not None:
+      return ModuleInfo(module_name, basename + '.py', kind)
+    kind = self._get_module_type(os.path.join(basename, '__init__.py'))
+    if kind:
+      return ModuleInfo(module_name, os.path.join(basename, '__init__.py'), kind)
+    for suffix in self.native_suffixes:
+      kind = self._get_module_type(basename + suffix)
+      if kind:
+        return ModuleInfo(module_name, basename + suffix, kind)
+    return None
+
+  def _get_module_type(self, filename):
+    if not nr.fs.isfile_cs(filename):
+      return None
+    if filename.endswith('.py'):
+      return ModuleInfo.SRC
+    for suffix in self.native_suffixes:
+      if filename.endswith(suffix):
+        return ModuleInfo.NATIVE
+    return None
+
   def find_module(self, module_name):
     """
     Attempts to find the module specified by *module_name* in the
@@ -197,18 +263,16 @@ class ModuleFinder(object):
       return self.modules[module_name]
 
     parts = module_name.split('.')
-    result = None
+    module = None
     for dirname in self.path:
-      # TODO: Configurable behaviour for Python 2 where __init__.py is
-      #       required and namespace packages are not automatically
-      #       supported.
-      result = self.get_module_info_from_basename(module_name, os.path.join(dirname, *parts))
-      if result: break
+      module = self._try_module_at_path(dirname, module_name)
+      if module:
+        break
     else:
-      return ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
+      module = ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
 
-    self.modules[module_name] = result
-    return result
+    self.modules[module_name] = module
+    return module
 
   def iter_modules(self, module=None, filename=None, source=None, excludes=None):
     """
@@ -235,7 +299,7 @@ class ModuleFinder(object):
     stack = collections.deque()
 
     for imp in get_imports(module.filename, source):
-      stack.appendleft((module.join_import_from(imp.name), [module.name]))
+      stack.appendleft((imp.to_abs(module).name, [module.name]))
 
     yield module
     while stack:
@@ -260,7 +324,7 @@ class ModuleFinder(object):
       if module.type == ModuleInfo.SRC:
         imported_from = [module.name] + imported_from
         for imp in get_imports(module.filename):
-          stack.append((module.join_import_from(imp.name), imported_from))
+          stack.append((imp.to_abs(module).name, imported_from))
 
   def iter_package_modules(self, module, recursive=True):
     if os.path.basename(module.filename) != '__init__.py':
@@ -270,35 +334,14 @@ class ModuleFinder(object):
       name = os.path.splitext(name)[0]
       if name == '__init__':
         continue
-      path = os.path.join(dirname, name)
-      submodule = self.get_module_info_from_basename(module.name + '.' + name, path)
+      submodule = self._try_module_at_path(dirname, name)
       if submodule:
+        submodule.name = module.name + '.' + submodule.name
+        self.modules[submodule.name] = submodule
         yield submodule
         if recursive:
           yield from self.iter_package_modules(submodule)
 
-  def get_module_type(self, filename):
-    if not os.path.isfile(filename):
-      return None
-    if filename.endswith('.py'):
-      return ModuleInfo.SRC
-    for suffix in self.native_suffixes:
-      if filename.endswith(suffix):
-        return ModuleInfo.NATIVE
-    return None
-
-  def get_module_info_from_basename(self, module_name, basename):
-    kind = self.get_module_type(basename + '.py')
-    if kind is not None:
-      return ModuleInfo(module_name, basename + '.py', kind)
-    kind = self.get_module_type(os.path.join(basename, '__init__.py'))
-    if kind:
-      return ModuleInfo(module_name, os.path.join(basename, '__init__.py'), kind)
-    for suffix in self.native_suffixes:
-      kind = self.get_module_type(basename + suffix)
-      if kind:
-        return ModuleInfo(module_name, basename + suffix, kind)
-    return None
 
 
 class HookFinder(object):
@@ -324,9 +367,9 @@ class HookFinder(object):
       # None if the hook does not exist.
       if module_name not in self.cache:
         filename = os.path.join(os.getcwd(), 'hooks', 'hook-{}.py'.format(module_name))
-        if not os.path.isfile(filename):
+        if not nr.fs.isfile_cs(filename):
           filename = os.path.join(self.package_dir, 'hook-{}.py'.format(module_name))
-        if os.path.isfile(filename):
+        if nr.fs.isfile_cs(filename):
           module = self._load_module(filename)
           hook = module.examine
         else:
