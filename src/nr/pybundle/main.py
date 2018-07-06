@@ -200,8 +200,9 @@ def do_tree(args):
   if args.package:
     module = finder.find_module(args.module)
     show(module)
-    for submod in finder.iter_package_modules(module):
-      show(submod)
+    if module.type != module.NOTFOUND:
+      for submod in finder.iter_package_modules(module):
+        show(submod)
   else:
     for mod in _iter_modules(args.module, finder):
       show(mod)
@@ -391,7 +392,9 @@ def do_collect(args):
         # -*- coding: utf-8 -*-
         if __name__ == '__main__':
           import sys
-          module = __import__('%(module)s', fromlist=[None])
+          module = __import__('%(module)s')
+          for name in '%(module)s'.split('.')[1:]:
+            module = getattr(module, name)
           func = getattr(module, '%(func)s')
           sys.exit(func())
         ''').strip()
