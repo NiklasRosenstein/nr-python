@@ -134,6 +134,9 @@ class ModuleInfo(Named):
     ('do_native_deps', bool, True),  #: Do look for native dependencies of this module (only for C extensions)
     ('native_deps_exclude', list, Named.Initializer(list)),  #: A list of native dependencies that should be excluded (absolute paths)
     ('native_deps_path', list, Named.Initializer(list)),  #: A list of paths to resolve native dependencies in, in priority to the standard PATH
+    ('children', list, Named.Initializer(list)),  #: A list of child modules
+    ('parent', 'ModuleInfo', None),  #: The parent #ModuleInfo
+    ('natural', bool, True),  #: Boolean to indicate if the module was found naturally by following the dependency graph
   ]
 
   SRC = 'src'
@@ -308,7 +311,7 @@ class ModuleFinder(object):
     hook(self, module, data)
     return data
 
-  def find_module(self, module_name, imported_from=None):
+  def find_module(self, module_name, imported_from=None, mark_natural=True):
     """
     Attempts to find the module specified by *module_name* in the
     ModuleFinder's search path and returns a #ModuleInfo object.
@@ -321,7 +324,15 @@ class ModuleFinder(object):
     if not module_name:
       raise ValueError('empty module name')
     if module_name in self.modules:
-      return self.modules[module_name]
+      module = self.modules[module_name]
+      if mark_natural:
+        module.natural = True
+      return module
+
+    if '.' in module_name:
+      parent = self.find_module(module_name.rpartition('.')[0])
+    else:
+      parent = None
 
     if module_name in sys.builtin_module_names:
       module = ModuleInfo(module_name, None, 'builtin', [])
@@ -337,6 +348,10 @@ class ModuleFinder(object):
 
     if imported_from is not None:
       module.imported_from = list(imported_from)
+
+    module.parent = parent
+    if parent:
+      parent.children.append(module)
     self.modules[module_name] = module
     return module
 
@@ -373,6 +388,7 @@ class ModuleFinder(object):
       if not sparse or (mod.name in collect_whole and not mod.name in collect_sparse):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
+          submod.natural = True
           seen.add(submod.name)
 
     self.run_missing_hooks()
@@ -460,7 +476,9 @@ class ModuleFinder(object):
 
   def iter_package_modules(self, module, recursive=True):
     """
-    Iterates over the modules
+    Iterates over the submodules of the specified *module*. The modules
+    found this way are added to the #modules dictionary but are marked as
+    being found unnaturally.
     """
 
     if not module.filename or os.path.basename(module.filename) != '__init__.py':
@@ -476,6 +494,8 @@ class ModuleFinder(object):
       else:
         submodule = self._try_module_at_path(dirname, name)
         if submodule:
+          submodule.parent = module
+          submodule.natural = False
           self.modules[import_name] = submodule
           submodule.name = import_name
       if submodule:
