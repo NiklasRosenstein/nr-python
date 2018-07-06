@@ -30,12 +30,11 @@ import zipfile
 from distlib.scripts import ScriptMaker
 from nr.stream import stream
 from . import nativedeps
-from .modules import ModuleFinder
-
+from .modules import ModuleInfo, ModuleFinder
 
 include_defaults = ['abc', 'codecs', 'encodings+', 'os', 'site']
-exclude_defaults = ['heapq->doctest', 'pickle->doctest', '_sitebuiltins->pydoc']
-
+exclude_defaults = ['heapq->doctest', 'pickle->doctest', '_sitebuiltins->pydoc',
+                    'distutils.dist->email']
 
 def get_argument_parser(prog=None):
   class SubParsersAction(argparse._SubParsersAction):
@@ -102,9 +101,7 @@ def get_argument_parser(prog=None):
     help='Create a ZIP file from the modules. If -b, --bytecompile is set '
       'or implied, the compiled modules directory will be zipped.')
   collect.add_argument('-s', '--standalone', action='store_true',
-    help='Create a standalone package that includes the Python interpreter. '
-      'This implies the --bytecompile option. Use --no-bytecompile to '
-      'turn off this implication.')
+    help='Create a standalone package that includes the Python interpreter.')
   collect.add_argument('-S', '--standalone-dir',
     help='The output directory for the standalone package.')
   collect.add_argument('--whole-package', action='store_true',
@@ -132,6 +129,7 @@ def main(argv=None, prog=None):
     return 0
   args._parser = parser
   logging.basicConfig(level=logging.INFO if args.verbose else logging.WARN)
+  sys.path.insert(0, '.')  # Ensure that modules in the cwd are found first
   globals()['do_' + args.command](args)
 
 
@@ -153,11 +151,10 @@ def _iter_modules(arg, finder=None):
   else:
     module = ModuleInfo('__main__', filename, ModuleInfo.SRC)
 
-  yield module
-  yield from finder.iter_modules(module)
+  yield from finder.iter_modules(module, recursive=True)
 
 
-def copy_directory(src, dst, force=False):
+def copy_files_checked(src, dst, force=False):
   """
   Copies the contents of directory *src* into *dst* recursively. Files that
   already exist in *dst* will be timestamp-compared to avoid unnecessary
@@ -170,26 +167,26 @@ def copy_directory(src, dst, force=False):
   total_files = 0
   copied_files = 0
 
-  for srcroot, dirs, files in os.walk(src):
-    dstroot = os.path.join(dst, os.path.relpath(srcroot, src))
-    for filename in files:
-      srcfile = os.path.join(srcroot, filename)
-      dstfile = os.path.join(dstroot, filename)
+  if os.path.isfile(src):
+    total_files += 1
+    if force or nr.fs.compare_timestamp(src, dst):
+      nr.fs.makedirs(os.path.dirname(dst))
+      shutil.copyfile(src, dst)
+      copied_files += 1
+  else:
+    for srcroot, dirs, files in os.walk(src):
+      dstroot = os.path.join(dst, os.path.relpath(srcroot, src))
+      for filename in files:
+        srcfile = os.path.join(srcroot, filename)
+        dstfile = os.path.join(dstroot, filename)
 
-      total_files += 1
-      if force or nr.fs.compare_timestamp(srcfile, dstfile):
-        nr.fs.makedirs(dstroot)
-        shutil.copyfile(srcfile, dstfile)
-        copied_files += 1
+        total_files += 1
+        if force or nr.fs.compare_timestamp(srcfile, dstfile):
+          nr.fs.makedirs(dstroot)
+          shutil.copyfile(srcfile, dstfile)
+          copied_files += 1
 
   return total_files, copied_files
-
-
-def parse_package_spec(spec, collect_whole, collect_sparse):
-  if spec[-1] in '+-':
-    spec, mode = spec[:-1], spec[-1]
-    {'+': collect_whole, '-': collect_sparse}[mode].add(spec)
-  return spec
 
 
 def do_tree(args):
@@ -225,11 +222,9 @@ def do_collect(args):
   if not args.collect_dir:
     args.collect_dir = os.path.join(args.dist_dir, 'modules')
   if not args.compile_dir:
-    args.compile_dir = os.path.join(args.dist_dir, 'modules-compiled')
+    args.compile_dir = args.collect_dir
   if not args.standalone_dir:
     args.standalone_dir = os.path.join(args.dist_dir, 'package')
-  if args.standalone and args.bytecompile is None:
-    args.bytecompile = True
   if args.bytecompile is None:
     args.bytecompile = False
   if args.entrypoints is None:
@@ -252,37 +247,31 @@ def do_collect(args):
 
   print('Collecting modules ...')
   seen = set()
+  finder.find_modules(args.include, args.whole_package)
   modules = []
-  collect_whole = set()
-  collect_sparse = set()
-  for i, module in enumerate(args.include):
-    args.include[i] = parse_package_spec(module, collect_whole, collect_sparse)
-  it = stream.chain(*[_iter_modules(x, finder) for x in args.include])
-  for mod in it:
-    if mod.type == mod.BUILTIN: continue
-    if mod.name in seen: continue
-    seen.add(mod.name)
+  for mod in finder.modules.values():
     if mod.type == mod.NOTFOUND:
       print('  warning: module not found: {!r}'.format(mod.name))
       continue
-    modules.append(mod)
+    elif mod.type != mod.BUILTIN:
+      modules.append(mod)
 
-    if args.whole_package or (mod.name in collect_whole and not mod.name in collect_sparse):
-      for submod in finder.iter_package_modules(mod):
-        if submod.name in seen: continue
-        seen.add(submod.name)
-        modules.append(submod)
-
-  print('Copying {} modules to "{}" ...'.format(len(modules), args.collect_dir))
+  print('Copying {} modules and package data to "{}" ...'.format(len(modules), args.collect_dir))
   unchanged = 0
   compile_files = []
+  compile_files_modules = []
   copy_files = []
   for mod in modules:
     dest = os.path.join(args.collect_dir, mod.relative_filename)
     if mod.type == mod.SRC:
       compile_files.append((dest, os.path.join(args.compile_dir, mod.relative_filename) + 'c'))
+      compile_files_modules.append(mod)
     else:
       copy_files.append((dest, os.path.join(args.compile_dir, mod.relative_filename)))
+    for name in mod.package_data:
+      src = os.path.join(mod.directory, name)
+      dst = os.path.join(args.collect_dir, mod.relative_directory, name)
+      copy_files_checked(src, dst)
     if not args.force and not nr.fs.compare_timestamp(mod.filename, dest):
       unchanged += 1
       continue
@@ -328,7 +317,10 @@ def do_collect(args):
       'dist' if args.bytecompile else 'source', os.path.basename(filename)))
     with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
       # TODO: Also include package data files.
-      for src, pyc in compile_files:
+      for mod, (src, pyc) in zip(compile_files_modules, compile_files):
+        if not mod.check_zippable(finder.modules):
+          # TODO: Make sure this module goes into the lib/ directory.
+          continue
         src = pyc if args.bytecompile else src
         arcname = os.path.relpath(src, base_dir).replace(os.sep, '/')
         zipf.write(src, arcname)
@@ -380,10 +372,10 @@ def do_collect(args):
     else:
       if not args.no_srcs:
         print('  Copying module sources ...')
-        copy_directory(args.collect_dir, os.path.join(args.standalone_dir, 'lib'))
+        copy_files_checked(args.collect_dir, os.path.join(args.standalone_dir, 'lib'))
       if args.bytecompile:
         print('  Copying compiled modules ...')
-        copy_directory(args.compile_dir, os.path.join(args.standalone_dir, 'lib'))
+        copy_files_checked(args.compile_dir, os.path.join(args.standalone_dir, 'lib'))
 
     for entry in args.entrypoints:
       import textwrap

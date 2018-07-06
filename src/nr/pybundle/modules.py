@@ -27,6 +27,7 @@ import os
 import sys
 import sysconfig
 import types
+from nr.stream import stream
 from nr.types import Named
 
 if os.name == 'nt':
@@ -44,8 +45,17 @@ class ImportInfo(Named):
   __annotations__ = [
     ('name', str),
     ('filename', str),
-    ('lineno', int)
+    ('lineno', int),
+    ('is_from_import', bool)
   ]
+
+  @property
+  def parent(self):
+    if self.name == '.' or self.name.count('.') == 0:
+      return None
+    result = copy.copy(self)
+    result.name = self.name.rpartition('.')[0]
+    return result
 
   @property
   def isabs(self):
@@ -81,7 +91,7 @@ class ImportInfo(Named):
 
     if isinstance(parent_module, ModuleInfo):
       if parent_module.issubmodule:
-        parent_module = parent_module.name.rpartition('.')[0]
+        parent_module = parent_module.parent_name
       else:
         parent_module = parent_module.name
 
@@ -108,7 +118,7 @@ class ImportInfo(Named):
           self.name, parent_module))
       module_name = prefix + '.' + self.name[level:]
 
-    return ImportInfo(module_name, self.filename, self.lineno)
+    return ImportInfo(module_name, self.filename, self.lineno, self.is_from_import)
 
 
 class ModuleInfo(Named):
@@ -116,7 +126,12 @@ class ModuleInfo(Named):
     ('name', str),
     ('filename', str),
     ('type', type),
-    ('imported_from', list, Named.Initializer(list))
+    ('imported_from', list, Named.Initializer(list)),
+    ('zippable', bool, None),  #: If the module and its package data can be zipped. Can be resolved to the root module of a package with #check_zippable().
+    ('package_data', list, Named.Initializer(list)),  #: A list of paths relative to the package directory that need to be included with the module.
+    ('do_default_search', bool, True),  #: ModuleFinder.iter_modules() will check the imports
+    ('do_hooks', bool, True), #: ModuleFinder.iter_modules() will check hooks
+    ('do_native_deps', bool, True)  #: Do look for native dependencies of this module (only for C extensions)
   ]
 
   SRC = 'src'
@@ -139,6 +154,12 @@ class ModuleInfo(Named):
     return not (self.isroot or self.ispkg)
 
   @property
+  def parent_name(self):
+    if self.name.count('.') == 0:
+      return None
+    return self.name.rpartition('.')[0]
+
+  @property
   def relative_filename(self):
     if not self.filename:
       return None
@@ -151,6 +172,37 @@ class ModuleInfo(Named):
         return os.path.join(parent, parts[-1] + '.py')
     else:
       return os.path.join(parent, os.path.basename(self.filename))
+
+  @property
+  def relative_directory(self):
+    fn = self.relative_filename
+    if fn is not None:
+      fn = os.path.dirname(fn)
+    return fn
+
+  @property
+  def directory(self):
+    if self.filename is not None:
+      return os.path.dirname(self.filename)
+    return None
+
+  def check_zippable(self, modules):
+    """
+    Returns True if the module is zippable. If note defined in this
+    #ModuleInfo object, its parent module will be checked which must
+    me in the *modules* dictionary. If it is not defined on a root module,
+    it will fall back to True.
+    """
+
+    while self:
+      if self.zippable is not None:
+        return self.zippable
+
+      parent = self.parent_name
+      if parent is None or parent not in modules:
+        return True
+
+      self = modules[parent]
 
 
 def _find_nodes(ast_node, predicate):
@@ -181,17 +233,17 @@ def get_imports(filename, source=None):
 
   for node in _find_nodes(module, lambda x: isinstance(x, ast.Import)):
     for alias in node.names:
-      result.append(ImportInfo(alias.name, filename, node.lineno))
+      result.append(ImportInfo(alias.name, filename, node.lineno, False))
   for node in _find_nodes(module, lambda x: isinstance(x, ast.ImportFrom)):
     parent_name = '.' * node.level + (node.module or '')
-    result.append(ImportInfo(parent_name, filename, node.lineno))
+    result.append(ImportInfo(parent_name, filename, node.lineno, False))
     for alias in node.names:
       import_name = parent_name
       if alias.name != '*':
         if not import_name.endswith('.'):
           import_name += '.'
         import_name += alias.name
-      result.append(ImportInfo(import_name, filename, node.lineno))
+      result.append(ImportInfo(import_name, filename, node.lineno, True))
 
   result.sort(key=lambda x: x.lineno)
   return result
@@ -245,7 +297,16 @@ class ModuleFinder(object):
         return ModuleInfo.NATIVE
     return None
 
-  def find_module(self, module_name):
+  def _do_hooks(self, module):
+    data = HookData()
+    if not module.do_hooks:
+      return data
+    module.do_hooks = False
+    hook = self.hooks.find_hook(module.name) or (lambda *a: None)
+    hook(self, module, data)
+    return data
+
+  def find_module(self, module_name, imported_from=None):
     """
     Attempts to find the module specified by *module_name* in the
     ModuleFinder's search path and returns a #ModuleInfo object.
@@ -257,76 +318,149 @@ class ModuleFinder(object):
 
     if not module_name:
       raise ValueError('empty module name')
-    if module_name in sys.builtin_module_names:
-      return ModuleInfo(module_name, None, 'builtin', [])
     if module_name in self.modules:
       return self.modules[module_name]
 
-    parts = module_name.split('.')
-    module = None
-    for dirname in self.path:
-      module = self._try_module_at_path(dirname, module_name)
-      if module:
-        break
+    if module_name in sys.builtin_module_names:
+      module = ModuleInfo(module_name, None, 'builtin', [])
     else:
-      module = ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
+      parts = module_name.split('.')
+      module = None
+      for dirname in self.path:
+        module = self._try_module_at_path(dirname, module_name)
+        if module:
+          break
+      else:
+        module = ModuleInfo(module_name, None, ModuleInfo.NOTFOUND)
 
+    if imported_from is not None:
+      module.imported_from = list(imported_from)
     self.modules[module_name] = module
     return module
 
-  def iter_modules(self, module=None, filename=None, source=None, excludes=None):
+  def find_modules(self, modules, whole_package=False):
     """
-    An iterator for the modules that are imported by the specified *module*
-    or Python source file. The returned #ModuleInfo objects have their
-    *imported_from* member filled in order to be able to track how a module
-    was imported.
+    Attempts to find all modules in the list of module names *modules*.
+    If *whole_package* is #True, all package members are gathered even
+    if some of the package members haven't been imported.
+
+    The module names in *modules* may be suffixed with a + or - sign
+    to indicate that for the specific package the *whole_package* flag
+    should be explicitly turned on or off.
+    """
+
+    def parse_package_spec(spec, collect_whole, collect_sparse):
+      if spec[-1] in '+-':
+        spec, mode = spec[:-1], spec[-1]
+        {'+': collect_whole, '-': collect_sparse}[mode].add(spec)
+      return spec
+
+    collect_whole = set()
+    collect_sparse = set()
+    modules = list(modules)
+    for i, module in enumerate(modules):
+      modules[i] = parse_package_spec(module, collect_whole, collect_sparse)
+
+    seen = set()
+    it = stream.chain(*[self.iter_modules(x, recursive=True) for x in modules])
+    for mod in it:
+      if mod.type == mod.BUILTIN: continue
+      if mod.name in seen: continue
+      seen.add(mod.name)
+
+      if whole_package or (mod.name in collect_whole and not mod.name in collect_sparse):
+        for submod in self.iter_package_modules(mod):
+          if submod.name in seen: continue
+          seen.add(submod.name)
+
+    self.run_missing_hooks()
+
+  def iter_modules(self, module=None, filename=None, source=None,
+                   excludes=None, recursive=False, include_first=True):
+    """
+    Iterate over the modules imported by either the specified *module*, the
+    Python source file at *filename* or the Python source code that can be
+    specified with *source*.
+
+    The *excludes* can be a list of ignored modules or imports that will
+    be used in place of the #ModuleInfo.excludes list if specified.
+
+    If *include_first* is set to #True, the first module of which the
+    imports are checked will be yielded first, otherwise it will be
+    excluded from the iterator.
     """
 
     if excludes is None:
       excludes = self.excludes
 
-    if not filename:
-      if not module:
-        raise ValueError('need either module or filename parameter')
-      if not isinstance(module, ModuleInfo):
-        module = self.find_module(module)
-      if not module.filename or module.type == 'native':
-        return
-    else:
+    if not module and not filename and not source:
+      raise ValueError('at least one of the parameters "module", "filename" '
+                       'or "source" are required')
+
+    if source:
+      filename = '<string>'
+    if filename:
+      if module:
+        raise ValueError('parameters "module" and "filename" can not be '
+                         'specified at same time')
       module = ModuleInfo('__main__', filename, ModuleInfo.SRC)
 
-    seen = set()
-    stack = collections.deque()
+    if isinstance(module, str):
+      module = self.find_module(module)
 
-    for imp in get_imports(module.filename, source):
-      stack.appendleft((imp.to_abs(module).name, [module.name]))
+    if recursive:
+      seen = set()
+      def recursion(module):
+        if module.name in seen: return
+        seen.add(module.name)
+        yield module
+        for mod in self.iter_modules(module, excludes=excludes,
+                                     recursive=False,
+                                     include_first=False):
+          yield from recursion(mod)
+      yield from recursion(module)
+      return
 
-    yield module
-    while stack:
-      import_name, imported_from = stack.pop()
-      if import_name in seen:
-        continue
-      seen.add(import_name)
-      if check_module_exclude(import_name, imported_from[0] if imported_from else None, excludes):
-        continue
-
-      module = self.find_module(import_name)
-      module.imported_from[:] = imported_from
+    if include_first:
       yield module
 
-      hook = self.hooks.find_hook(module.name)
-      if hook:
-        data = HookData()
-        hook(self, module, data)
-        for import_name in data.imports:
-          stack.append((import_name, [module.name] + imported_from))
+    imported_from = [module.name] + module.imported_from
 
-      if module.type == ModuleInfo.SRC:
-        imported_from = [module.name] + imported_from
-        for imp in get_imports(module.filename):
-          stack.append((imp.to_abs(module).name, imported_from))
+    if module.do_hooks:
+      data = self._do_hooks(module)
+      for import_name in data.imports:
+        other_module = self.find_module(import_name, imported_from)
+        yield other_module
+      for module in data.modules:
+        yield module
+
+    if module.type == ModuleInfo.SRC and module.do_default_search:
+      for imp in get_imports(module.filename, source):
+        imp = imp.to_abs(module)
+        if check_module_exclude(imp.name, module.name, excludes):
+          continue
+
+        other_module = self.find_module(imp.name, imported_from)
+        if other_module.type == ModuleInfo.NOTFOUND and imp.is_from_import:
+          # From imports have the potential to be just member imports, so
+          # if we couldn't find a module in a from-import, we check its
+          # parent instead.
+          parent_imp = imp.parent
+          parent_module = self.find_module(parent_imp.name, imported_from) if parent_imp else None
+          if parent_module and parent_module.type != ModuleInfo.NOTFOUND:
+            other_module = parent_module
+
+        # Yield the highest parent module that hasn't been found instead.
+        while other_module.type == ModuleInfo.NOTFOUND and other_module.issubmodule:
+          other_module = self.find_module(other_module.parent_name, imported_from)
+
+        yield other_module
 
   def iter_package_modules(self, module, recursive=True):
+    """
+    Iterates over the modules
+    """
+
     if os.path.basename(module.filename) != '__init__.py':
       return; yield  # not a package
     dirname = os.path.dirname(module.filename)
@@ -334,14 +468,23 @@ class ModuleFinder(object):
       name = os.path.splitext(name)[0]
       if name == '__init__':
         continue
-      submodule = self._try_module_at_path(dirname, name)
+      import_name = module.name + '.' + name
+      if import_name in self.modules:
+        submodule = self.modules[import_name]
+      else:
+        submodule = self._try_module_at_path(dirname, name)
+        if submodule:
+          self.modules[import_name] = submodule
+          submodule.name = import_name
       if submodule:
-        submodule.name = module.name + '.' + submodule.name
-        self.modules[submodule.name] = submodule
         yield submodule
-        if recursive:
-          yield from self.iter_package_modules(submodule)
+      if recursive and submodule:
+        yield from self.iter_package_modules(submodule)
 
+  def run_missing_hooks(self):
+    for mod in self.modules.values():
+      if mod.do_hooks:
+        self._do_hooks(mod)
 
 
 class HookFinder(object):
@@ -392,5 +535,6 @@ class HookFinder(object):
 
 class HookData(Named):
   __annotations__ = [
-    ('imports', 'Iterable[str]', Named.Initializer(list))
+    ('imports', 'Iterable[str]', Named.Initializer(list)), #: A list of absolute module names
+    ('modules', 'Iterable[ModuleInfo]', Named.Initializer(list))  #: A list of already resolved ModuleInfo objects
   ]
