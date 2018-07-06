@@ -9,7 +9,7 @@
 
 ### Changes
 
-#### v1.0.1
+#### v1.0.1 (2018-07-05)
 
 * Add `nr.fs.isfile_cs()`
 * Add `nr.fs.get_long_path_name()`
