@@ -302,13 +302,12 @@ class ModuleFinder(object):
         return ModuleInfo.NATIVE
     return None
 
-  def _do_hooks(self, module):
+  def examine_module(self, module):
     data = HookData()
     if not module.do_hooks:
       return data
     module.do_hooks = False
-    hook = self.hooks.find_hook(module.name) or (lambda *a: None)
-    hook(self, module, data)
+    self.hooks.examine(self, module, data)
     return data
 
   def find_module(self, module_name, imported_from=None, mark_natural=True):
@@ -330,7 +329,7 @@ class ModuleFinder(object):
       return module
 
     if '.' in module_name:
-      parent = self.find_module(module_name.rpartition('.')[0])
+      parent = self.find_module(module_name.rpartition('.')[0], imported_from, mark_natural)
     else:
       parent = None
 
@@ -350,6 +349,7 @@ class ModuleFinder(object):
       module.imported_from = list(imported_from)
 
     module.parent = parent
+    module.natural = mark_natural
     if parent:
       parent.children.append(module)
     self.modules[module_name] = module
@@ -388,10 +388,8 @@ class ModuleFinder(object):
       if not sparse or (mod.name in collect_whole and not mod.name in collect_sparse):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
-          submod.natural = True
           seen.add(submod.name)
-
-    self.run_missing_hooks()
+          stream.consume(self.iter_modules(submod))
 
   def iter_modules(self, module=None, filename=None, source=None,
                    excludes=None, recursive=False, include_first=True):
@@ -426,6 +424,12 @@ class ModuleFinder(object):
     if isinstance(module, str):
       module = self.find_module(module)
 
+    if module.name not in self.modules:
+      self.modules[module.name] = module
+    elif self.modules[module.name] is not module:
+      raise RuntimeError('<module> {!r} already found but this is a '
+                         'different ModuleInfo instance'.format(module.name))
+
     if recursive:
       seen = set()
       def recursion(module):
@@ -445,9 +449,9 @@ class ModuleFinder(object):
     imported_from = [module.name] + module.imported_from
 
     if module.do_hooks:
-      data = self._do_hooks(module)
+      data = self.examine_module(module)
       for import_name in data.imports:
-        other_module = self.find_module(import_name, imported_from)
+        other_module = self.find_module(import_name, imported_from, module.natural)
         yield other_module
       for module in data.modules:
         yield module
@@ -458,19 +462,19 @@ class ModuleFinder(object):
         if check_module_exclude(imp.name, module.name, excludes):
           continue
 
-        other_module = self.find_module(imp.name, imported_from)
+        other_module = self.find_module(imp.name, imported_from, module.natural)
         if other_module.type == ModuleInfo.NOTFOUND and imp.is_from_import:
           # From imports have the potential to be just member imports, so
           # if we couldn't find a module in a from-import, we check its
           # parent instead.
           parent_imp = imp.parent
-          parent_module = self.find_module(parent_imp.name, imported_from) if parent_imp else None
+          parent_module = self.find_module(parent_imp.name, imported_from, module.natural) if parent_imp else None
           if parent_module and parent_module.type != ModuleInfo.NOTFOUND:
             other_module = parent_module
 
         # Yield the highest parent module that hasn't been found instead.
         while other_module.type == ModuleInfo.NOTFOUND and other_module.issubmodule:
-          other_module = self.find_module(other_module.parent_name, imported_from)
+          other_module = self.find_module(other_module.parent_name, imported_from, module.natural)
 
         yield other_module
 
@@ -479,6 +483,8 @@ class ModuleFinder(object):
     Iterates over the submodules of the specified *module*. The modules
     found this way are added to the #modules dictionary but are marked as
     being found unnaturally.
+
+    Using this method will not invoke hooks for the submodules.
     """
 
     if not module.filename or os.path.basename(module.filename) != '__init__.py':
@@ -503,10 +509,16 @@ class ModuleFinder(object):
       if recursive and submodule:
         yield from self.iter_package_modules(submodule)
 
-  def run_missing_hooks(self):
-    for mod in self.modules.values():
-      if mod.do_hooks:
-        self._do_hooks(mod)
+  def finalize(self):
+    while True:
+      count = 0
+      for mod in list(self.modules.values()):
+        if mod.do_hooks:
+          self.examine_module(mod)
+          count += 1
+      if not count:
+        break
+    self.hooks.finalize(self)
 
 
 class HookFinder(object):
@@ -525,12 +537,15 @@ class HookFinder(object):
     self.cache = {}
     self.catch_all_hooks = None
 
-  def find_hook(self, module_name):
+  def finalize(self, finder):
+    self._combine_hooks('finalize', *self.cache.values(), *self.catch_all_hooks)(finder)
+
+  def examine(self, finder, module, result):
     hook = None
-    parts = module_name.split('.')
+    parts = module.name.split('.')
     for i in range(len(parts), 0, -1):
       module_name = '.'.join(parts[:i])
-      hook = self._load_hook(module_name)
+      hook = self._load_hook(module.name)
       if hook is not None:
         break
 
@@ -539,16 +554,17 @@ class HookFinder(object):
       for dirname in self.search_path:
         filename = os.path.join(dirname, 'hook.py')
         if os.path.isfile(filename):
-          self.catch_all_hooks.append(self._load_module(filename).examine)
+          self.catch_all_hooks.append(self._load_module(filename))
 
-    return self._combine_hooks(hook, *self.catch_all_hooks)
+    self._combine_hooks('examine', hook, *self.catch_all_hooks)(finder, module, result)
 
-  def _combine_hooks(self, *hooks):
-    def examine(*args):
+  def _combine_hooks(self, member, *hooks):
+    def delegate(*args):
       for hook in hooks:
-        if hook is not None:
-          hook(*args)
-    return examine
+        if hook is not None and hasattr(hook, member):
+          getattr(hook, member)(*args)
+    delegate.__name__ = member
+    return delegate
 
   def _load_hook(self, module_name):
     try:
@@ -557,7 +573,7 @@ class HookFinder(object):
       for dirname in self.search_path:
         filename = os.path.join(dirname, 'hook-{}.py'.format(module_name))
         if nr.fs.isfile_cs(filename):
-          hook = self._load_module(filename).examine
+          hook = self._load_module(filename)
           break
       else:
         hook = None

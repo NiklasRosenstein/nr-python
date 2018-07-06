@@ -312,10 +312,11 @@ def main(argv=None, prog=None):
     if args.no_srcs and not args.compile_modules:
       parser.error('remove --no-srcs or add --compile-modules')
 
+    print('Resolving dependencies ...')
     modules = [] if args.no_default_includes else list(core_libs)
     modules += args.args
-    print('Resolving dependencies ...')
     finder.find_modules(modules, sparse=args.sparse)
+    finder.finalize()
 
     notfound = 0
     modules = []
