@@ -496,32 +496,49 @@ class HookFinder(object):
   #HookResult object.
   """
 
-  package_dir = os.path.join(os.path.dirname(__file__), 'hooks')
-
-  def __init__(self):
+  def __init__(self, search_path=None):
+    if search_path is None:
+      search_path = [os.path.join(os.path.dirname(__file__), 'hooks')]
+    self.search_path = search_path
     self.cache = {}
+    self.catch_all_hooks = None
 
   def find_hook(self, module_name):
     parts = module_name.split('.')
+    hook = None
     for i in range(len(parts), 0, -1):
       module_name = '.'.join(parts[:i])
-
-      # Load the hook into the cache, or fill the cache with
-      # None if the hook does not exist.
-      if module_name not in self.cache:
-        filename = os.path.join(os.getcwd(), 'hooks', 'hook-{}.py'.format(module_name))
-        if not nr.fs.isfile_cs(filename):
-          filename = os.path.join(self.package_dir, 'hook-{}.py'.format(module_name))
-        if nr.fs.isfile_cs(filename):
-          module = self._load_module(filename)
-          hook = module.examine
-        else:
-          hook = None
-        self.cache[module_name] = hook
-
-      hook = self.cache[module_name]
+      hook_filename = 'hook-{}.py'.format(module_name)
+      hook = self._load_hook(hook_filename)
       if hook is not None:
-        return hook
+        break
+    if self.catch_all_hooks is None:
+      self.catch_all_hooks = []
+      for dirname in self.search_path:
+        filename = os.path.join(dirname, 'hook.py')
+        if os.path.isfile(filename):
+          self.catch_all_hooks.append(self._load_module(filename).examine)
+    return self._combine_hooks(hook, *self.catch_all_hooks)
+
+  def _combine_hooks(self, *hooks):
+    def examine(*args):
+      for hook in hooks:
+        if hook is not None:
+          hook(*args)
+    return examine
+
+  def _load_hook(self, module_name):
+    try:
+      hook = self.cache[module_name]
+    except KeyError:
+      for dirname in self.search_path:
+        filename = os.path.join(dirname, 'hook-{}.py'.format(module_name))
+        if nr.fs.isfile_cs(filename):
+          hook = self._load_module(filename).examine
+          break
+      else:
+        hook = None
+      self.cache[module_name] = hook
     return hook
 
   def _load_module(self, filename):
