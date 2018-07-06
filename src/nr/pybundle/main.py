@@ -332,9 +332,8 @@ def do_collect(args):
     print('Analyzing C-extensions and Python executable ...')
     shared_deps = nativedeps.get_dependencies(sys.executable)
     for mod in modules:
-      if mod.type == mod.NATIVE:
+      if mod.type == mod.NATIVE and mod.do_native_deps:
         shared_deps += nativedeps.get_dependencies(mod.filename)
-        #copy_files.append(mod.filename)
 
     print('Resolving shared dependencies ...')
     deps_mapping = {}
