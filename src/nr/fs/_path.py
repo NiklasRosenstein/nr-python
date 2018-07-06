@@ -31,11 +31,13 @@ __all__ = [
   'expanduser', 'norm', 'isabs', 'isfile', 'isdir', 'exists', 'join', 'split',
   'dir', 'base', 'getatime', 'getmtime',
   # local definitions
-  'canonical', 'abs', 'rel', 'isrel', 'issub', 'isglob', 'glob', 'addtobase',
+  'canonical', 'abs', 'rel', 'isfile_cs', 'isrel', 'issub', 'isglob', 'glob', 'addtobase',
   'addprefix', 'addsuffix', 'setsuffix', 'rmvsuffix', 'getsuffix', 'makedirs',
-  'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp'
+  'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp', 'get_long_path_name',
+
 ]
 
+import ctypes
 import errno
 import functools
 import operator
@@ -72,6 +74,8 @@ except ImportError as exc:
   glob2_exc = exc
   del exc
 
+is_case_sensitive = (os.name != 'nt')
+
 
 def canonical(path, parent=None):
   return norm(abs(path, parent))
@@ -104,6 +108,23 @@ def rel(path, parent=None, par=False):
     if not par and not issub(res):
       return abs(path)
     return res
+
+
+def isfile_cs(path):
+  """
+  Checks if *path* points to an existing file. On case-insensitive platforms,
+  this is different from the normal #isfile() function as it checks if the
+  exact case-sensitive path points to an existing file.
+  """
+
+  if not os.path.isfile(path):
+    return False
+  if os.name == 'nt':
+    return os.path.basename(path) == os.path.basename(get_long_path_name(path))
+  elif not is_case_sensitive:
+    dirname, filename = split(path)
+    return filename in os.listdir(dirname)
+  return True
 
 
 def isrel(path):
@@ -359,3 +380,19 @@ def compare_timestamp(src, dst):
 
   src_time = os.path.getmtime(src)
   return src_time > dst_time
+
+
+def get_long_path_name(path):
+  """
+  Returns the long path name for a Windows path, i.e. the properly cased
+  path of an existing file or directory.
+  """
+
+  # Thanks to http://stackoverflow.com/a/3694799/791713
+  buf = ctypes.create_unicode_buffer(len(path) + 1)
+  GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
+  res = GetLongPathNameW(path, buf, len(path) + 1)
+  if res == 0 or res > 260:
+    return path
+  else:
+    return buf.value
