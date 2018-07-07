@@ -53,16 +53,25 @@ class Collection(object):
     Add *filename* as a binary and its resolved dependencies to the
     collection. If *dependencies_only* is #True, the *filename* itself
     will not be added to the collection.
+
+    *filename* may also be a #Dependency object.
     """
 
-    dep = Dependency(os.path.basename(filename), filename)
+    if isinstance(filename, Dependency):
+      dep = filename
+      dep.filename = resolve_dependency(dep, self.search_path)
+    else:
+      dep = Dependency(os.path.basename(filename), filename)
     if not dependencies_only:
       dep = self.deps.setdefault(dep.name.lower(), dep)
+
+    if not dep.filename:
+      return
 
     try:
       dependencies = self.cache[dep.name.lower()]
     except KeyError:
-      dependencies = get_dependencies(filename, self.exclude_system_deps)
+      dependencies = get_dependencies(dep.filename, self.exclude_system_deps)
       self.cache[dep.name.lower()] = dependencies
 
     if dep.name.lower() in self.recursively_visited:

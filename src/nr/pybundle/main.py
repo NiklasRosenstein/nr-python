@@ -436,22 +436,22 @@ def main(argv=None, prog=None):
       print('Analyzing native dependencies ...')
       deps = nativedeps.Collection(exclude_system_deps=True)
 
-      # Concatenate all override native search paths. They take
-      # priority over the default search path.
-      # Also compile a set of all the absolute native dependencies to
-      # exclude.
+      # Compile a set of all the absolute native dependencies to exclude.
       stdpath = lambda x: nr.fs.norm(nr.fs.get_long_path_name(x)).lower()
       native_deps_exclude = set()
       for mod in modules:
-        deps.search_path = mod.native_deps_path + deps.search_path
         native_deps_exclude.update(stdpath(x) for x in mod.native_deps_exclude)
 
       # Resolve dependencies.
+      search_path = deps.search_path
       deps.add(sys.executable, recursive=True)
       deps.add(os.path.join(os.path.dirname(sys.executable), os.path.basename(sys.executable).replace('python', 'pythonw')), recursive=True)
       for mod in modules:
+        deps.search_path = list(stream.concat(x.native_deps_path for x in mod.hierarchy_chain())) + search_path
         if mod.type == mod.NATIVE and mod.do_native_deps:
           deps.add(mod.filename, dependencies_only=True, recursive=True)
+        for dep in mod.native_deps:
+          deps.add(dep, recursive=True)
 
       # Warn about dependencies that can not be found.
       notfound = 0

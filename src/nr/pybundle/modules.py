@@ -134,6 +134,7 @@ class ModuleInfo(Named):
     ('do_native_deps', bool, True),  #: Do look for native dependencies of this module (only for C extensions)
     ('native_deps_exclude', list, Named.Initializer(list)),  #: A list of native dependencies that should be excluded (absolute paths)
     ('native_deps_path', list, Named.Initializer(list)),  #: A list of paths to resolve native dependencies in, in priority to the standard PATH
+    ('native_deps', list, Named.Initializer(list)),  #: A list of #Dependency objects that lists additional native dependencies
     ('children', list, Named.Initializer(list)),  #: A list of child modules
     ('parent', 'ModuleInfo', None),  #: The parent #ModuleInfo
     ('natural', bool, True),  #: Boolean to indicate if the module was found naturally by following the dependency graph
@@ -209,6 +210,11 @@ class ModuleInfo(Named):
         return True
 
       self = modules[parent]
+
+  def hierarchy_chain(self):
+    while self:
+      yield self
+      self = self.parent
 
 
 def _find_nodes(ast_node, predicate):
