@@ -1,5 +1,5 @@
 *.egg-info
-dist
 __pycache__
 README.rst
 .venv/
+bundle/
