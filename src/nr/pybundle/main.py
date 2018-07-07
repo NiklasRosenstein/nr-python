@@ -214,7 +214,7 @@ def main(argv=None, prog=None):
   """
 
   parser = get_argument_parser(prog)
-  args = parser.parse_args(argv)
+  args, unknown = parser.parse_known_args(argv)
 
   if args.verbose == 0:
     level = logging.ERROR
@@ -223,6 +223,17 @@ def main(argv=None, prog=None):
   else:
     level = logging.INFO
   logging.basicConfig(level=level)
+
+  hook_options = {}
+  for x in unknown:
+    if not x.startswith('--hook-'):
+      parser.error('unknown option: {}'.format(x))
+    if '=' in x:
+      key, value = x[7:].partition('=')[::2]
+    else:
+      key = x[7:]
+      value = 'true'
+    hook_options[key.lower()] = value
 
   finder = ModuleFinder(excludes=common_excludes)
   if args.no_default_excludes:
@@ -234,6 +245,7 @@ def main(argv=None, prog=None):
   if args.no_default_hooks_path:
     finder.hooks.search_path = []
   finder.path += split_multiargs(args.module_path)
+  finder.hooks.options.update(hook_options)
   finder.hooks.search_path += split_multiargs(args.hooks_path)
   finder.excludes += split_multiargs(args.exclude)
 

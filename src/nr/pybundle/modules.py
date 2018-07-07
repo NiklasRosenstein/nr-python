@@ -536,6 +536,7 @@ class HookFinder(object):
     self.search_path = search_path
     self.cache = {}
     self.catch_all_hooks = None
+    self.options = {}
 
   def finalize(self, finder):
     self._combine_hooks('finalize', *self.cache.values(), *self.catch_all_hooks)(finder)

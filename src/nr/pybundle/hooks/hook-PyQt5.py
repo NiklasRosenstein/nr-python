@@ -1,4 +1,13 @@
 
+"""
+Hook to include all required files for PyQt5 -- or ONLY the required files
+(to reduce the size of the resulting distribution).
+
+Options:
+
+* `PyQt5:whole` -- Just include the whole PyQt5 package. Must be set to `true`
+"""
+
 import collections
 import os
 from nr.stream import stream
@@ -93,10 +102,12 @@ def finalize(finder):
   for name in os.listdir(bin_dir):
     module.native_deps_exclude.append(os.path.join(bin_dir, name))
 
-  whole_qt = False # TODO: Option to just include all modules.
+  whole_qt = finder.hooks.options.get('pyqt5:whole', 'false') == 'true'
   if whole_qt:
-    module.package_data.append('Qt/bin')
+    module.package_data.append('Qt')
   else:
+    module.package_data.append('Qt/plugins')  # TODO: Exclude plugins that will be unused
+
     # From the used imports, determine the Qt modules that are required.
     modules = set(['QtCore'])
     for mod in finder.modules.values():
@@ -109,5 +120,3 @@ def finalize(finder):
     for name in os.listdir(bin_dir):
       if name not in exclude_files:
         module.package_data.append('Qt/bin/{}'.format(name))
-
-  module.package_data.append('Qt/plugins')  # TODO: Exclude plugins that will be unused
