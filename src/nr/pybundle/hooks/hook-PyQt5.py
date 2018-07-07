@@ -107,6 +107,7 @@ def finalize(finder):
     module.package_data.append('Qt')
   else:
     module.package_data.append('Qt/plugins')  # TODO: Exclude plugins that will be unused
+    # TODO: Remove unused PyQt5 submodules from finder.modules
 
     # From the used imports, determine the Qt modules that are required.
     modules = set(['QtCore'])
