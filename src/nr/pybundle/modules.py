@@ -137,6 +137,7 @@ class ModuleInfo(Named):
     ('children', list, Named.Initializer(list)),  #: A list of child modules
     ('parent', 'ModuleInfo', None),  #: The parent #ModuleInfo
     ('natural', bool, True),  #: Boolean to indicate if the module was found naturally by following the dependency graph
+    ('treat_as_found', bool, False),  #: Boolean to indicate if the module should be treated as being found (used by hooks)
   ]
 
   SRC = 'src'
@@ -473,8 +474,19 @@ class ModuleFinder(object):
           if parent_module and parent_module.type != ModuleInfo.NOTFOUND:
             other_module = parent_module
 
+        # Using recursive=True would invoke this at a later stage, but we
+        # need the hook to determine if the module should be treated as
+        # if it was found. Otherwise, below we will fall back to the
+        # highest available parent module.
+        data = self.examine_module(other_module)
+        # TODO: Same as above, prevent duplication
+        for import_name in data.imports:
+          yield self.find_module(import_name, [other_module.name] + imported_from, module.natural)
+        for module in data.modules:
+          yield module
+
         # Yield the highest parent module that hasn't been found instead.
-        while other_module.type == ModuleInfo.NOTFOUND and other_module.issubmodule:
+        while other_module.type == ModuleInfo.NOTFOUND and other_module.issubmodule and not other_module.treat_as_found:
           other_module = self.find_module(other_module.parent_name, imported_from, module.natural)
 
         yield other_module
@@ -547,7 +559,7 @@ class HookFinder(object):
     parts = module.name.split('.')
     for i in range(len(parts), 0, -1):
       module_name = '.'.join(parts[:i])
-      hook = self._load_hook(module.name)
+      hook = self._load_hook(module_name)
       if hook is not None:
         break
 
