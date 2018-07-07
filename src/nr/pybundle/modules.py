@@ -362,7 +362,7 @@ class ModuleFinder(object):
     self.modules[module_name] = module
     return module
 
-  def find_modules(self, modules, sparse=False):
+  def find_modules(self, modules, sparse=False, seen=None):
     """
     Attempts to find all modules in the list of module names *modules*.
     If *sparse* is #False, all package members are gathered even if some of
@@ -397,10 +397,11 @@ class ModuleFinder(object):
           if submod.name in seen: continue
           seen.add(submod.name)
           submod.natural = True
-          stream.consume(self.iter_modules(submod, recursive=True))
+          stream.consume(self.iter_modules(submod, recursive=True, seen=seen))
 
   def iter_modules(self, module=None, filename=None, source=None,
-                   excludes=None, recursive=False, include_first=True):
+                   excludes=None, recursive=False, include_first=True,
+                   seen=None):
     """
     Iterate over the modules imported by either the specified *module*, the
     Python source file at *filename* or the Python source code that can be
@@ -416,6 +417,8 @@ class ModuleFinder(object):
 
     if excludes is None:
       excludes = self.excludes
+    if seen is None:
+      seen = set()
 
     if not module and not filename and not source:
       raise ValueError('at least one of the parameters "module", "filename" '
@@ -438,31 +441,26 @@ class ModuleFinder(object):
       raise RuntimeError('<module> {!r} already found but this is a '
                          'different ModuleInfo instance'.format(module.name))
 
-    if recursive:
-      seen = set()
-      def recursion(module):
-        if module.name in seen: return
-        seen.add(module.name)
-        yield module
-        for mod in self.iter_modules(module, excludes=excludes,
-                                     recursive=False,
-                                     include_first=False):
-          yield from recursion(mod)
-      yield from recursion(module)
+    if module.name in seen:
       return
+    seen.add(module.name)
 
     if include_first:
       yield module
 
     imported_from = [module.name] + module.imported_from
+    if recursive:
+      do_recursion = lambda mod: self.iter_modules(mod, excludes=excludes, recursive=True, seen=seen)
+    else:
+      do_recursion = lambda mod: [mod]
 
     if module.do_hooks:
       data = self.examine_module(module)
       for import_name in data.imports:
         other_module = self.find_module(import_name, imported_from, module.natural)
-        yield other_module
+        yield from do_recursion(other_module)
       for module in data.modules:
-        yield module
+        yield from do_recursion(module)
 
     if module.type == ModuleInfo.SRC and module.do_default_search:
       for imp in get_imports(module.filename, source):
@@ -495,7 +493,7 @@ class ModuleFinder(object):
         while other_module.type == ModuleInfo.NOTFOUND and other_module.issubmodule and not other_module.treat_as_found:
           other_module = self.find_module(other_module.parent_name, imported_from, module.natural)
 
-        yield other_module
+        yield from do_recursion(other_module)
 
   def iter_package_modules(self, module, recursive=True):
     """
