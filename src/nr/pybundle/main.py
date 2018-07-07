@@ -122,6 +122,12 @@ def get_argument_parser(prog=None):
     help='Instruct certain operations to output JSON.')
   parser.add_argument('--dotviz', action='store_true',
     help='Instruct certain operations to output Dotviz.')
+  parser.add_argument('--search',
+    help='Instruct certain operations to search for the specified string. '
+         'Used with --nativedeps')
+  parser.add_argument('--recursive', action='store_true',
+    help='Instruct certain operations to operate recursively. '
+         'Used with --nativedeps')
 
   group = parser.add_argument_group('operations (dump)')
   group.add_argument('--deps', action='store_true',
@@ -285,18 +291,29 @@ def main(argv=None, prog=None):
 
   if args.nativedeps:
     # TODO: Dotviz output
-    # TODO: Recursive dependency resolution (with an option?)
+
     result = {}
+    if args.search:
+      result[args.search] = []
     for filename in args.args:
-      deps = nativedeps.get_dependencies(filename)
-      if not args.json:
-        print(filename)
-      result[filename] = []
-      for dep in deps:
-        dep_filename = nativedeps.resolve_dependency(dep)
+      deps = nativedeps.Collection(exclude_system_deps=True)
+      deps.add(filename, dependencies_only=True, recursive=args.recursive)
+      if args.search:
+        for dep in deps:
+          if dep.name.lower() == args.search.lower():
+            if not args.json:
+              print(filename)
+            result[args.search].append(filename)
+            break
+      else:
+        result[filename] = []
         if not args.json:
-          print('  {}'.format(dep_filename or dep.name))
-        result[filename].append({'name': dep.name, 'filename': dep_filename})
+          print(filename)
+        for dep in deps:
+          dep_filename = nativedeps.resolve_dependency(dep)
+          if not args.json:
+            print('  {}'.format(dep_filename or dep.name))
+          result[filename].append({'name': dep.name, 'filename': dep_filename})
     if args.json:
       json.dump(result, sys.stdout, indent=2, sort_keys=True)
     return 0
