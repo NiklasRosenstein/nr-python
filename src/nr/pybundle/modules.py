@@ -389,6 +389,7 @@ class ModuleFinder(object):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
           seen.add(submod.name)
+          submod.natural = True
           stream.consume(self.iter_modules(submod, recursive=True))
 
   def iter_modules(self, module=None, filename=None, source=None,
