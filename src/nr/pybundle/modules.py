@@ -389,7 +389,7 @@ class ModuleFinder(object):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
           seen.add(submod.name)
-          stream.consume(self.iter_modules(submod))
+          stream.consume(self.iter_modules(submod, recursive=True))
 
   def iter_modules(self, module=None, filename=None, source=None,
                    excludes=None, recursive=False, include_first=True):
