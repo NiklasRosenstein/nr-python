@@ -1,5 +1,6 @@
 appdirs>=1.4.3
 distlib>=0.2.7
+pefile>=2017.11.5
 pip>=9.0.0
 nr.fs>=1.0.1
 nr.stream>=1.0.1
