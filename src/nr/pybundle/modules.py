@@ -453,6 +453,7 @@ class ModuleFinder(object):
     else:
       do_recursion = lambda mod: [mod]
 
+    local_excludes = excludes
     if module.do_hooks:
       data = self.examine_module(module)
       for import_name in data.imports:
@@ -460,11 +461,13 @@ class ModuleFinder(object):
         yield from do_recursion(other_module)
       for module in data.modules:
         yield from do_recursion(module)
+      if data.excludes:
+        local_excludes = local_excludes + list(data.excludes)
 
     if module.type == ModuleInfo.SRC and module.do_default_search:
       for imp in get_imports(module.filename, source):
         imp = imp.to_abs(module)
-        if check_module_exclude(imp.name, module.name, excludes):
+        if check_module_exclude(imp.name, module.name, local_excludes):
           continue
 
         other_module = self.find_module(imp.name, imported_from, module.natural)
@@ -609,7 +612,8 @@ class HookFinder(object):
 class HookData(Named):
   __annotations__ = [
     ('imports', 'Iterable[str]', Named.Initializer(list)), #: A list of absolute module names
-    ('modules', 'Iterable[ModuleInfo]', Named.Initializer(list))  #: A list of already resolved ModuleInfo objects
+    ('modules', 'Iterable[ModuleInfo]', Named.Initializer(list)),  #: A list of already resolved ModuleInfo objects
+    ('excludes', 'Iterables[str]', Named.Initializer(list)),  #: A list of additional excludes for the imports in this module
   ]
 
 
