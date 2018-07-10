@@ -31,6 +31,7 @@ import os
 import py_compile
 import re
 import sys
+import shlex
 import shutil
 import zipfile
 
@@ -40,10 +41,12 @@ SCRIPT_TEMPLATE = '''
 # -*- coding: utf-8 -*-
 if __name__ == '__main__':
   import sys
+  args = {args!r}
   module = __import__('%(module)s')
   for name in '%(module)s'.split('.')[1:]:
     module = getattr(module, name)
   func = getattr(module, '%(func)s')
+  sys.argv = [sys.argv[0]] + args + sys.argv[1:]
   sys.exit(func())
 '''.strip()
 
@@ -98,14 +101,24 @@ def copy_files_checked(src, dst, force=False):
   return total_files, copied_files
 
 
-def make_script(python_executable, dirname, spec, gui=False):
-  if not re.match('^[\w_\.\-]+=([\w_\.]+):[\w_\.]+$', spec):
-    raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
+def make_script(shebang, dirname, spec, gui=False):
+  result = {'modules': [], 'files': []}
+  spec = shlex.split(spec)
+  if '=' in spec[0]:
+    # We assume that it is a Python entrypoint specification.
+    match = re.match('^[\w_\.\-]+=([\w_\.]+):[\w_\.]+$', spec[0])
+    if not match:
+      raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
+    result['modules'].append(match.group(1))
+  else:
+    result['files'].append(spec[0])
+
   maker = ScriptMaker(None, dirname)
-  maker.script_template = SCRIPT_TEMPLATE
-  maker.executable = python_executable
+  maker.script_template = SCRIPT_TEMPLATE.format(args=spec[1:])
+  maker.executable = shebang
   maker.variants = set([''])
-  maker.make(spec, options={'gui': gui})
+  maker.make(spec[0], options={'gui': gui})
+  return result
 
 
 def get_argument_parser(prog=None):
@@ -154,10 +167,9 @@ def get_argument_parser(prog=None):
          'site.py module. Additional arguments are treated as modules that '
          'are to be included in the distribution.')
   group.add_argument('--entry', action='append', default=[], metavar='SPEC',
-    help='Create an executable from a Python entrypoint specification in '
-         'the standalone distribution directory. This executable will run '
-         'in console mode. This option can be used multiple times and may '
-         'have comma-separated elements.')
+    help='Create an executable from a Python entrypoint specification '
+         'and optional arguments in the standalone distribution directory. '
+         'The created executable will run in console mode.')
   group.add_argument('--wentry', action='append', default=[], metavar='SPEC',
     help='The same as --entry, but the executable will run in GUI mode.')
 
@@ -332,10 +344,14 @@ def main(argv=None, prog=None):
 
   if args.entry or args.wentry:
     python_executable = os.path.join('runtime', os.path.basename(sys.executable))
-    for spec in split_multiargs(args.entry):
-      make_script(python_executable, args.bundle_dir, spec, gui=False)
-    for spec in split_multiargs(args.wentry):
-      make_script(python_executable, args.bundle_dir, spec, gui=True)
+    for spec in args.entry:
+      data = make_script(python_executable, args.bundle_dir, spec, gui=False)
+      args.args += data['modules']
+      # TODO: Take imports of data['files'] into account
+    for spec in args.wentry:
+      data = make_script(python_executable, args.bundle_dir, spec, gui=True)
+      args.args += data['modules']
+      # TODO: Take imports of data['files'] into account
 
   if args.dist or args.collect:
     if args.no_srcs and not args.compile_modules:
