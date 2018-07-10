@@ -111,10 +111,12 @@ def finalize(finder):
 
     # From the used imports, determine the Qt modules that are required.
     modules = set(['QtCore'])
-    for mod in finder.modules.values():
+    for mod in list(finder.modules.values()):
       if mod.natural and mod.name.startswith('PyQt5.Qt') and mod.name.count('.') == 1:
         name = mod.name.split('.')[1]
         modules.add(name)
+      if mod.type == mod.NATIVE and not mod.natural and mod.name != 'PyQt5.sip':
+        del finder.modules[mod.name]  # Exclude unused native modules
 
     # Add only the necessary files from the bin/ directory.
     exclude_files = _get_exclude_module_files(modules)
