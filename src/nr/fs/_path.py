@@ -388,11 +388,14 @@ def get_long_path_name(path):
   path of an existing file or directory.
   """
 
-  # Thanks to http://stackoverflow.com/a/3694799/791713
-  buf = ctypes.create_unicode_buffer(len(path) + 1)
-  GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
-  res = GetLongPathNameW(path, buf, len(path) + 1)
-  if res == 0 or res > 260:
-    return path
-  else:
-    return buf.value
+  if os.name == 'nt':
+    # TODO: Case-correction on Cygwin
+    # Thanks to http://stackoverflow.com/a/3694799/791713
+    buf = ctypes.create_unicode_buffer(len(path) + 1)
+    GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
+    res = GetLongPathNameW(path, buf, len(path) + 1)
+    if res == 0 or res > 260:
+      return path
+    else:
+      return buf.value
+  return path
