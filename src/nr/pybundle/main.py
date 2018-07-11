@@ -124,7 +124,7 @@ def make_script(shebang, dirname, spec, gui=False):
 
 
 def get_argument_parser(prog=None):
-  parser = argparse.ArgumentParser(prog=prog, description=main.__doc__)
+  parser = argparse.ArgumentParser(prog=prog, description=main.__doc__, allow_abbrev=False)
   parser.add_argument('args', nargs='*',
     help='Additional positional arguments. The interpretation of these '
          'arguments depends on the selected operation.')
@@ -174,6 +174,10 @@ def get_argument_parser(prog=None):
          'The created executable will run in console mode.')
   group.add_argument('--wentry', action='append', default=[], metavar='SPEC',
     help='The same as --entry, but the executable will run in GUI mode.')
+  group.add_argument('--resource', action='append', default=[], metavar='SRC[:DST]',
+    help='Copy thepath(s) to the bundle directory. If DST is not specified, '
+         'it defaults to res/{srcbasename}/. The path to the res/ directory '
+         'can be retrieved with `sys.frozen_env["resource_dir"]`.')
 
   group = parser.add_argument_group('optional arguments (build)')
   group.add_argument('--bundle-dir', metavar='DIRECTORY', default='bundle',
@@ -344,7 +348,11 @@ def main(argv=None, prog=None):
       json.dump(result, sys.stdout, indent=2, sort_keys=True)
     return 0
 
+  # Joint operations:
+  show_usage = True
+
   if args.entry or args.wentry:
+    show_usage = False
     python_executable = os.path.join('runtime', os.path.basename(sys.executable))
     for spec in args.entry:
       data = make_script(python_executable, args.bundle_dir, spec, gui=False)
@@ -355,7 +363,16 @@ def main(argv=None, prog=None):
       args.args += data['modules']
       # TODO: Take imports of data['files'] into account
 
+  if args.resource:
+    show_usage = False
+    for path in args.resource:
+      src, dst = path.partition(':')[::2]
+      if not dst:
+        dst = os.path.join('res', os.path.basename(src))
+      copy_files_checked(src, os.path.join(args.bundle_dir, dst), args.copy_always)
+
   if args.dist or args.collect:
+    show_usage = False
     if args.no_srcs and not args.compile_modules:
       parser.error('remove --no-srcs or add --compile-modules')
 
@@ -488,6 +505,10 @@ def main(argv=None, prog=None):
           dst = os.path.join(runtime_dir, os.path.basename(dep.filename))
           if args.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
             shutil.copy(dep.filename, dst)
+
+  if show_usage:
+    parser.print_usage()
+    return 0
 
 
 if __name__ == '__main__':
