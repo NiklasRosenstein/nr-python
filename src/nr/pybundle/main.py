@@ -111,9 +111,11 @@ def make_script(shebang, dirname, spec, gui=False):
       raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
     result['modules'].append(match.group(1))
   else:
+    if ':' in spec[0]:
+      raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
     result['files'].append(spec[0])
 
-  maker = ScriptMaker(None, dirname)
+  maker = ScriptMaker(os.getcwd(), dirname)
   maker.script_template = SCRIPT_TEMPLATE.format(args=spec[1:])
   maker.executable = shebang
   maker.variants = set([''])

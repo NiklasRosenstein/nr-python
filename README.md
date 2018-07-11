@@ -2,14 +2,21 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-PyBundle is an API and command-line tool to collect all dependencies of a
-Python application and placing them in a common directory.
+PyBundle is a command-line tool to create standalone Python applications. It
+aims to be a cross-platform replacement for cx_Freeze and a lightweight
+alternative to PyInstaller.
 
-#### Project Goals
+#### Hooks
 
-* Replace cx_Freeze
-* Become a lightweight alternative to PyInstaller
-* Functional on common platforms (Windows, Linux and macOS)
+Big Python libraries for which hooks exist only include elements of the module
+that are recognized to be necessary. Most of these hooks support command-line
+options to enable including the whole library anyway. These options are shown
+in parentheses.
+
+* PyQt5 (`--hook-PyQt5:whole`)
+* PySide2
+* wxPython (`wx`)
+* Qt.py (`Qt`)
 
 #### Synopsis
 
