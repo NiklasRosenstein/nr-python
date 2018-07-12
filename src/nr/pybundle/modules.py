@@ -32,7 +32,7 @@ from .utils import system
 from nr.stream import stream
 from nr.types import Named
 
-if os.name == 'nt':
+if system.is_win and not system.is_unix:
   try:
     import pip._internal.pep425tags as tags
   except ImportError:
@@ -397,7 +397,6 @@ class ModuleFinder(object):
       if not sparse or (mod.name in collect_whole and not mod.name in collect_sparse):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
-          seen.add(submod.name)
           stream.consume(self.iter_modules(submod, recursive=True, seen=seen))
 
   def iter_modules(self, module=None, filename=None, source=None,
@@ -639,7 +638,7 @@ common_excludes = [
 
 if system.is_win:
   common_excludes.append('_bootlocale->locale')
-  if not system.is_msys and not sys.is_cygwin:
+  if not system.is_unix:
     common_excludes.append('os->posixpath')
 else:
   common_excludes.append('encodings->_bootlocale')

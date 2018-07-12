@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from nr.stream import stream
-from . import nativedeps
+from . import nativedeps, __version__
 from .dist import PyBundle
 from .utils import system
 
@@ -51,6 +51,8 @@ def get_argument_parser(prog=None):
     help='Additional positional arguments. The interpretation of these '
          'arguments depends on the selected operation.')
 
+  parser.add_argument('--version', action='version',
+    version='nr.pybundle {} ({})'.format(__version__, sys.version))
   parser.add_argument('-v', '--verbose', action='count', default=0,
     help='Increase the log-level from ERROR.')
   parser.add_argument('--flat', action='store_true',

@@ -43,8 +43,8 @@ def execute(code):
   assert execute('return 42') == 42
   """
 
-  with nr.fs.tempfile('.py', encoding='utf8') as fp:
-    fp.write('# coding: utf8\n')
+  with nr.fs.tempfile('.py', text=True) as fp:
+    fp.write('# coding: {}\n'.format(fp.encoding))
     fp.write('def main():\n  ')
     fp.write('\n  '.join(textwrap.dedent(code).split('\n')))
     fp.write('\nimport pickle, sys; pickle.dump(main(), sys.stdout.buffer)\n')

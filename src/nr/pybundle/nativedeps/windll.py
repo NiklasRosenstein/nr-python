@@ -242,5 +242,6 @@ def resolve_dependency(dep, search_path=None):
 
   if not dep.filename:
     dep.filename = system.find_in_path(dep.name, search_path, common_ext=False)
-    dep.filename = nr.fs.get_long_path_name(dep.filename)
+    if dep.filename:
+      dep.filename = nr.fs.get_long_path_name(dep.filename)
   return dep.filename

@@ -273,7 +273,7 @@ class PyBundle(nr.types.Named):
           if mod.type == mod.SRC and not self.srcs:
             src = mod.compiled_file
             dst += 'c'
-          elif mod.type == mod.NATIVE:  # TODO: ALso for submodules ..?
+          elif mod.type == mod.NATIVE and mod.name.count('.') == 0:
             dst = os.path.join(lib_dynload_dir, mod.relative_filename)
           if self.copy_always or nr.fs.compare_timestamp(src, dst):
             nr.fs.makedirs(os.path.dirname(dst))
@@ -292,7 +292,7 @@ class PyBundle(nr.types.Named):
         # Compile a set of all the absolute native dependencies to exclude.
         stdpath = lambda x: nr.fs.norm(nr.fs.get_long_path_name(x)).lower()
         native_deps_exclude = set()
-        for mod in modules:
+        for mod in self.finder.modules.values():
           native_deps_exclude.update(stdpath(x) for x in mod.native_deps_exclude)
 
         # Resolve dependencies.
@@ -300,7 +300,7 @@ class PyBundle(nr.types.Named):
         for name, path in self.python_bins.items():
           dep = deps.add(path, recursive=True)
           dep.name = name
-        for mod in modules:
+        for mod in self.finder.modules.values():
           deps.search_path = list(stream.concat(x.native_deps_path for x in mod.hierarchy_chain())) + search_path
           if mod.type == mod.NATIVE and mod.do_native_deps:
             deps.add(mod.filename, dependencies_only=True, recursive=True)
