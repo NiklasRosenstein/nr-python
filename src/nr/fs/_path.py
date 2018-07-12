@@ -29,11 +29,11 @@ __all__ = [
   'sep', 'pathsep', 'curdir', 'pardir', 'cwd', 'listdir',
   # from os.path import
   'expanduser', 'norm', 'isabs', 'isfile', 'isdir', 'exists', 'join', 'split',
-  'dir', 'base', 'getatime', 'getmtime',
+  'dir', 'base', 'getatime', 'getmtime', 'splitdrive',
   # local definitions
   'canonical', 'abs', 'rel', 'isfile_cs', 'isrel', 'issub', 'isglob', 'glob', 'addtobase',
   'addprefix', 'addsuffix', 'setsuffix', 'rmvsuffix', 'getsuffix', 'makedirs',
-  'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp', 'get_long_path_name',
+  'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp', 'fixcase',
 
 ]
 
@@ -64,7 +64,8 @@ from os.path import (
   dirname as dir,
   basename as base,
   getatime,
-  getmtime
+  getmtime,
+  splitdrive
 )
 
 try:
@@ -74,11 +75,21 @@ except ImportError as exc:
   glob2_exc = exc
   del exc
 
-is_case_sensitive = (os.name != 'nt')
+
+is_case_sensitive = not (os.name == 'nt' or 'windows' in platform.platform.lower())
 
 
 def canonical(path, parent=None):
-  return norm(abs(path, parent))
+  """
+  Returns the canonical version of *path*, that is the common and fully
+  normalized representation. On case-sensitive file systems, this will also
+  correct the case of the path if the file already exists.
+  """
+
+  path = norm(abs(path, parent))
+  if not is_case_sensitive:
+    path = fixcase(path)
+  return path
 
 
 def abs(path, parent=None):
@@ -382,14 +393,14 @@ def compare_timestamp(src, dst):
   return src_time > dst_time
 
 
-def get_long_path_name(path):
+def fixcase(path):
   """
-  Returns the long path name for a Windows path, i.e. the properly cased
-  path of an existing file or directory.
+  Fixes the case of all path elements. On Windows, this uses the
+  `GetLongPathNameW()` API. On other platforms, it uses #os.listdir
+  to determine the proper case of the path elements.
   """
 
   if os.name == 'nt':
-    # TODO: Case-correction on Cygwin
     # Thanks to http://stackoverflow.com/a/3694799/791713
     buf = ctypes.create_unicode_buffer(len(path) + 1)
     GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
@@ -398,4 +409,26 @@ def get_long_path_name(path):
       return path
     else:
       return buf.value
+  elif not is_case_sensitive and os.path.exists(path):
+    is_path_abs = isabs(path)
+    drive, path = splitdrive(path)
+    if is_path_abs and not drive:
+      drive = '/'
+    elif drive and drive.endswith(':'):
+      drive += os.sep
+    items = []
+    while path and path != '/':
+      path, element = split(path)
+      if not is_path_abs and not path:
+        current = '.'
+      else:
+        current = join(drive, path)
+      element_lc = element.lower()
+      for name in listdir(current):
+        if name.lower() == element_lc:
+          element = name
+          break
+      items.append(element)
+    items.reverse()
+    path = join(drive, *items)
   return path

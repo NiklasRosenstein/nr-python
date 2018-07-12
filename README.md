@@ -11,7 +11,10 @@
 
 #### v1.0.2
 
-* `get_long_path_name()` returns path as-is on non-NT platforms
+* Remove `get_long_path_name()` 
+* Add `fixcase()` as replacement for `get_long_path_name()`
+* Changed `canonical()` so that it invokes `fixcase()` on case-insensitive
+  filesystems
 * Add `tempfile.encoding` property
 * When `tempfile(encoding)` parameter was not specified, its `encoding`
   property will still return the applied text file encoding after it
