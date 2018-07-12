@@ -27,6 +27,8 @@ import os
 import sys
 import sysconfig
 import types
+
+from .utils import system
 from nr.stream import stream
 from nr.types import Named
 
@@ -635,9 +637,10 @@ common_excludes = [
   'pickle->argparse',
 ]
 
-if sys.platform.startswith('win'):
+if system.is_win:
   common_excludes.append('_bootlocale->locale')
-  common_excludes.append('os->posixpath')
+  if not system.is_msys and not sys.is_cygwin:
+    common_excludes.append('os->posixpath')
 else:
   common_excludes.append('encodings->_bootlocale')
   common_excludes.append('os->ntpath')

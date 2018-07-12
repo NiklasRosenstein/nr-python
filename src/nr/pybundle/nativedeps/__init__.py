@@ -25,8 +25,10 @@ libraries and executables.
 import os
 import sys
 from ._base import Dependency
+from ..utils import system
 
-if sys.platform.startswith('win32'):
+
+if system.is_win:
   from .windll import get_dependencies, resolve_dependency
 else:
   raise NotImplemntedError(sys.platform)
@@ -79,8 +81,10 @@ class Collection(object):
     if recursive:
       self.recursively_visited.add(dep.name.lower())
 
-    for dep in dependencies:
-      dep = self.deps.setdefault(dep.name.lower(), dep)
-      resolve_dependency(dep, self.search_path)
-      if recursive and dep.filename:
-        self.add(dep.filename, recursive=True)
+    for other_dep in dependencies:
+      other_dep = self.deps.setdefault(other_dep.name.lower(), other_dep)
+      resolve_dependency(other_dep, self.search_path)
+      if recursive and other_dep.filename:
+        self.add(other_dep.filename, recursive=True)
+
+    return dep

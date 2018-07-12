@@ -22,6 +22,7 @@ from distlib.scripts import ScriptMaker
 from nr.stream import stream
 from . import nativedeps
 from .modules import ModuleInfo, ModuleFinder, core_libs, common_excludes
+from .utils import system
 
 import argparse
 import json
@@ -38,7 +39,6 @@ import zipfile
 logger = logging.getLogger(__name__)
 
 SCRIPT_TEMPLATE = '''
-# -*- coding: utf-8 -*-
 if __name__ == '__main__':
   import sys
   args = {args!r}
@@ -115,6 +115,9 @@ def make_script(shebang, dirname, spec, gui=False):
       raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
     result['files'].append(spec[0])
 
+  # TODO: The shebang passed to the ScriptMaker here won't be useful
+  #       on unix systems as the relative path will not be taken into
+  #       account from the parent directory of the script.
   maker = ScriptMaker(os.getcwd(), dirname)
   maker.script_template = SCRIPT_TEMPLATE.format(args=spec[1:])
   maker.executable = shebang
@@ -351,9 +354,12 @@ def main(argv=None, prog=None):
   # Joint operations:
   show_usage = True
 
+  python_executables = system.get_python_executables()
+  main_python_bin = next(k for k, v in python_executables.items() if 'w' not in k)
+
   if args.entry or args.wentry:
     show_usage = False
-    python_executable = os.path.join('runtime', os.path.basename(sys.executable))
+    python_executable = os.path.join('runtime', os.path.basename(main_python_bin))
     for spec in args.entry:
       data = make_script(python_executable, args.bundle_dir, spec, gui=False)
       args.args += data['modules']
@@ -396,7 +402,9 @@ def main(argv=None, prog=None):
                    "that are platform dependent or member imports.")
       logger.error('Increase the verbosity with -v, --verbose for details.')
 
-    lib_dir = os.path.join(args.bundle_dir, 'lib')
+    from .bundleconf import conf
+    lib_dir = os.path.join(args.bundle_dir, conf.lib_dir)
+    lib_dynload_dir = os.path.join(args.bundle_dir, conf.lib_dynload_dir)
     if args.zip_modules:
       compile_dir = os.path.join(args.bundle_dir, '.compile-cache')
     else:
@@ -457,6 +465,8 @@ def main(argv=None, prog=None):
         if mod.type == mod.SRC and args.no_srcs:
           src = mod.compiled_file
           dst += 'c'
+        elif mod.type == mod.NATIVE:  # TODO: ALso for submodules ..?
+          dst = os.path.join(lib_dynload_dir, mod.relative_filename)
         if args.copy_always or nr.fs.compare_timestamp(src, dst):
           nr.fs.makedirs(os.path.dirname(dst))
           shutil.copy(src, dst)
@@ -479,8 +489,9 @@ def main(argv=None, prog=None):
 
       # Resolve dependencies.
       search_path = deps.search_path
-      deps.add(sys.executable, recursive=True)
-      deps.add(os.path.join(os.path.dirname(sys.executable), os.path.basename(sys.executable).replace('python', 'pythonw')), recursive=True)
+      for name, path in python_executables.items():
+        dep = deps.add(path, recursive=True)
+        dep.name = name
       for mod in modules:
         deps.search_path = list(stream.concat(x.native_deps_path for x in mod.hierarchy_chain())) + search_path
         if mod.type == mod.NATIVE and mod.do_native_deps:
@@ -502,7 +513,7 @@ def main(argv=None, prog=None):
       nr.fs.makedirs(runtime_dir)
       for dep in deps:
         if dep.filename and stdpath(dep.filename) not in native_deps_exclude:
-          dst = os.path.join(runtime_dir, os.path.basename(dep.filename))
+          dst = os.path.join(runtime_dir, os.path.basename(dep.name))
           if args.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
             shutil.copy(dep.filename, dst)
 

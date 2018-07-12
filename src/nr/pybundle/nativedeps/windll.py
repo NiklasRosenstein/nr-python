@@ -23,6 +23,9 @@ try:
 except ImportError:
   from urllib2 import urlopen
 
+from six import PY3
+from ..utils import system
+
 import appdirs
 import functools
 import hashlib
@@ -38,7 +41,7 @@ import sys
 import tempfile
 import zipfile
 from ._base import Dependency
-from six import PY3
+
 
 logger = logging.getLogger(__name__)
 
@@ -237,13 +240,7 @@ def resolve_dependency(dep, search_path=None):
   passed #Dependency object.
   """
 
-  if dep.filename:
-    return dep.filename
-  if search_path is None:
-    search_path = os.environ['PATH'].split(os.pathsep)
-  for dirname in search_path:
-    filename = os.path.join(dirname, dep.name)
-    if os.path.isfile(filename):
-      dep.filename = nr.fs.get_long_path_name(filename)
-      return dep.filename
-  return None
+  if not dep.filename:
+    dep.filename = system.find_in_path(dep.name, search_path, common_ext=False)
+    dep.filename = nr.fs.get_long_path_name(dep.filename)
+  return dep.filename
