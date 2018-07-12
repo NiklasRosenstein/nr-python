@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+# The MIT License (MIT)
+#
 # Copyright (c) 2018 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,5 +21,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+"""
+nr.pybundle is a tool to collect and bundle all Python modules, packages,
+data files and binaries to create a standalone Python application.
+
+To access the `nr pybundle` command-line tool, install the nr.cli package.
+"""
+
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '1.0.0'
+
+from .bundle import PythonAppBundle, DistributionBuilder
+from .hooks import Hook, DelegateHook
+from .modules import ModuleFinder, ModuleGraph

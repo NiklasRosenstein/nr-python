@@ -8,6 +8,7 @@ is_cygwin = sys.platform.startswith('cygwin')
 is_win = is_msys or is_cygwin or sys.platform.startswith('win32')
 if is_win and os.sep == '/' and not (is_msys or is_cygwin):
   is_cygwin = True
+is_purewin = os.name == 'nt'
 
 is_linux = sys.platform.startswith('linux')
 is_osx = sys.platform.startswith('darwin')

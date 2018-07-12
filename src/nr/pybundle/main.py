@@ -20,8 +20,8 @@
 
 from nr.stream import stream
 from . import nativedeps, __version__
-from .dist import PyBundle
 from .utils import system
+from .bundle import DistributionBuilder
 
 import argparse
 import json
@@ -177,7 +177,7 @@ def main(argv=None, prog=None):
       value = 'true'
     hook_options[key.lower()] = value
 
-  pybundle = PyBundle(
+  builder = DistributionBuilder(
     collect = args.collect,
     dist = args.dist,
     entries = args.entry,
@@ -201,7 +201,7 @@ def main(argv=None, prog=None):
     hook_options = hook_options
   )
 
-  finder = pybundle.finder
+  finder = builder.finder
 
   if args.show_module_path:
     dump_list(finder.path, args)
@@ -284,7 +284,7 @@ def main(argv=None, prog=None):
       json.dump(result, sys.stdout, indent=2, sort_keys=True)
     return 0
 
-  show_usage = not pybundle.build()
+  show_usage = not builder.build()
   if show_usage:
     parser.print_usage()
     return 0
