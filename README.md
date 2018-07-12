@@ -9,6 +9,14 @@
 
 ### Changes
 
+#### v1.0.2
+
+* `get_long_path_name()` returns path as-is on non-NT platforms
+* Add `tempfile.encoding` property
+* When `tempfile(encoding)` parameter was not specified, its `encoding`
+  property will still return the applied text file encoding after it
+  has been opened
+
 #### v1.0.1 (2018-07-05)
 
 * Add `nr.fs.isfile_cs()`

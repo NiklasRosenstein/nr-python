@@ -59,6 +59,8 @@ class tempfile(object):
     self._fp = os.fdopen(fd, 'w' if (self._text and not self._encoding) else 'wb')
     if self._encoding:
       self._fp = codecs.getwriter(self._encoding)(self._fp)
+    if self._text and not self._encoding:
+      self._encoding = self._fp.encoding
     return self
 
   def __exit__(self, *args):
@@ -68,6 +70,10 @@ class tempfile(object):
     except OSError as e:
       if e.errno != errno.ENOENT:
         raise
+
+  @property
+  def encoding(self):
+    return self._encoding
 
   def writable(self):
     return True
