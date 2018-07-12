@@ -77,5 +77,4 @@ def get_python_executables():
     if pythonw:
       result['pythonw' + add_ext] = pythonw
 
-  print(result)
   return result
