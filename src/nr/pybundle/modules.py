@@ -348,15 +348,12 @@ class ModuleFinder(object):
 
     return module
 
-  def iter_package_modules(self, module, recursive=True, seen=None):
+  def iter_package_modules(self, module, recursive=True):
     """
     Iterates over the submodules of the specified *module*. The modules
     found this way are added to the #modules dictionary but are marked as
     being found unnaturally.
     """
-
-    if seen is None:
-      seen = set()
 
     if sys.version_info[0] == 2:
       if not module.is_pkg():
@@ -370,6 +367,9 @@ class ModuleFinder(object):
       if module.type != module.NOTFOUND and not module.is_pkg():
         return; yield
 
+    # The same module may appear mulitple times, for example when the
+    # same directory is in the path twice.
+    seen = set()
     for dirname in self.path:
       dirname = nr.fs.join(dirname, *module.name.split('.'))
       for name in nr.fs.listdir(dirname, do_raise=False):
