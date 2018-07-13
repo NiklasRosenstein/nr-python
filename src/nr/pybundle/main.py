@@ -59,6 +59,8 @@ def get_argument_parser(prog=None):
     help='Instruct certain operation to produce flat instead of nested output.')
   parser.add_argument('--json', action='store_true',
     help='Instruct certain operations to output JSON.')
+  parser.add_argument('--json-graph', action='store_true',
+    help='Instruct certain operations to output JSON Graph.')
   parser.add_argument('--dotviz', action='store_true',
     help='Instruct certain operations to output Dotviz.')
   parser.add_argument('--search',
@@ -223,8 +225,30 @@ def main(argv=None, prog=None):
     return 0
 
   if args.deps:
+    def callback(module, depth):
+      print('  ' * depth + '{} ({})'.format(module.name, module.type))
+    if args.json or args.dotviz or args.json_graph:
+      callback = None
+    for name in args.args:
+      builder.graph.collect_modules(name, callback=callback)
+    if args.json_graph:
+      nodes = set()
+      graph = {'nodes': [], 'edges': []}
+      def mknode(name):
+        if name not in nodes:
+          graph['nodes'].append({'id': name})
+          nodes.add(name)
+      def mkedge(a, b):
+        mknode(a)
+        mknode(b)
+        graph['edges'].append({'source': a, 'target': b})
+      for mod in builder.graph:
+        mknode(mod.name)
+        for name in mod.imported_from:
+          mkedge(mod.name, name)
+      json.dump({'graph': graph}, sys.stdout, indent=2, sort_keys=True)
 
-
+    """
     # TODO: Dotviz output
     result = []
     current = []
@@ -251,6 +275,7 @@ def main(argv=None, prog=None):
           current.append(data)
     if args.json:
       json.dump(flat if args.flat else result, sys.stdout, indent=2, sort_keys=True)
+    """
     return 0
 
   if args.nativedeps:
