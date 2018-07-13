@@ -297,7 +297,6 @@ class DistributionBuilder(nr.types.Named):
     ('zip_modules', bool, False),
     ('zip_file', str, None),
     ('srcs', bool, True),
-    ('sparse', bool, False),
     ('copy_always', bool, False),
     ('module_path', list, ()),
     ('default_module_path', bool, True),
@@ -315,7 +314,7 @@ class DistributionBuilder(nr.types.Named):
     self.finder = ModuleFinder([])
     self.filter = ModuleImportFilter(self.excludes)
     self.hook = DelegateHook()
-    self.graph = ModuleGraph(self.finder, self.filter, self.hook, sparse=self.sparse)
+    self.graph = ModuleGraph(self.finder, self.filter, self.hook)
 
     if self.default_excludes:
       self.filter.excludes += get_common_excludes()

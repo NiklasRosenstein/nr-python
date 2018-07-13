@@ -129,10 +129,6 @@ def get_argument_parser(prog=None):
   group.add_argument('--copy-always', action='store_true',
     help='Always copy files, even if the target file already exists and the '
          'timestamp indicates that it hasn\'t changed.')
-  group.add_argument('--sparse', action='store_true',
-    help='Collect modules sparsely, only including package members that '
-         'appear to actually be used. This affects only Python modules, not '
-         'package data.')
 
   group = parser.add_argument_group('optional arguments (search)')
   group.add_argument('--no-default-module-path', action='store_true',
@@ -192,7 +188,6 @@ def main(argv=None, prog=None):
     zip_modules = args.zip_modules,
     zip_file = args.zip_file,
     srcs = not args.no_srcs,
-    sparse = args.sparse,
     copy_always = args.copy_always,
     module_path = split_multiargs(args.module_path),
     default_module_path = not args.no_default_module_path,

@@ -6,14 +6,18 @@ BINDING = pysubcmd.execute('''
   return Qt.__binding__
 ''')
 
+BINDIND_REQUIRES = {
+  'PySide': ['shiboken'],
+  'PySide2': ['shiboken2']
+}.get(BINDING, [])
 
-def examine(finder, module, result):
+
+def module_found(module):
   if module.name != 'Qt': return
-  result.imports.append('Qt')
-  result.imports.append(BINDING)
-  for other in ['PyQt4', 'PyQt5', 'PySide2', 'PySide']:
-    if other != BINDING:
-      result.excludes.append(other)
+  module.imports.append(BINDING)
+  for other in ['PyQt4', 'PyQt5', 'PySide2', 'PySide', 'shiboken', 'shiboken2']:
+    if other == BINDING or other in BINDIND_REQUIRES: continue
+    module.strip_imports(other)
 
 
 def finalize(finder):
