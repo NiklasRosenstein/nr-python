@@ -4,11 +4,12 @@ import os
 
 
 def finalize(finder):
-  whole_pyside = finder.options.get('PySide2:whole') == 'true'
+  whole_pyside = finder.hooks.options.get('PySide2:whole') == 'true'
   PySide2 = finder.find_module('PySide2')
   PySide2.package_data.append('plugins')
   for module in list(finder.modules.values()):
-    if module.name.startswith('PySide2.') and module.type == module.NATIVE and module.natural:
+    if not module.name.startswith('PySide2.'): continue
+    if module.type == module.NATIVE and module.natural:
       deps = nativedeps.Collection()
       deps.search_path = [PySide2.directory]
       deps.add(module.filename, recursive=True)
