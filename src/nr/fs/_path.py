@@ -49,8 +49,7 @@ from os import (
   pathsep,
   curdir,
   pardir,
-  getcwd as cwd,
-  listdir
+  getcwd as cwd
 )
 from os.path import (
   expanduser,
@@ -131,7 +130,7 @@ def isfile_cs(path):
   if not os.path.isfile(path):
     return False
   if os.name == 'nt':
-    return os.path.basename(path) == os.path.basename(get_long_path_name(path))
+    return os.path.basename(path) == os.path.basename(fixcase(path))
   elif not is_case_sensitive:
     dirname, filename = split(path)
     return filename in os.listdir(dirname)
@@ -424,7 +423,7 @@ def fixcase(path):
       else:
         current = join(drive, path)
       element_lc = element.lower()
-      for name in listdir(current):
+      for name in os.listdir(current):
         if name.lower() == element_lc:
           element = name
           break
@@ -432,3 +431,25 @@ def fixcase(path):
     items.reverse()
     path = join(drive, *items)
   return path
+
+
+def listdir(path, do_raise=True):
+  """
+  Like #os.listdir(), but if *do_raise* is #False, an empty list will be
+  returned if the *path* does not exist.
+  """
+
+  if do_raise:
+    return os.listdir(path)
+  else:
+    try:
+      return os.listdir(path)
+    except (OSError, IOError) as e:
+      if e.errno in (errno.ENOENT, errno.EPERM):
+        return []
+      raise
+
+
+# Backwards compatibility
+__all__ += ['get_long_path_name']
+get_long_path_name = fixcase
