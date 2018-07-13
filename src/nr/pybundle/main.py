@@ -201,10 +201,8 @@ def main(argv=None, prog=None):
     hook_options = hook_options
   )
 
-  finder = builder.finder
-
   if args.show_module_path:
-    dump_list(finder.path, args)
+    dump_list(builder.finder.path, args)
     return 0
 
   if args.show_hooks_path:
@@ -213,20 +211,25 @@ def main(argv=None, prog=None):
 
   if args.package_members:
     result = {}
+    flat = []
     for name in args.args:
-      module = finder.find_module(name)
+      module = builder.finder.find_module(name)
       if not args.json:
         print('{} ({})'.format(module.name, module.type))
-      contents = result.setdefault(module.name, {})
-      for submodule in stream.chain([module], finder.iter_package_modules(module)):
-        contents[submodule.name] = {'type': submodule.type, 'filename': submodule.filename}
+      contents = result.setdefault(module.name, [])
+      for submodule in stream.chain([module], builder.finder.iter_package_modules(module)):
+        data = {'name': submodule.name, 'type': submodule.type, 'filename': submodule.filename}
+        contents.append(data)
+        flat.append(data)
         if not args.json and submodule != module:
           print('  {} ({})'.format(submodule.name, submodule.type))
     if args.json:
-      json.dump(result, sys.stdout, indent=2, sort_keys=True)
+      json.dump(flat if args.flat else result, sys.stdout, indent=2, sort_keys=True)
     return 0
 
   if args.deps:
+
+
     # TODO: Dotviz output
     result = []
     current = []
