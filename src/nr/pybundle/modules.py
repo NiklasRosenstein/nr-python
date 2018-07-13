@@ -24,6 +24,7 @@ from .utils import system
 import ast
 import copy
 import itertools
+import logging
 import nr.fs
 import nr.types
 import os
@@ -394,9 +395,10 @@ class ModuleGraph(object):
   Represents a network of #ModuleInfo objects.
   """
 
-  def __init__(self, finder, import_filter=None):
+  def __init__(self, finder, import_filter=None, logger=None):
     self.finder = finder
     self.import_filter = import_filter or ModuleImportFilter([])
+    self.logger = logger or logging.getLogger(__name__)
     self._modules = {}
 
   def __getitem__(self, module_name):
@@ -423,11 +425,21 @@ class ModuleGraph(object):
     self._modules[module.name] = module
     module.graph = self
 
-  def find_module(self, module_name, source_module='*'):
+  def discard(self, module_name):
     """
-    Finds a module or returns it from the cache. The specified *source_module*
-    will be added to the #ModuleInfo.imported_from set, unless it is #None.
-    Note that the start (`*`) represents a global requirement of the module.
+    Discard a module from the graph. Does not error if the module is not
+    in the graph, but returns #False.
+    """
+
+    try:
+      del self._modules[module_name]
+      return True
+    except KeyError:
+      return False
+
+  def find_module(self, module_name):
+    """
+    Finds a module or returns it from the cache.
 
     Note that using this function directly instead of #collect_modules()
     will prevent the module's imports from its source code to be checked
@@ -437,7 +449,7 @@ class ModuleGraph(object):
     module = self._modules.get(module_name)
     if module is None:
       if '.' in module_name:
-        parent = self.find_module(module_name.rpartition('.')[0], None)
+        parent = self.find_module(module_name.rpartition('.')[0])
       else:
         parent = None
       module = self.finder.find_module(module_name)
@@ -445,11 +457,10 @@ class ModuleGraph(object):
       if parent:
         parent.children.append(module)
       self.add(module)
-    if source_module is not None:
-      module.imported_from.add(source_module)
     return module
 
-  def collect_modules(self, module_name, source_module='*', sparse=False):
+  def collect_modules(self, module_name, source_module='*', sparse=False,
+                      callback=None):
     """
     Collects the specified *module_name* and all of its imports into the
     module graph. If *sparse* is set to #True, it will not automatically
@@ -459,24 +470,38 @@ class ModuleGraph(object):
     if module_name in self._modules:
       return self._modules[module_name]
 
-    module = self.find_module(module_name, source_module)
+    module = self.find_module(module_name)
+    if source_module is not None:
+      module.imported_from.add(source_module)
+
+    if callback:
+      callback(module)
 
     if not sparse:
       for sub_module in self.finder.iter_package_modules(module):
-        self.collect_modules(sub_module.name, None, sparse=False)
+        self.collect_modules(sub_module.name, None, False, callback)
 
     if module.type == ModuleInfo.SRC:
-      for imp in (x.to_abs(module) for x in get_imports(module.filename)):
+      try:
+        imports = get_imports(module.filename)
+      except SyntaxError as e:
+        self.logger.warn('Unable to parse imports of module {} ({!r}): {}'
+                         .format(module.name, module.filename, e))
+        imports = []
+
+      imports = [x.to_abs(module) for x in imports]
+      for imp in imports:
         if not self.import_filter.accept(imp.name, module.name):
           continue
 
-        imp_module = self.collect_modules(imp.name, module.name, sparse)
-        if imp_module.type == ModuleInfo.NOTFOUND and imp.is_from_import:
-          # From imports have the potential to be just member imports, so
-          # if we couldn't find a module in a from-import, we check its
-          # parent instead.
-          if imp.parent:
-            imp_module = self.collect_modules(imp.parent.name, module.name, sparse)
+        parent = imp.parent
+        if parent:
+          self.collect_modules(parent.name, module.name, sparse, callback)
+          if not self._modules[parent.name].is_pkg():
+            # The import can only refer to a member.
+            continue
+
+        self.collect_modules(imp.name, module.name, sparse, callback)
 
     return module
 
