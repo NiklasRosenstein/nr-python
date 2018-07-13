@@ -348,28 +348,45 @@ class ModuleFinder(object):
 
     return module
 
-  def iter_package_modules(self, module, recursive=True):
+  def iter_package_modules(self, module, recursive=True, seen=None):
     """
     Iterates over the submodules of the specified *module*. The modules
     found this way are added to the #modules dictionary but are marked as
     being found unnaturally.
     """
 
-    if not module.filename or os.path.basename(module.filename) != '__init__.py':
-      return; yield  # not a package
-    dirname = os.path.dirname(module.filename)
-    for name in os.listdir(dirname):
-      name = os.path.splitext(name)[0]
-      if name == '__init__':
-        continue
-      import_name = module.name + '.' + name
-      submodule = self._try_module_at_path(dirname, name)
-      if submodule:
-        submodule.name = import_name
-      if submodule:
-        yield submodule
-      if recursive and submodule:
-        yield from self.iter_package_modules(submodule)
+    if seen is None:
+      seen = set()
+
+    if sys.version_info[0] == 2:
+      if not module.is_pkg():
+        return; yield
+      # In Python 2, we need to find at least one package. Namespace
+      # packages are then declared as such inside on of the __init__.py
+      # files.
+    else:
+      # In Python 3, we do want to consider packages that have not been
+      # found as they may refer to namespace packages.
+      if module.type != module.NOTFOUND and not module.is_pkg():
+        return; yield
+
+    for dirname in self.path:
+      dirname = nr.fs.join(dirname, *module.name.split('.'))
+      for name in nr.fs.listdir(dirname, do_raise=False):
+        name = os.path.splitext(name)[0]
+        if name == '__init__':
+          continue
+        import_name = module.name + '.' + name
+        if import_name in seen:
+          continue
+        submodule = self._try_module_at_path(dirname, name)
+        if submodule:
+          submodule.name = import_name
+          seen.add(import_name)
+        if submodule:
+          yield submodule
+        if recursive and submodule:
+          yield from self.iter_package_modules(submodule)
 
 
 class ModuleGraph(object):
