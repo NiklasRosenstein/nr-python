@@ -208,7 +208,7 @@ def main(argv=None, prog=None):
     return 0
 
   if args.show_hooks_path:
-    dump_list(finder.hooks.search_path, args)
+    dump_list(builder.hook.path, args)
     return 0
 
   if args.package_members:
