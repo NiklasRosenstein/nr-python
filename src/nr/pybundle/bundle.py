@@ -27,11 +27,13 @@ from .utils import system
 from .utils.fs import copy_files_checked
 from . import nativedeps
 
+import distlib.scripts
 import logging
 import nr.fs
 import nr.types
 import shlex
 import sys
+import textwrap
 
 
 class AppResource(nr.types.Named):
@@ -104,6 +106,12 @@ class Entrypoint(nr.types.Sumtype):
   File = nr.types.Sumtype.Constructor(*'name filename args gui'.split())
   Qid = nr.types.Sumtype.Constructor(*'name module function args gui'.split())
 
+  def distlib_spec(self):
+    if self.is_file():
+      return '{}={}'.format(self.name, self.filename)
+    else:
+      return '{}={}:{}'.format(self.name, self.module, self.function)
+
   @classmethod
   def parse(cls, spec):
     argv = shlex.split(spec)
@@ -123,6 +131,50 @@ class Entrypoint(nr.types.Sumtype):
     else:
       return cls.File(name, remainder, args, gui)
     raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
+
+
+class ScriptMaker(object):
+  """
+  This class is used to generate Python scripts that can be executed by
+  users. On Windows, it will use the #distlib.scripts.ScriptMaker class
+  which can produce an executable, on other platforms it will produce a
+  shell script.
+  """
+
+  # TODO: In a GUI based script, wrap all of it in a try-catch
+  #       block and show the error in a message box.
+  script_template = textwrap.dedent('''
+    import sys
+    args = {args}
+    module = __import__('{module_name}')
+    for name in '{module_name}'.split('.')[1:]:
+      module = getattr(module, name)
+    func = getattr(module, '{func_name}')
+    sys.argv = [sys.argv[0]] + args + sys.argv[1:]
+    sys.exit(func())
+  ''').strip()
+
+  def __init__(self, executable, target_dir, source_dir=None):
+    self.executable = executable
+    self.target_dir = target_dir
+    self.source_dir = source_dir
+
+  def make_script(self, entrypoint):
+    if isinstance(entrypoint, str):
+      entrypoint = Entrypoint.parse(entrypoint)
+    # TODO: We want to produce an executable on any Windows environment,
+    #       but on MSYS and Cygwin, distlib.scripts.ScriptMaker will produce
+    #       a bash script that doesn't work properly with relative shebangs.
+    if system.is_purewin:
+      maker = distlib.scripts.ScriptMaker(self.source_dir, self.target_dir)
+      maker.variants = set([''])
+      maker.script_template = self.script_template.format(
+        args=repr(entrypoint.args), module_name='%(module)s',
+        func_name='%(func)s')
+      maker.executable = self.executable
+      maker.make(entrypoint.distlib_spec(), options={'gui': entrypoint.gui})
+    else:
+      raise NotImplementedError(sys.platform)
 
 
 class PythonAppBundle(object):
@@ -288,14 +340,21 @@ class DistributionBuilder(nr.types.Named):
     if self.entries or self.wentries:
       did_stuff = True
       python_bin = nr.fs.join('runtime', nr.fs.base(self.python_bin))
-      for spec in self.entries:
-        data = make_script(python_bin, self.bundle_dir, spec, gui=False)
-        self.includes += data['modules']
-        # TODO: Take imports of data['files'] into account
-      for spec in self.wentries:
-        data = make_script(python_bin, self.bundle_dir, spec, gui=True)
-        self.includes += data['modules']
-        # TODO: Take imports of data['files'] into account
+      self.entries = [Entrypoint.parse(x) for x in self.entries]
+      self.wentries = [Entrypoint.parse(x) for x in self.wentries]
+      maker = ScriptMaker(python_bin, self.bundle_dir)
+      for entrypoint in self.entries:
+        entrypoint.gui = False
+        maker.make_script(entrypoint)
+        if entrypoint.is_qid():
+          self.includes.append(entrypoint.module)
+        # TODO: Consider imports of file if entrypoint.is_File()
+      for entrypoint in self.wentries:
+        entrypoint.gui = True
+        maker.make_script(entrypoint)
+        if entrypoint.is_Qid():
+          self.includes.append(entrypoint.module)
+        # TODO: Consider imports of file if entrypoint.is_File()
 
     if self.resources:
       did_stuff = True
@@ -314,9 +373,9 @@ class DistributionBuilder(nr.types.Named):
       modules = get_core_modules() if self.default_includes else []
       modules += self.includes
       for module_name in modules:
-        self.graph.collect_modules(module_name, sparse=True)#self.sparse)
+        self.graph.collect_modules(module_name, sparse=self.sparse)
 
-      bundle = PythonAppBundle(DirConfig.get(self.bundle_dir))
+      bundle = PythonAppBundle(DirConfig.get(self.bundle_dir), self.graph)
       print(bundle)
       # TODO: invoke hooks
 
