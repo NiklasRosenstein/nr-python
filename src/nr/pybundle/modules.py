@@ -395,7 +395,6 @@ class ModuleFinder(object):
       if not sparse or (mod.name in collect_whole and not mod.name in collect_sparse):
         for submod in self.iter_package_modules(mod):
           if submod.name in seen: continue
-          seen.add(submod.name)
           stream.consume(self.iter_modules(submod, recursive=True, seen=seen))
 
   def iter_modules(self, module=None, filename=None, source=None,
