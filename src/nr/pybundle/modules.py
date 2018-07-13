@@ -181,11 +181,10 @@ class ModuleInfo(nr.types.Named):
     ('name', str),
     ('filename', str),
     ('type', type),
-    ('parent', 'ModuleInfo', None),
-    ('children', list, nr.types.Named.Initializer(list)),
-    ('imported_from', set, nr.types.Named.Initializer(set)),
+    ('imported_from', set, lambda: set()),
+    ('imports', list, lambda: list()),
     ('is_zippable', bool, None),
-    ('package_data', list, nr.types.Named.Initializer(list)),
+    ('package_data', list, lambda: list()),
     ('graph', 'ModuleGraph', None),
   ]
 
@@ -234,6 +233,23 @@ class ModuleInfo(nr.types.Named):
   @is_zippable.setter
   def is_zippable(self, value):
     self._zippable = is_zippable
+
+  @property
+  def parent(self):
+    name = self.parent_name
+    if name:
+      return self.graph[name]
+    return None
+
+  @property
+  def children(self):
+    prefix = self.name + '.'
+    count = prefix.count('.')
+    result = []
+    for mod in self.graph:
+      if mod.name.startswith(prefix) and mod.name.count('.') == count:
+        result.append(mod)
+    return result
 
   @property
   def parent_name(self):
@@ -336,7 +352,7 @@ class ModuleFinder(object):
     """
 
     if module_name in sys.builtin_module_names:
-      module = ModuleInfo(module_name, None, 'builtin', [])
+      module = ModuleInfo(module_name, None, 'builtin')
     else:
       parts = module_name.split('.')
       module = None
@@ -395,14 +411,16 @@ class ModuleGraph(object):
   Represents a network of #ModuleInfo objects.
   """
 
-  def __init__(self, finder, import_filter=None, logger=None):
+  def __init__(self, finder, import_filter=None, hook=None, sparse=False, logger=None):
     self.finder = finder
     self.import_filter = import_filter or ModuleImportFilter([])
+    self.hook = hook
+    self.sparse = sparse
     self.logger = logger or logging.getLogger(__name__)
     self._modules = {}
 
   def __getitem__(self, module_name):
-    return self._modules[module_name]
+    return self._modules.get(module_name, None)
 
   def __contains__(self, module_name):
     return module_name in self._modules
@@ -448,24 +466,20 @@ class ModuleGraph(object):
 
     module = self._modules.get(module_name)
     if module is None:
-      if '.' in module_name:
-        parent = self.find_module(module_name.rpartition('.')[0])
-      else:
-        parent = None
       module = self.finder.find_module(module_name)
-      module.parent = parent
-      if parent:
-        parent.children.append(module)
       self.add(module)
     return module
 
-  def collect_modules(self, module_name, source_module='*', sparse=False,
-                      callback=None):
+  def collect_modules(self, module_name, source_module='*', sparse=None,
+                      callback=None, depth=0):
     """
     Collects the specified *module_name* and all of its imports into the
     module graph. If *sparse* is set to #True, it will not automatically
     collect submodules if *module_name* is a package.
     """
+
+    if sparse is None:
+      sparse = self.sparse
 
     if module_name in self._modules:
       return self._modules[module_name]
@@ -474,36 +488,35 @@ class ModuleGraph(object):
     if source_module is not None:
       module.imported_from.add(source_module)
 
-    if callback:
-      callback(module)
-
-    if not sparse:
-      for sub_module in self.finder.iter_package_modules(module):
-        self.collect_modules(sub_module.name, None, False, callback)
-
     if module.type == ModuleInfo.SRC:
       try:
-        imports = get_imports(module.filename)
+        module.imports = get_imports(module.filename)
       except SyntaxError as e:
         self.logger.warn('Unable to parse imports of module {} ({!r}): {}'
                          .format(module.name, module.filename, e))
-        imports = []
 
-      imports = [x.to_abs(module) for x in imports]
-      for imp in imports:
-        if not self.import_filter.accept(imp.name, module.name):
+    if self.hook:
+      self.hook.module_found(module)
+
+    if callback:
+      callback(module, depth)
+
+    if not sparse:
+      for sub_module in self.finder.iter_package_modules(module):
+        self.collect_modules(sub_module.name, None, False, callback, depth+1)
+
+    for imp in (x.to_abs(module) for x in module.imports):
+      if not self.import_filter.accept(imp.name, module.name):
+        continue
+
+      parent = imp.parent
+      if parent:
+        self.collect_modules(parent.name, module.name, sparse, callback, depth+1)
+        if not self._modules[parent.name].is_pkg():
+          # The import can only refer to a member.
           continue
 
-        parent = imp.parent
-        if parent:
-          self.collect_modules(parent.name, module.name, sparse, callback)
-          if not self._modules[parent.name].is_pkg():
-            # The import can only refer to a member.
-            continue
-
-        self.collect_modules(imp.name, module.name, sparse, callback)
-
-    return module
+      self.collect_modules(imp.name, module.name, sparse, callback, depth+1)
 
 
 class ModuleImportFilter(object):

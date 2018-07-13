@@ -314,8 +314,8 @@ class DistributionBuilder(nr.types.Named):
     self.includes = list(self.includes)
     self.finder = ModuleFinder([])
     self.filter = ModuleImportFilter(self.excludes)
-    self.graph = ModuleGraph(self.finder, self.filter)
     self.hook = DelegateHook()
+    self.graph = ModuleGraph(self.finder, self.filter, self.hook, sparse=self.sparse)
 
     if self.default_excludes:
       self.filter.excludes += get_common_excludes()
@@ -373,7 +373,7 @@ class DistributionBuilder(nr.types.Named):
       modules = get_core_modules() if self.default_includes else []
       modules += self.includes
       for module_name in modules:
-        self.graph.collect_modules(module_name, sparse=self.sparse)
+        self.graph.collect_modules(module_name)
 
       bundle = PythonAppBundle(DirConfig.get(self.bundle_dir), self.graph)
       print(bundle)

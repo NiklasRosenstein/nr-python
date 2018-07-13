@@ -35,6 +35,14 @@ class Hook(object):
   Base class for a hook.
   """
 
+  def module_found(self, module):
+    """
+    Called when the module was found by a #ModuleFinder before its imports
+    are inspected.
+    """
+
+    pass
+
   def inspect_module(self, bundle, graph, module):
     """
     This method is called to retrieve additional information on the module.
@@ -42,7 +50,22 @@ class Hook(object):
     method may still add additional functions to the module graph.
     """
 
-    raise NotImplementedError
+    pass
+
+
+class ScriptHook(Hook):
+
+  def __init__(self, filename):
+    with open(filename) as fp:
+      name = nr.fs.base(filename).rstrip('.py')
+      self.module = types.ModuleType(name)
+      self.module.__file__ = filename
+      exec(compile(fp.read(), filename, 'exec'), vars(self.module))
+
+    if hasattr(self.module, 'module_found'):
+      self.module_found = self.module.module_found
+    if hasattr(self.module, 'inspect_module'):
+      self.inspect_module = self.module.inspect_module
 
 
 class DelegateHook(Hook):
@@ -54,16 +77,22 @@ class DelegateHook(Hook):
     if path is None:
       path = [nr.fs.join(nr.fs.dir(__file__), 'hooks')]
     self.path = path
-    self.cache = {}
-    self.catch_all_hooks = None
     self.options = {}
+    self._module_hooks = {}
+    self._general_hooks = None
+
+  def module_found(self, module):
+    for hook in self._hooks_for(module.name):
+      hook.module_found(module)
 
   def inspect_module(self, bundle, graph, module):
-    self._ensure_hook(module.name)
-    for hook in self.cache.values():
+    for hook in self._hooks_for(module.name):
       hook.inspect_module(bundle, graph, module)
-    for hook in self.catch_all_hooks:
-      hook.inspect_module(bundle, graph, module)
+
+  def _hooks_for(self, module_name):
+    self._ensure_hook(module_name)
+    yield from (x for x in self._module_hooks.values() if x)
+    yield from self._general_hooks
 
   def _ensure_hook(self, module_name):
     """
@@ -78,12 +107,12 @@ class DelegateHook(Hook):
       if hook is not None:
         break
 
-    if self.catch_all_hooks is None:
-      self.catch_all_hooks = []
+    if self._general_hooks is None:
+      self._general_hooks = []
       for dirname in self.path:
         filename = nr.fs.join(dirname, 'hook.py')
         if nr.fs.isfile(filename):
-          self.catch_all_hooks.append(self._load_module(filename))
+          self._general_hooks.append(ScriptHook(filename))
 
   def _load_hook(self, module_name):
     """
@@ -91,22 +120,14 @@ class DelegateHook(Hook):
     """
 
     try:
-      hook = self.cache[module_name]
+      hook = self._module_hooks[module_name]
     except KeyError:
       for dirname in self.path:
         filename = nr.fs.join(dirname, 'hook-{}.py'.format(module_name))
         if nr.fs.isfile_cs(filename):
-          hook = self._load_module(filename)
+          hook = ScriptHook(filename)
           break
       else:
         hook = None
-      self.cache[module_name] = hook
+      self._module_hooks[module_name] = hook
     return hook
-
-  def _load_module(self, filename):
-    with open(filename) as fp:
-      name = nr.fs.base(filename).rstrip('.py')
-      module = types.ModuleType(name)
-      module.__file__ = filename
-      exec(compile(fp.read(), filename, 'exec'), vars(module))
-      return module
