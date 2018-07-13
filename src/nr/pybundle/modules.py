@@ -259,8 +259,10 @@ class ModuleInfo(nr.types.Named):
         return os.path.join(parent, parts[-1], '__init__.py')
       else:
         return os.path.join(parent, parts[-1] + '.py')
-    else:
+    elif self.filename:
       return os.path.join(parent, os.path.basename(self.filename))
+    else:
+      raise ValueError('can not determine relative_filename of NOTFOUND module')
 
   @property
   def relative_directory(self):
@@ -268,10 +270,8 @@ class ModuleInfo(nr.types.Named):
     Returns the directory of the module relative to a modules directory.
     """
 
-    fn = self.relative_filename
-    if fn is not None:
-      fn = os.path.dirname(fn)
-    return fn
+    parts = self.name.split('.')
+    return os.path.join(*parts[:-1]) if len(parts) > 1 else ''
 
   @property
   def directory(self):
