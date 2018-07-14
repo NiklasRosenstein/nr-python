@@ -13,6 +13,7 @@ BINDIND_REQUIRES = {
 
 
 def inspect_module(module):
+  module.load_imports()
   if module.name == 'Qt':
     module.imports.append(BINDING)
     for other in ['PyQt4', 'PyQt5', 'PySide2', 'PySide', 'shiboken', 'shiboken2']:

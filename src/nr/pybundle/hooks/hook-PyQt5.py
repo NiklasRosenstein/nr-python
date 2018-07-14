@@ -91,6 +91,7 @@ def inspect_module(module):
   if module.name == 'PyQt5':
     module.zippable = False
     module.graph.collect_modules('sip', module.name)
+    module.graph.collect_modules('PyQt5.sip', module.name)
     if options.get_bool('pyqt5:whole'):
       for mod in finder.iter_package_modules(module):
         module.graph.collect_modules(mod.name, None)
@@ -114,14 +115,18 @@ def collect_data(module):
 
     # Determine the PyQt components that the application actually uses.
     modules = set(['QtCore'])
-    for mod in module.graph:
-      if not mod.name.startswith('PyQt5.Qt') or mod.type == mod.NOTFOUND:
-        continue
+    for mod in module.graph.filter(prefix='PyQt5.Qt', not_type=module.NOTFOUND):
       if mod.imported_from and mod.name.count('.') == 1:
         modules.add(mod.name.split('.')[1])
         bins.append(mod.filename)
-      elif not mod.imported_from:
-        module.graph.discard(mod.name)
+    modules = _expand_modules(modules)
+    [module.graph.collect_modules('PyQt5.' + x) for x in modules]
+
+    # Discard unused modules.
+    for mod in module.graph.filter(prefix='PyQt5.Qt'):
+      if not mod.imported_from and mod.name.count('.') == 1 and \
+          mod.name.split('.')[1] not in modules:
+        self.graph.discard(mod.name)
 
     # Add only the necessary files from the bin/ directory.
     exclude_files = _get_exclude_module_files(modules)
