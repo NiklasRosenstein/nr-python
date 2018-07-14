@@ -188,6 +188,10 @@ _known_dlls = [
 _known_dlls = set(x.lower() for x in _known_dlls)
 
 
+def is_binary(filename):
+  return filename.endswith('.exe') or filename.endswith('.dll')
+
+
 def get_dependencies(filename, exclude_system_deps=False):
   pe = pefile.PE(filename, fast_load=True)
   pe.parse_data_directories(

@@ -20,6 +20,7 @@
 
 from nr.stream import stream
 from .utils import system
+from .hooks import Hook
 
 import ast
 import copy
@@ -184,12 +185,13 @@ class ModuleInfo(nr.types.Named):
     ('filename', str),
     ('type', type),
     ('imported_from', set, lambda: set()),
-    ('imports', list, lambda: list()),
+    ('imports', list, lambda: []),
     ('is_zippable', bool, None),
-    ('package_data', list, lambda: list()),
     ('graph', 'ModuleGraph', None),
     ('handled', bool, False),
     ('sparse', bool, None),
+    ('package_data', list, lambda: []),
+    ('native_deps', list, lambda: []),
   ]
 
   SRC = 'src'
@@ -551,7 +553,7 @@ class ModuleGraph(object):
           module.imports.append(imp.name)
 
     if self.hook:
-      self.hook.module_found(module)
+      self.hook.inspect_module(module)
     if callback:
       callback(module, depth)
 
@@ -573,6 +575,22 @@ class ModuleGraph(object):
           import_name = import_name.rpartition('.')[0]
         else:
           break
+
+  def collect_data(self):
+    """
+    Invokes the #Hook.collect_data() method for every module in the graph.
+    """
+
+    collected = set()
+    while True:
+      n = 0
+      for mod in list(self._modules.values()):
+        if mod.type != mod.NOTFOUND and mod.name not in collected:
+          n += 1
+          collected.add(mod.name)
+          self.hook.collect_data(mod)
+      if n == 0:
+        break
 
 
 class ModuleImportFilter(object):

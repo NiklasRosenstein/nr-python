@@ -10,6 +10,8 @@ Options:
 
 import collections
 import os
+
+from nr.pybundle import nativedeps
 from nr.stream import stream
 from nr.types import Named
 
@@ -85,41 +87,51 @@ def _get_exclude_module_files(modules):
   return exclude
 
 
-def examine(finder, module, result):
+def inspect_module(module):
   if module.name == 'PyQt5':
-    result.imports.append('sip')
-    result.modules += finder.iter_package_modules(module)
+    module.zippable = False
+    module.graph.collect_modules('sip', module.name)
+    if options.get_bool('pyqt5:whole'):
+      for mod in finder.iter_package_modules(module):
+        module.graph.collect_modules(mod.name, None)
 
 
-def finalize(finder):
-  module = finder.modules['PyQt5']
-  module.zippable = False
+def collect_data(module):
+  if module.name != 'PyQt5':
+    return
 
-  # Make sure the Qt libraries can be found by the native dependency
-  # resolution but also that they are not copied into the runtime directory.
   bin_dir = os.path.join(module.directory, 'Qt', 'bin')
-  module.native_deps_path.append(bin_dir)
-  for name in os.listdir(bin_dir):
-    module.native_deps_exclude.append(os.path.join(bin_dir, name))
+  bins = []
 
-  whole_qt = finder.hooks.options.get('pyqt5:whole', 'false') == 'true'
-  if whole_qt:
+  if options.get_bool('pyqt5:whole'):
     module.package_data.append('Qt')
+    bins += os.listdir(bin_dir)
   else:
-    module.package_data.append('Qt/plugins')  # TODO: Exclude plugins that will be unused
+    # TODO: Exclude plugins that will be unused
+    module.package_data.append('Qt/plugins')
+
     # TODO: Remove unused PyQt5 submodules from finder.modules
 
-    # From the used imports, determine the Qt modules that are required.
+    # Determine the PyQt components that the application actually uses.
     modules = set(['QtCore'])
-    for mod in list(finder.modules.values()):
-      if mod.natural and mod.name.startswith('PyQt5.Qt') and mod.name.count('.') == 1:
-        name = mod.name.split('.')[1]
-        modules.add(name)
-      if mod.type == mod.NATIVE and not mod.natural and mod.name != 'PyQt5.sip':
-        del finder.modules[mod.name]  # Exclude unused native modules
+    for mod in module.graph:
+      if not mod.name.startswith('PyQt5.Qt') or mod.type == mod.NOTFOUND:
+        continue
+      if mod.imported_from and mod.name.count('.') == 1:
+        modules.add(mod.name.split('.')[1])
+        bins.append(mod.filename)
+      elif not mod.imported_from:
+        module.graph.discard(mod.name)
 
     # Add only the necessary files from the bin/ directory.
     exclude_files = _get_exclude_module_files(modules)
     for name in os.listdir(bin_dir):
       if name not in exclude_files:
         module.package_data.append('Qt/bin/{}'.format(name))
+        bins.append(os.path.join(bin_dir, name))
+
+  deps = nativedeps.Collection([bin_dir])
+  for name in bins:
+    if nativedeps.is_binary(name):
+      deps.add_dependencies_of(name)
+  module.native_deps += deps.unresolved()

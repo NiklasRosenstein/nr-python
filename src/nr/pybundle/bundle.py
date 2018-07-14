@@ -373,6 +373,7 @@ class DistributionBuilder(nr.types.Named):
       modules += self.includes
       for module_name in modules:
         self.graph.collect_modules(module_name)
+      self.graph.collect_data()
 
       bundle = PythonAppBundle(DirConfig.get(self.bundle_dir), self.graph)
       print(bundle)
