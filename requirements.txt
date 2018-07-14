@@ -1,6 +1,6 @@
 appdirs>=1.4.3
 distlib>=0.2.7
 pefile>=2017.11.5
-nr.fs>=1.0.1
+nr.fs>=1.0.2
 nr.stream>=1.0.1
-nr.types>=1.0.3
+nr.types>=1.0.6
