@@ -18,6 +18,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from .vendor import pip_pep425tags as tags
 from nr.stream import stream
 from .utils import system
 from .hooks import Hook
@@ -38,16 +39,11 @@ def get_native_suffixes():
   Returns a list of the suffixes used by Python C-Extensions.
   """
 
-  # NOTE: Do we need to use PEP425 to determine the SO suffix on Windows?
-  #       Does sysnconfig["SO"] not contain the *one* suffix that is used?
-  #if system.is_win and not system.is_unix:
-  #  try:
-  #    import pip._internal.pep425tags as tags
-  #  except ImportError:
-  #    import pip.pep425tags as tags
-  #  return ['.pyd', '.' + tags.implementation_tag + '-' + tags.get_platform() + '.pyd']
-  #else:
-  return [sysconfig.get_config_var('SO')]
+  if system.is_win and not system.is_unix:
+    # sysconfig["SO"] contains only .pyd on Windows.
+    return ['.pyd', '.' + tags.implementation_tag + '-' + tags.get_platform() + '.pyd']
+  else:
+    return [sysconfig.get_config_var('SO')]
 
 
 def get_imports(filename, source=None):
