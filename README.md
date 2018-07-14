@@ -9,16 +9,18 @@
 
 ### Changes
 
-#### v1.0.2
+#### v1.0.2 (2018-07-14)
 
-* Remove `get_long_path_name()` 
-* Add `fixcase()` as replacement for `get_long_path_name()`
+* Changed `get_long_path_name()` is now an alias for `fixcase()`
+  (backwards compatibility until 1.1.0)
 * Changed `canonical()` so that it invokes `fixcase()` on case-insensitive
   filesystems
-* Add `tempfile.encoding` property
 * When `tempfile(encoding)` parameter was not specified, its `encoding`
   property will still return the applied text file encoding after it
   has been opened
+* Add `fixcase()` as replacement for `get_long_path_name()`
+* Add `tempfile.encoding` property
+* Add `listdir()`
 
 #### v1.0.1 (2018-07-05)
 

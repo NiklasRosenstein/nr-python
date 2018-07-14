@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
   name = 'nr.fs',
-  version = '1.0.1',
+  version = '1.0.2',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Filesystem and path manipulation tools.',
