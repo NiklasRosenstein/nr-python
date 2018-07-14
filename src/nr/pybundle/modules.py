@@ -521,12 +521,19 @@ class ModuleGraph(object):
     collect submodules if *module_name* is a package.
     """
 
+    if module_name.endswith('+'):
+      sparse = False
+      module_name = module_name[:-1]
+    else:
+      sparse = self.sparse and module_name not in self.collect_whole
+
     module = self.find_module(module_name)
     if source_module is not None:
       module.imported_from.add(source_module)
     if module.handled:
       return
     module.handled = True
+    module.sparse = sparse
 
     # Load the imports of the module into the #ModuleInfo.imports member.
     if module.type == ModuleInfo.SRC:
@@ -542,11 +549,6 @@ class ModuleGraph(object):
             assert imp.parent, imp
             module.imports.append(imp.parent.name)
           module.imports.append(imp.name)
-
-    if module_name.endswith('+'):
-      module.sparse = False
-    else:
-      module.sparse = self.sparse and module_name not in self.collect_whole
 
     if self.hook:
       self.hook.module_found(module)
