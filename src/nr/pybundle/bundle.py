@@ -376,22 +376,11 @@ class DistributionBuilder(nr.types.Named):
       self.graph.collect_data()
 
       bundle = PythonAppBundle(DirConfig.get(self.bundle_dir), self.graph)
-      print(bundle)
-      # TODO: invoke hooks
+      print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND)))
+      print('  {} modules not found (many of which may be member imports)'
+            .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
 
-      notfound = 0
-      modules = []
-      for mod in self.graph:
-        if mod.type == mod.NOTFOUND:
-          self.logger.warn('Module could not be found: {}'.format(mod.name))
-          notfound += 1
-        elif mod.type != mod.BUILTIN:
-          modules.append(mod)
-      if notfound != 0:
-        self.logger.error('{} modules could not be found.'.format(notfound))
-        self.logger.error("But do not panic, most of them are most likely imports "
-                          "that are platform dependent or member imports.")
-        self.logger.error('Increase the verbosity with -v, --verbose for details.')
+      modules = [x for x in self.graph if x.type not in (x.NOTFOUND, x.BUILTIN)]
 
       lib_dir = bundle.dirconfig.lib
       lib_dynload_dir = bundle.dirconfig.lib_dynload
