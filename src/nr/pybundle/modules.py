@@ -556,11 +556,19 @@ class ModuleGraph(object):
         self.collect_modules(sub_module.name, None, callback, depth+1)
 
     for import_name in module.imports:
-      if import_name == 'shiboken':
-        import pdb; pdb.set_trace()
       if not self.import_filter.accept(import_name, module.name):
         continue
-      self.collect_modules(import_name, module.name, callback, depth+1)
+      while import_name:
+        # TODO: If self.sparse==False, we should at some point of this
+        #       iteration prevent the collection of submodules if they
+        #       belong to a completely different subpackage of a namespace
+        #       module.
+        self.collect_modules(import_name, module.name, callback, depth+1)
+        mod = self._modules[import_name]
+        if mod.type == mod.NOTFOUND:
+          import_name = import_name.rpartition('.')[0]
+        else:
+          break
 
 
 class ModuleImportFilter(object):
