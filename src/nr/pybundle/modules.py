@@ -591,8 +591,9 @@ class ModuleImportFilter(object):
     indicate that the module `Y` should be ignored when it is imported from `X`.
     """
 
+    prefix = imported_from + '->' + module_name
     for exclude in self.excludes:
-      if imported_from and exclude == (imported_from + '->' + module_name):
+      if imported_from and (prefix == exclude or prefix.startswith(exclude + '.')):
         return False
       if exclude == module_name or module_name.startswith(exclude + '.'):
         return False
@@ -638,5 +639,8 @@ def get_common_excludes():
   else:
     excludes.append('encodings->_bootlocale')
     excludes.append('os->ntpath')
+
+  if '_thread' in sys.builtin_module_names:
+    excludes.append('reprlib->_dummy_thread')
 
   return excludes
