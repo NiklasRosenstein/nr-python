@@ -185,7 +185,7 @@ class ModuleInfo(nr.types.Named):
     ('filename', str),
     ('type', type),
     ('imported_from', set, lambda: set()),
-    ('imports', list, lambda: []),
+    ('imports', list, None),
     ('is_zippable', bool, None),
     ('graph', 'ModuleGraph', None),
     ('handled', bool, False),
@@ -307,8 +307,7 @@ class ModuleInfo(nr.types.Named):
     Returns the directory of the module relative to a modules directory.
     """
 
-    parts = self.name.split('.')
-    return os.path.join(*parts[:-1]) if len(parts) > 1 else ''
+    return os.path.dirname(self.relative_filename)
 
   @property
   def directory(self):
@@ -320,6 +319,26 @@ class ModuleInfo(nr.types.Named):
     if self.filename is not None:
       return os.path.dirname(self.filename)
     return None
+
+  def load_imports(self):
+    self.imports = []
+    if self.type != self.SRC:
+      return
+
+    try:
+      imports = get_imports(self.filename)
+    except SyntaxError as e:
+      self.graph.logger.warn(
+        'Unable to parse imports of module {} ({!r}): {}'
+        .format(self.name, self.filename, e))
+      return
+
+    for imp in imports:
+      imp = imp.to_abs(self)
+      if imp.is_from_import:
+        assert imp.parent, imp
+        self.imports.append(imp.parent.name)
+      self.imports.append(imp.name)
 
   def strip_imports(self, module_name):
     result = []
@@ -505,6 +524,16 @@ class ModuleGraph(object):
     except KeyError:
       return False
 
+  def filter(self, prefix=None, type=None, not_type=None):
+    for module in self._modules.values():
+      if prefix is not None and not module.name.startswith(prefix):
+        continue
+      if type is not None and module.type != type:
+        continue
+      if not_type is not None and module.type == not_type:
+        continue
+      yield module
+
   def find_module(self, module_name):
     """
     Finds a module or returns it from the cache.
@@ -532,34 +561,24 @@ class ModuleGraph(object):
     module = self.find_module(module_name)
     if source_module is not None:
       module.imported_from.add(source_module)
+    if module.sparse in (None, True):
+      module.sparse = sparse
+
+    if not module.sparse:
+      for sub_module in self.finder.iter_package_modules(module):
+        self.collect_modules(sub_module.name, None, callback, depth+1)
+
     if module.handled:
       return
     module.handled = True
-    module.sparse = sparse
-
-    # Load the imports of the module into the #ModuleInfo.imports member.
-    if module.type == ModuleInfo.SRC:
-      try:
-        imports = get_imports(module.filename)
-      except SyntaxError as e:
-        self.logger.warn('Unable to parse imports of module {} ({!r}): {}'
-                         .format(module.name, module.filename, e))
-      else:
-        for imp in imports:
-          imp = imp.to_abs(module)
-          if imp.is_from_import:
-            assert imp.parent, imp
-            module.imports.append(imp.parent.name)
-          module.imports.append(imp.name)
 
     if self.hook:
       self.hook.inspect_module(module)
     if callback:
       callback(module, depth)
 
-    if not module.sparse:
-      for sub_module in self.finder.iter_package_modules(module):
-        self.collect_modules(sub_module.name, None, callback, depth+1)
+    if module.imports is None:
+      module.load_imports()
 
     for import_name in module.imports:
       if not self.import_filter.accept(import_name, module.name):
