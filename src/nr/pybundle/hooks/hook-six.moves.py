@@ -1,12 +1,12 @@
 
 import six
 
-def examine(finder, module, result):
-  if module.name == 'six.moves': return
-  assert module.name.startswith('six.moves.'), data
+def inspect_module(module):
+  if not module.name.startswith('six.moves.'):
+    return
+
+  module.load_imports()
   name = module.name[10:]
   for move in six._moved_attributes:
     if isinstance(move, six.MovedModule) and move.name == name:
-      result.imports.append(move.mod)
-      module.treat_as_found = True
-      break
+      module.imports.append(move.mod)

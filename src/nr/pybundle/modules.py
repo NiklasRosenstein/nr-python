@@ -348,6 +348,15 @@ class ModuleInfo(nr.types.Named):
         result.append(name)
     self.imports = result
 
+  def include_package(self, source_module=None):
+    """
+    Useful for hooks to collect all members of the package.
+    """
+
+    for mod in self.graph.finder.iter_package_modules(self):
+      print(mod.name)
+      self.graph.collect_modules(mod.name, None)
+
 
 class ModuleFinder(object):
   """

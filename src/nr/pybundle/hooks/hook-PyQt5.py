@@ -93,8 +93,7 @@ def inspect_module(module):
     module.graph.collect_modules('sip', module.name)
     module.graph.collect_modules('PyQt5.sip', module.name)
     if options.get_bool('pyqt5:whole'):
-      for mod in finder.iter_package_modules(module):
-        module.graph.collect_modules(mod.name, None)
+      mod.include_package()
 
 
 def collect_data(module):
