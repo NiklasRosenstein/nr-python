@@ -37,14 +37,16 @@ def get_native_suffixes():
   Returns a list of the suffixes used by Python C-Extensions.
   """
 
-  if system.is_win and not system.is_unix:
-    try:
-      import pip._internal.pep425tags as tags
-    except ImportError:
-      import pip.pep425tags as tags
-    return ['.pyd', '.' + tags.implementation_tag + '-' + tags.get_platform() + '.pyd']
-  else:
-    return [sysconfig.get_config_var('SO')]
+  # NOTE: Do we need to use PEP425 to determine the SO suffix on Windows?
+  #       Does sysnconfig["SO"] not contain the *one* suffix that is used?
+  #if system.is_win and not system.is_unix:
+  #  try:
+  #    import pip._internal.pep425tags as tags
+  #  except ImportError:
+  #    import pip.pep425tags as tags
+  #  return ['.pyd', '.' + tags.implementation_tag + '-' + tags.get_platform() + '.pyd']
+  #else:
+  return [sysconfig.get_config_var('SO')]
 
 
 def get_imports(filename, source=None):
