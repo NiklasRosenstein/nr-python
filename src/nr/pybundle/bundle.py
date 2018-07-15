@@ -85,7 +85,7 @@ class DirConfig(nr.types.Named):
   def get(cls, bundle_dir):
     if system.is_unix:
       lib = nr.fs.join(bundle_dir, 'lib/python{}'.format(sys.version[:3]))
-      lib_dynload = nr.fs.join(self.lib_dir, 'lib-dynload')
+      lib_dynload = nr.fs.join(lib, 'lib-dynload')
     else:
       lib = nr.fs.join(bundle_dir, 'lib')
       lib_dynload = lib
@@ -262,6 +262,12 @@ class PythonAppBundle(object):
     if add:
       self.binaries.append(resource)
 
+  def get_site_snippet(self, source):
+    for snippet in self.site_snippets:
+      if snippet.source == source:
+        return source
+    return None
+
   def add_site_snippet(self, source, code):
     self.site_snippets.append(SiteSnippet(source, code))
 
@@ -274,6 +280,33 @@ class PythonAppBundle(object):
             'with the name {!r} is already specified.'.format(spec.name))
         break
     self.entry_points.append(spec)
+
+  def prepare(self):
+    import atexit  # TODO: Maybe create a context manager for the PythonAppBundle instead
+    fp = nr.fs.tempfile('.py', text=True)
+    fp.__enter__()
+    atexit.register(lambda: fp.__exit__(None, None, None))
+    with open(self.modules['site'].filename) as src:
+      fp.write(src.read())
+      fp.write('\n\n')
+      for snippet in self.site_snippets:
+        fp.write('###@@@ Site-Snippet: {}\n'.format(snippet.source))
+        fp.write(snippet.code.rstrip())
+        fp.write('\n\n')
+      fp.close()
+    self.modules['site'].filename = fp.name
+
+  def build(self, copy_always):
+    for res in self.resources:
+      if not res.dest:
+        res.dest = nr.fs.join(self.dirconfig.resource, nr.fs.base(res.source))
+      copy_files_checked(res.source, res.dest, copy_always)
+    for res in self.binaries:
+      if not res.dest:
+        res.dest = nr.fs.join(self.dirconfig.runtime, nr.fs.base(res.source))
+      copy_files_checked(res.source, res.dest, copy_always)
+    # TODO: Site snippet
+    # TODO: Entry points
 
 
 class DistributionBuilder(nr.types.Named):
@@ -373,9 +406,11 @@ class DistributionBuilder(nr.types.Named):
       modules += self.includes
       for module_name in modules:
         self.graph.collect_modules(module_name)
-      self.graph.collect_data()
 
       bundle = PythonAppBundle(DirConfig.get(self.bundle_dir), self.graph)
+      self.graph.collect_data(bundle)
+      bundle.prepare()
+
       print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND)))
       print('  {} modules not found (many of which may be member imports)'
             .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
@@ -496,6 +531,8 @@ class DistributionBuilder(nr.types.Named):
             dst = nr.fs.join(runtime_dir, nr.fs.base(dep.name))
             if self.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
               shutil.copy(dep.filename, dst)
+
+        bundle.build(self.copy_always)
 
     return did_stuff
 

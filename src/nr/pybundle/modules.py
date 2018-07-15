@@ -600,7 +600,7 @@ class ModuleGraph(object):
         else:
           break
 
-  def collect_data(self):
+  def collect_data(self, bundle):
     """
     Invokes the #Hook.collect_data() method for every module in the graph.
     """
@@ -609,10 +609,10 @@ class ModuleGraph(object):
     while True:
       n = 0
       for mod in list(self._modules.values()):
-        if mod.type != mod.NOTFOUND and mod.name not in collected:
+        if mod.name not in collected:
           n += 1
           collected.add(mod.name)
-          self.hook.collect_data(mod)
+          self.hook.collect_data(mod, bundle)
       if n == 0:
         break
 

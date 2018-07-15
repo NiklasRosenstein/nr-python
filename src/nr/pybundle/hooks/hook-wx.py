@@ -5,7 +5,7 @@ import os
 # TODO: Option to include all of wxPython
 # TODO: Add locale files when required/requested
 
-def collect_data(module):
+def collect_data(module, bundle):
   if module.name != 'wx':
     return
   wx = module

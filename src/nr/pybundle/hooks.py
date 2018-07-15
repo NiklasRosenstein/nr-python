@@ -46,7 +46,7 @@ class Hook(object):
 
     pass
 
-  def collect_data(self, module):
+  def collect_data(self, module, bundle):
     """
     Called when the module was found by a #ModuleFinder before its imports
     are inspected.
@@ -116,9 +116,9 @@ class DelegateHook(Hook):
     for hook in self._hooks_for(module.name):
       hook.inspect_module(module)
 
-  def collect_data(self, module):
+  def collect_data(self, module, bundle):
     for hook in self._hooks_for(module.name):
-      hook.collect_data(module)
+      hook.collect_data(module, bundle)
 
   def _hooks_for(self, module_name):
     self._ensure_hook(module_name)

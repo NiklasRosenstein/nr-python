@@ -3,7 +3,7 @@ import os
 import shutil
 from nr.pybundle.nativedeps import Dependency
 from nr.pybundle.utils import pysubcmd, system
-from nr.pybundle.dist import copy_files_checked
+from nr.pybundle.utils.fs import copy_files_checked
 
 
 typelib_data = {}
@@ -42,30 +42,35 @@ def _get_typelib_info(module, version):
   return data
 
 
-def examine(finder, module, results):
+def collect_data(module, bundle):
+  if module.graph['gi.repository'].type == module.NOTFOUND: return
   repo_name = module.name[len('gi.repository.'):]
   if not repo_name: return
-  results.imports.append('gi.overrides.' + repo_name)
+  if repo_name != 'GIRepository':
+    module.graph.collect_modules('gi.repository.GIRepository', module.name)
+  module.graph.collect_modules('gi.overrides.' + repo_name, module.name)
 
   # TODO: Ability to examine the source file that imported the Gtk repository
   #       to determine the `require_version()` call.
-  from gi._gi import Repository, RepositoryError
-  repo = Repository.get_default()
-  try:
-    repo.require(repo_name)
-  except RepositoryError:
-    return # TODO: note? But can happen for conditional imports in GI source.
 
   # TODO: Prevent duplicate records
 
-  stack = [_get_typelib_info(repo_name, None)] # TODO: Version
+  try:
+    stack = [_get_typelib_info(repo_name, None)] # TODO: Version
+  except pysubcmd.UnpicklableError as exc:
+    if exc.type == 'GLib.Error':
+      return # TODO: Warning?
+
   while stack:
     info = stack.pop(0)
     for dep in info['deps']:
       dep, version = dep.partition('-')[::2]
-      results.imports.append('gi.repository.' + dep)
+      module.graph.collect_modules('gi.repository.' + dep, module.name)
       stack.append(_get_typelib_info(dep, version))
     for lib in info['libs']:
       module.native_deps.append(Dependency(lib, system.find_in_path(lib, common_ext=False)))
-    # TODO: Inform the finder about this file, instead of copying it to the bundle directly.
-    copy_files_checked(info['typelib'], 'bundle/runtime/' + os.path.basename(info['typelib']))
+    bundle.add_binary(info['typelib'])
+
+  if not bundle.get_site_snippet('gi.repository'):
+    bundle.add_site_snippet('gi.repository',
+      "os.environ['GI_TYPELIB_PATH'] = sys.frozen_env['runtime_dir']")

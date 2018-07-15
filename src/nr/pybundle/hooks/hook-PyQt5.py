@@ -96,7 +96,7 @@ def inspect_module(module):
       mod.include_package()
 
 
-def collect_data(module):
+def collect_data(module, bundle):
   if module.name != 'PyQt5':
     return
 
