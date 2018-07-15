@@ -26,7 +26,7 @@ class HtmlWindow(wx.html.HtmlWindow):
 class AboutBox(wx.Dialog):
     def __init__(self):
         wx.Dialog.__init__(self, None, -1, "About <<project>>",
-            style=wx.DEFAULT_DIALOG_STYLE|wx.THICK_FRAME|wx.RESIZE_BORDER|
+            style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|
                 wx.TAB_TRAVERSAL)
         hwin = HtmlWindow(self, -1, size=(400,200))
         vers = {}
