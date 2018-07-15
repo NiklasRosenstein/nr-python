@@ -34,6 +34,8 @@ def _get_typelib_info(module, version):
 
   info = pysubcmd.execute(statement)
   data = {
+    'name': module,
+    'version': version,
     'libs': [x for x in info['sharedlib'].split(',') if x],
     'typelib': info['typelib'],
     'deps': info['deps']
@@ -68,7 +70,7 @@ def collect_data(module, bundle):
       module.graph.collect_modules('gi.repository.' + dep, module.name)
       stack.append(_get_typelib_info(dep, version))
     for lib in info['libs']:
-      module.native_deps.append(Dependency(lib, system.find_in_path(lib, common_ext=False)))
+      module.native_deps.append(Dependency(lib, None))\
     bundle.add_binary(info['typelib'])
 
   if not bundle.get_site_snippet('gi.repository'):

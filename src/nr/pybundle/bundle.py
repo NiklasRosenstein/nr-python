@@ -529,11 +529,10 @@ class DistributionBuilder(nr.types.Named):
           dep = deps.add(path, recursive=True)
           dep.name = name
         for mod in self.graph:
-          #deps.search_path = list(stream.concat(x.native_deps_path for x in mod.hierarchy_chain())) + search_path
-          if mod.type == mod.NATIVE:# and mod.do_native_deps:
+          if mod.type == mod.NATIVE:
             deps.add(mod.filename, dependencies_only=True, recursive=True)
-          #for dep in mod.native_deps:
-          #  deps.add(dep, recursive=True)
+          for dep in mod.native_deps:
+            deps.add(dep, recursive=True)
 
         # Warn about dependencies that can not be found.
         notfound = 0
