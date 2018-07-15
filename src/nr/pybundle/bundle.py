@@ -173,8 +173,28 @@ class ScriptMaker(object):
         func_name='%(func)s')
       maker.executable = self.executable
       maker.make(entrypoint.distlib_spec(), options={'gui': entrypoint.gui})
-    else:
-      raise NotImplementedError(sys.platform)
+      return
+
+    script = nr.fs.join(self.target_dir, '{}.py'.format(entrypoint.name))
+    with open(script, 'w') as fp:
+      if entrypoint.is_file():
+        # TODO
+        raise NotImplementedError
+      else:
+        fp.write(self.script_template.format(
+          args=repr(entrypoint.args),
+          module_name=entrypoint.module,
+          func_name=entrypoint.function))
+
+    if system.is_win:
+      batch = nr.fs.join(self.target_dir, '{}.bat'.format(entrypoint.name))
+      with open(batch, 'w') as fp:
+        fp.write('@call "%dp0~runtime\\python.exe" "%dp0~\\{}.py'.format(entrypoint.name))
+
+    sh = nr.fs.join(self.target_dir, entrypoint.name)
+    with open(sh, 'w') as fp:
+      fp.write('#!/bin/sh\nhere=`dirname "$0"`\n"$here/runtime/python" "$here/test.py"\n')
+    nr.fs.chmod(sh, '+x')
 
 
 class PythonAppBundle(object):
