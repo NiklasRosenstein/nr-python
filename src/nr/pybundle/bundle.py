@@ -190,7 +190,7 @@ class ScriptMaker(object):
     if system.is_win:
       batch = nr.fs.join(self.target_dir, '{}.bat'.format(entrypoint.name))
       with open(batch, 'w') as fp:
-        fp.write('@call "%dp0~runtime\\python.exe" "%dp0~\\{}.py'.format(entrypoint.name))
+        fp.write('@call "%~dp0runtime\\python.exe" "%~dp0\\{}.py'.format(entrypoint.name))
 
     sh = nr.fs.join(self.target_dir, entrypoint.name)
     with open(sh, 'w') as fp:
