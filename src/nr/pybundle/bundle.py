@@ -175,6 +175,7 @@ class ScriptMaker(object):
       maker.make(entrypoint.distlib_spec(), options={'gui': entrypoint.gui})
       return
 
+    nr.fs.makedirs(self.target_dir)
     script = nr.fs.join(self.target_dir, '{}.py'.format(entrypoint.name))
     with open(script, 'w') as fp:
       if entrypoint.is_file():
