@@ -97,9 +97,8 @@ def get_argument_parser(prog=None):
   group.add_argument('--entry', action='append', default=[], metavar='SPEC',
     help='Create an executable from a Python entrypoint specification '
          'and optional arguments in the standalone distribution directory. '
-         'The created executable will run in console mode.')
-  group.add_argument('--wentry', action='append', default=[], metavar='SPEC',
-    help='The same as --entry, but the executable will run in GUI mode.')
+         'The created executable will run in console mode unless the spec '
+         'is prefixed with an @ sign (as in @prog=module:fun).')
   group.add_argument('--resource', action='append', default=[], metavar='SRC[:DST]',
     help='Copy thepath(s) to the bundle directory. If DST is not specified, '
          'it defaults to res/{srcbasename}/. The path to the res/ directory '
@@ -179,7 +178,6 @@ def main(argv=None, prog=None):
     collect = args.collect,
     dist = args.dist,
     entries = args.entry,
-    wentries = args.wentry,
     resources = args.resource,
     bundle_dir = args.bundle_dir,
     excludes = split_multiargs(args.exclude),

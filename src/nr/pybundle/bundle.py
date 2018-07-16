@@ -145,7 +145,9 @@ class ScriptMaker(object):
   # TODO: In a GUI based script, wrap all of it in a try-catch
   #       block and show the error in a message box.
   script_template = textwrap.dedent('''
-    import sys
+    import sys, site
+    if hasattr(site, 'rthooks'):
+      site.rthooks()
     args = {args}
     module = __import__('{module_name}')
     for name in '{module_name}'.split('.')[1:]:
@@ -212,6 +214,10 @@ class PythonAppBundle(object):
 
     A #DirConfig object with the paths to the bundle directories.
 
+  scripts (ScriptMaker)
+
+    A #ScriptMaker instance.
+
   modules (ModuleGraph)
 
     The container for the information on all collected Python modules that
@@ -245,13 +251,15 @@ class PythonAppBundle(object):
     application.
   """
 
-  def __init__(self, dirconfig, modules, logger=None):
+  def __init__(self, dirconfig, scripts, modules, logger=None):
     self.logger = logger or logging.getLogger(__name__)
     self.dirconfig = dirconfig
+    self.scripts = scripts
     self.modules = modules
     self.resources = []
     self.binaries = []
     self.site_snippets = []
+    self.rthooks = []
     self.entry_points = []
 
   def add_resource(self, source, dest=None):
@@ -293,6 +301,15 @@ class PythonAppBundle(object):
   def add_site_snippet(self, source, code):
     self.site_snippets.append(SiteSnippet(source, code))
 
+  def get_rthook(self, source):
+    for snippet in self.rthooks:
+      if snippet.source == source:
+        return source
+    return None
+
+  def add_rthook(self, source, code):
+    self.rthooks.append(SiteSnippet(source, code))
+
   def add_entry_point(self, spec):
     if isinstance(spec, str):
       spec = Entrypoint.parse(spec)
@@ -304,6 +321,11 @@ class PythonAppBundle(object):
     self.entry_points.append(spec)
 
   def prepare(self):
+    """
+    Prepare the bundle. This method currently only creates a substitute
+    `site` module that contains the site snippets added to the bundle.
+    """
+
     import atexit  # TODO: Maybe create a context manager for the PythonAppBundle instead
     fp = nr.fs.tempfile('.py', text=True)
     fp.__enter__()
@@ -315,22 +337,37 @@ class PythonAppBundle(object):
         fp.write('###@@@ Site-Snippet: {}\n'.format(snippet.source))
         fp.write(snippet.code.rstrip())
         fp.write('\n\n')
+      fp.write('def rthooks():\n')
+      fp.write('  " Runtime-hooks installed from nr.pybundle hooks. "\n')
+      for snippet in self.rthooks:
+        fp.write('  ###@@@ RtHook: {}\n'.format(snippet.source))
+        for line in snippet.code.split('\n'):
+          fp.write('  {}\n'.format(line))
+        fp.write('\n')
       fp.close()
     self.modules['site'].filename = fp.name
 
-  def build(self, copy_always):
+  def create_bundle(self, copy_always):
+    """
+    Create the bundle by copying all resource files, binaries and creating
+    entrypoints.
+    """
+
+    # TODO: Do most of the stuff from the #DistributionBuilder here,
+    #       like copying module files etc.
+
     for res in self.resources:
       if not res.dest:
-        res.dest = nr.fs.join(self.dirconfig.resource, nr.fs.base(res.source))
+        res.dest = nr.fs.abs(nr.fs.join(self.dirconfig.resource, nr.fs.base(res.source)))
       res.dest = nr.fs.join(self.dirconfig.bundle, res.dest)
       copy_files_checked(res.source, res.dest, copy_always)
     for res in self.binaries:
       if not res.dest:
-        res.dest = nr.fs.join(self.dirconfig.runtime, nr.fs.base(res.source))
+        res.dest = nr.fs.abs(nr.fs.join(self.dirconfig.runtime, nr.fs.base(res.source)))
       res.dest = nr.fs.join(self.dirconfig.bundle, res.dest)
       copy_files_checked(res.source, res.dest, copy_always)
-    # TODO: Site snippet
-    # TODO: Entry points
+    for ep in self.entry_points:
+      self.scripts.make_script(ep)
 
 
 class DistributionBuilder(nr.types.Named):
@@ -343,7 +380,6 @@ class DistributionBuilder(nr.types.Named):
     ('collect', str, False),
     ('dist', str, False),
     ('entries', list, ()),
-    ('wentries', list, ()),
     ('resources', list, ()),
     ('bundle_dir', str, 'bundle'),
     ('excludes', list, ()),
@@ -372,6 +408,12 @@ class DistributionBuilder(nr.types.Named):
     self.filter = ModuleImportFilter(self.excludes)
     self.hook = DelegateHook()
     self.graph = ModuleGraph(self.finder, self.filter, self.hook)
+    self.bundle = PythonAppBundle(
+      dirconfig = DirConfig.get(self.bundle_dir),
+      scripts = ScriptMaker(
+        nr.fs.join('runtime', nr.fs.base(self.python_bin)),
+        self.bundle_dir),
+      modules = self.graph)
 
     if self.default_excludes:
       self.filter.excludes += get_common_excludes()
@@ -393,32 +435,17 @@ class DistributionBuilder(nr.types.Named):
 
     did_stuff = False
 
-    if self.entries or self.wentries:
+    if self.entries:
       did_stuff = True
-      python_bin = nr.fs.join('runtime', nr.fs.base(self.python_bin))
-      self.entries = [Entrypoint.parse(x) for x in self.entries]
-      self.wentries = [Entrypoint.parse(x) for x in self.wentries]
-      maker = ScriptMaker(python_bin, self.bundle_dir)
       for entrypoint in self.entries:
-        entrypoint.gui = False
-        maker.make_script(entrypoint)
-        if entrypoint.is_qid():
-          self.includes.append(entrypoint.module)
-        # TODO: Consider imports of file if entrypoint.is_File()
-      for entrypoint in self.wentries:
-        entrypoint.gui = True
-        maker.make_script(entrypoint)
-        if entrypoint.is_Qid():
-          self.includes.append(entrypoint.module)
-        # TODO: Consider imports of file if entrypoint.is_File()
+        self.bundle.add_entry_point(entrypoint)
 
     if self.resources:
       did_stuff = True
       for path in self.resources:
         src, dst = path.partition(':')[::2]
-        if not dst:
-          dst = nr.fs.join('res', nr.fs.base(src))
-        copy_files_checked(src, nr.fs.join(self.bundle_dir, dst), self.copy_always)
+        if not dst: dst = None
+        self.bundle.add_resource(src, dst)
 
     if self.dist or self.collect:
       did_stuff = True
@@ -428,21 +455,22 @@ class DistributionBuilder(nr.types.Named):
       print('Resolving dependencies ...')
       modules = get_core_modules() if self.default_includes else []
       modules += self.includes
+      modules += [x.module for x in self.bundle.entry_points if x.is_qid()]
       for module_name in modules:
         self.graph.collect_modules(module_name)
-
-      bundle = PythonAppBundle(DirConfig.get(self.bundle_dir), self.graph)
-      self.graph.collect_data(bundle)
-      bundle.prepare()
+      self.graph.collect_data(self.bundle)
 
       print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND)))
       print('  {} modules not found (many of which may be member imports)'
             .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
 
+    self.bundle.prepare()
+
+    if self.dist or self.collect:
       modules = [x for x in self.graph if x.type not in (x.NOTFOUND, x.BUILTIN)]
 
-      lib_dir = bundle.dirconfig.lib
-      lib_dynload_dir = bundle.dirconfig.lib_dynload
+      lib_dir = self.bundle.dirconfig.lib
+      lib_dynload_dir = self.bundle.dirconfig.lib_dynload
       if self.zip_modules:
         compile_dir = nr.fs.join(self.bundle_dir, '.compile-cache')
       else:
@@ -555,7 +583,5 @@ class DistributionBuilder(nr.types.Named):
             if self.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
               shutil.copy(dep.filename, dst)
 
-        bundle.build(self.copy_always)
-
+    self.bundle.create_bundle(self.copy_always)
     return did_stuff
-
