@@ -9,8 +9,7 @@ import sys
 import sysconfig
 import warnings
 from collections import OrderedDict
-
-import pip._internal.utils.glibc
+from . import glibc
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +153,7 @@ def is_manylinux1_compatible():
         pass
 
     # Check glibc version. CentOS 5 uses glibc 2.5.
-    return pip._internal.utils.glibc.have_compatible_glibc(2, 5)
+    return glibc.have_compatible_glibc(2, 5)
 
 
 def get_darwin_arches(major, minor, machine):
