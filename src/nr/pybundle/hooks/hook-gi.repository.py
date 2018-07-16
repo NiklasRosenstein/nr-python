@@ -70,7 +70,7 @@ def collect_data(module, bundle):
       module.graph.collect_modules('gi.repository.' + dep, module.name)
       stack.append(_get_typelib_info(dep, version))
     for lib in info['libs']:
-      module.native_deps.append(Dependency(lib, None))\
+      module.native_deps.append(Dependency(lib, None))
     bundle.add_binary(info['typelib'])
 
   if not bundle.get_site_snippet('gi.repository'):

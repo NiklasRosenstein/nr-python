@@ -75,6 +75,7 @@ class DirConfig(nr.types.Named):
   """
 
   __annotations__ = [
+    ('bundle', str),
     ('lib', str),
     ('lib_dynload', str),
     ('runtime', str),
@@ -89,7 +90,7 @@ class DirConfig(nr.types.Named):
     else:
       lib = nr.fs.join(bundle_dir, 'lib')
       lib_dynload = lib
-    return cls(lib, lib_dynload, nr.fs.join(bundle_dir, 'runtime'),
+    return cls(bundle_dir, lib, lib_dynload, nr.fs.join(bundle_dir, 'runtime'),
                nr.fs.join(bundle_dir, 'res'))
 
 
@@ -321,10 +322,12 @@ class PythonAppBundle(object):
     for res in self.resources:
       if not res.dest:
         res.dest = nr.fs.join(self.dirconfig.resource, nr.fs.base(res.source))
+      res.dest = nr.fs.join(self.dirconfig.bundle, res.dest)
       copy_files_checked(res.source, res.dest, copy_always)
     for res in self.binaries:
       if not res.dest:
         res.dest = nr.fs.join(self.dirconfig.runtime, nr.fs.base(res.source))
+      res.dest = nr.fs.join(self.dirconfig.bundle, res.dest)
       copy_files_checked(res.source, res.dest, copy_always)
     # TODO: Site snippet
     # TODO: Entry points
