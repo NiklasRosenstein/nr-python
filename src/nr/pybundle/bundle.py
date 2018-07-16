@@ -560,7 +560,7 @@ class DistributionBuilder(nr.types.Named):
           dep = deps.add(path, recursive=True)
           dep.name = name
         for mod in self.graph:
-          if mod.type == mod.NATIVE:
+          if mod.type == mod.NATIVE and not mod.skip_auto_native_deps:
             deps.add(mod.filename, dependencies_only=True, recursive=True)
           for dep in mod.native_deps:
             deps.add(dep, recursive=True)

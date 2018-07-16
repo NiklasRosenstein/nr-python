@@ -98,6 +98,8 @@ def inspect_module(module):
 
 def collect_data(module, bundle):
   if module.name != 'PyQt5':
+    module.skip_auto_native_deps = True
+    module.graph.collect_modules('PyQt5')
     return
 
   bin_dir = os.path.join(module.directory, 'Qt', 'bin')

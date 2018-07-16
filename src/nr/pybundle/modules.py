@@ -188,6 +188,7 @@ class ModuleInfo(nr.types.Named):
     ('sparse', bool, None),
     ('package_data', list, lambda: []),
     ('native_deps', list, lambda: []),
+    ('skip_auto_native_deps', bool, False),
   ]
 
   SRC = 'src'
