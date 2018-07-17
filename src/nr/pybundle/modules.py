@@ -187,6 +187,7 @@ class ModuleInfo(nr.types.Named):
     ('handled', bool, False),
     ('sparse', bool, None),
     ('package_data', list, lambda: []),
+    ('package_data_ignore', list, lambda: []),
     ('native_deps', list, lambda: []),
     ('skip_auto_native_deps', bool, False),
   ]
@@ -204,7 +205,8 @@ class ModuleInfo(nr.types.Named):
     if self.type == self.SRC:
       return nr.fs.base(self.filename) == '__init__.py'
     for child in self.children:
-      return True
+      if child.type != self.NOTFOUND:
+        return True
     return False
 
   def is_root(self):

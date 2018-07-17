@@ -538,10 +538,12 @@ class DistributionBuilder(nr.types.Named):
             shutil.copy(src, dst)
 
           # Copy package data.
+          ignore = nr.gitignore.IgnoreList(mod.directory)
+          ignore.parse(mod.package_data_ignore)
           for name in mod.package_data:
             src = nr.fs.join(mod.directory, name)
             dst = nr.fs.join(lib_dir, mod.relative_directory, name)
-            copy_files_checked(src, dst, force=self.copy_always)
+            copy_files_checked(src, dst, self.copy_always, ignore)
 
       if self.dist:
         print('Analyzing native dependencies ...')
