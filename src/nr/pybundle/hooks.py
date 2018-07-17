@@ -74,14 +74,16 @@ class HookOptions(dict):
 
 class ScriptHook(Hook):
 
-  def __init__(self, module_name, filename, options):
+  def __init__(self, module_name, filename, options, parent):
     self.module_name = module_name
     self.filename = filename
     self.options = options
+    self.parent = parent
     with open(filename) as fp:
       name = nr.fs.base(filename).rstrip('.py')
       self.module = types.ModuleType(name)
       self.module.__file__ = filename
+      self.module.hook = self
       self.module.options = options
       exec(compile(fp.read(), filename, 'exec'), vars(self.module))
     if hasattr(self.module, 'inspect_module'):
@@ -91,6 +93,15 @@ class ScriptHook(Hook):
 
   def __repr__(self):
     return '<ScriptHook filename={!r}>'.format(self.filename)
+
+  def has_handler(self, module_name, check_parent=True):
+    if self.module_name is not None and (
+        self.module_name == module_name or
+        module_name.startswith(self.module_name + '.')):
+      return True
+    if check_parent:
+      return self.parent.has_handler(module_name, True)
+    return False
 
   def matches(self, module_name):
     if self.module_name is None:
@@ -111,6 +122,12 @@ class DelegateHook(Hook):
     self.options = HookOptions(options or {})
     self._module_hooks = {}
     self._general_hooks = None
+
+  def has_handler(self, module_name, check_parent=True):
+    for hook in self._module_hooks.values():
+      if hook and hook.has_handler(module_name, False):
+        return True
+    return False
 
   def inspect_module(self, module):
     for hook in self._hooks_for(module.name):
@@ -144,7 +161,7 @@ class DelegateHook(Hook):
       for dirname in self.path:
         filename = nr.fs.join(dirname, 'hook.py')
         if nr.fs.isfile(filename):
-          self._general_hooks.append(ScriptHook(None, filename, self.options))
+          self._general_hooks.append(ScriptHook(None, filename, self.options, self))
 
   def _load_hook(self, module_name):
     """
@@ -157,7 +174,7 @@ class DelegateHook(Hook):
       for dirname in self.path:
         filename = nr.fs.join(dirname, 'hook-{}.py'.format(module_name))
         if nr.fs.isfile_cs(filename):
-          hook = ScriptHook(module_name, filename, self.options)
+          hook = ScriptHook(module_name, filename, self.options, self)
           break
       else:
         hook = None
