@@ -25,9 +25,11 @@ libraries and executables.
 import os
 import sys
 from ._base import Dependency
+from ..utils import system
 
-if sys.platform.startswith('win32'):
-  from .windll import get_dependencies, resolve_dependency
+
+if system.is_win:
+  from .windll import is_binary, get_dependencies, resolve_dependency
 else:
   raise NotImplemntedError(sys.platform)
 
@@ -38,10 +40,12 @@ class Collection(object):
   when recursively collecting dependencies of one or multiple binaries.
   """
 
-  def __init__(self, exclude_system_deps=False):
+  def __init__(self, search_path=None, exclude_system_deps=True):
+    if search_path is None:
+      search_path = os.environ['PATH'].split(os.pathsep)
     self.cache = {}  # lower-case filename -> get_dependencies() result
     self.deps = {}  # lower-case filename -> Dependency
-    self.search_path = os.environ['PATH'].split(os.pathsep)
+    self.search_path = search_path
     self.recursively_visited = set()
     self.exclude_system_deps = exclude_system_deps
 
@@ -79,8 +83,18 @@ class Collection(object):
     if recursive:
       self.recursively_visited.add(dep.name.lower())
 
-    for dep in dependencies:
-      dep = self.deps.setdefault(dep.name.lower(), dep)
-      resolve_dependency(dep, self.search_path)
-      if recursive and dep.filename:
-        self.add(dep.filename, recursive=True)
+    for other_dep in dependencies:
+      other_dep = self.deps.setdefault(other_dep.name.lower(), other_dep)
+      resolve_dependency(other_dep, self.search_path)
+      if recursive and other_dep.filename:
+        self.add(other_dep.filename, recursive=True)
+
+    return dep
+
+  def add_dependencies_of(self, filename, recursive=True):
+    return self.add(filename, True, recursive)
+
+  def unresolved(self):
+    for dep in self:
+      if dep.filename is None:
+        yield dep

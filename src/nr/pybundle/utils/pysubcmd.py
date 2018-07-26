@@ -30,6 +30,17 @@ import sys
 import textwrap
 
 
+class UnpicklableError(Exception):
+
+  def __init__(self, type, traceback):
+    self.type = type
+    self.traceback = traceback
+
+  def __str__(self):
+    return 'Unpicklable error in sub command: {}\n\n{}'.format(
+      self.type, self.traceback)
+
+
 def execute(code):
   """
   Execute a Python code snippet in a separate Python process. The return
@@ -43,10 +54,32 @@ def execute(code):
   assert execute('return 42') == 42
   """
 
-  with nr.fs.tempfile('.py', encoding='utf8') as fp:
-    fp.write('# coding: utf8\n')
+  with nr.fs.tempfile('.py', text=True) as fp:
+    fp.write('# coding: {}\n'.format(fp.encoding))
     fp.write('def main():\n  ')
     fp.write('\n  '.join(textwrap.dedent(code).split('\n')))
-    fp.write('\nimport pickle, sys; pickle.dump(main(), sys.stdout.buffer)\n')
+    fp.write('\nimport pickle, sys;\n')
+    fp.write(textwrap.dedent('''
+      try:
+        pickle.dump({'result': main()}, sys.stdout.buffer)
+      except BaseException as exc:
+        info = sys.exc_info()
+        try:
+          pickle.dump({'exc': exc}, sys.stdout.buffer)
+        except pickle.PicklingError:
+          import traceback
+          pickle.dump({
+              'error_type': type(exc).__module__ + '.' + type(exc).__name__,
+              'error': '\\n'.join(traceback.format_exception(*info))
+            },
+            sys.stdout.buffer
+          )
+    ''').strip())
     fp.close()
-    return pickle.loads(subprocess.check_output([sys.executable, fp.name]))
+    data = pickle.loads(subprocess.check_output([sys.executable, fp.name]))
+    if 'error' in data:
+      raise UnpicklableError(data['error_type'], data['error'])
+    elif 'exc' in data:
+      raise data['exc']
+    else:
+      return data['result']

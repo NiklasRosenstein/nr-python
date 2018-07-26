@@ -3,9 +3,17 @@ import os
 import sys
 sys.frozen = True
 sys.frozen_env = {}
+
+# Find the application root directory.
+app_dir = os.path.dirname(__file__)
+while not os.path.exists(os.path.join(app_dir, 'runtime')):
+  app_dir = os.path.dirname(app_dir)
+
 # We assume that lib/ is right inside the application directory.
-sys.frozen_env['application_dir'] = os.path.dirname(os.path.dirname(__file__))
-sys.frozen_env['resource_dir'] = os.path.join(sys.frozen_env['application_dir'], 'res')
+sys.frozen_env['app_dir'] = app_dir
+sys.frozen_env['lib_dir'] = os.path.join(app_dir, 'lib')
+sys.frozen_env['runtime_dir'] = os.path.join(app_dir, 'runtime')
+sys.frozen_env['resource_dir'] = os.path.join(app_dir, 'res')
 
 PREFIXES = []
 ENABLE_USER_SITE = False

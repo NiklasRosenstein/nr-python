@@ -18,37 +18,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from distlib.scripts import ScriptMaker
 from nr.stream import stream
-from . import nativedeps
-from .modules import ModuleInfo, ModuleFinder, core_libs, common_excludes
+from . import nativedeps, __version__
+from .utils import system
+from .bundle import DistributionBuilder
 
 import argparse
 import json
 import logging
-import nr.fs
 import os
-import py_compile
-import re
 import sys
-import shlex
-import shutil
-import zipfile
-
-logger = logging.getLogger(__name__)
-
-SCRIPT_TEMPLATE = '''
-# -*- coding: utf-8 -*-
-if __name__ == '__main__':
-  import sys
-  args = {args!r}
-  module = __import__('%(module)s')
-  for name in '%(module)s'.split('.')[1:]:
-    module = getattr(module, name)
-  func = getattr(module, '%(func)s')
-  sys.argv = [sys.argv[0]] + args + sys.argv[1:]
-  sys.exit(func())
-'''.strip()
 
 
 def split_multiargs(value):
@@ -66,75 +45,22 @@ def dump_list(lst, args):
       print(x)
 
 
-def copy_files_checked(src, dst, force=False):
-  """
-  Copies the contents of directory *src* into *dst* recursively. Files that
-  already exist in *dst* will be timestamp-compared to avoid unnecessary
-  copying, unless *force* is specified.
-
-  Returns the number the total number of files and the number of files
-  copied.
-  """
-
-  total_files = 0
-  copied_files = 0
-
-  if os.path.isfile(src):
-    total_files += 1
-    if force or nr.fs.compare_timestamp(src, dst):
-      nr.fs.makedirs(os.path.dirname(dst))
-      shutil.copyfile(src, dst)
-      copied_files += 1
-  else:
-    for srcroot, dirs, files in os.walk(src):
-      dstroot = os.path.join(dst, os.path.relpath(srcroot, src))
-      for filename in files:
-        srcfile = os.path.join(srcroot, filename)
-        dstfile = os.path.join(dstroot, filename)
-
-        total_files += 1
-        if force or nr.fs.compare_timestamp(srcfile, dstfile):
-          nr.fs.makedirs(dstroot)
-          shutil.copyfile(srcfile, dstfile)
-          copied_files += 1
-
-  return total_files, copied_files
-
-
-def make_script(shebang, dirname, spec, gui=False):
-  result = {'modules': [], 'files': []}
-  spec = shlex.split(spec)
-  if '=' in spec[0]:
-    # We assume that it is a Python entrypoint specification.
-    match = re.match('^[\w_\.\-]+=([\w_\.]+):[\w_\.]+$', spec[0])
-    if not match:
-      raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
-    result['modules'].append(match.group(1))
-  else:
-    if ':' in spec[0]:
-      raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
-    result['files'].append(spec[0])
-
-  maker = ScriptMaker(os.getcwd(), dirname)
-  maker.script_template = SCRIPT_TEMPLATE.format(args=spec[1:])
-  maker.executable = shebang
-  maker.variants = set([''])
-  maker.make(spec[0], options={'gui': gui})
-  return result
-
-
 def get_argument_parser(prog=None):
   parser = argparse.ArgumentParser(prog=prog, description=main.__doc__, allow_abbrev=False)
   parser.add_argument('args', nargs='*',
     help='Additional positional arguments. The interpretation of these '
          'arguments depends on the selected operation.')
 
+  parser.add_argument('--version', action='version',
+    version='nr.pybundle {} ({})'.format(__version__, sys.version))
   parser.add_argument('-v', '--verbose', action='count', default=0,
     help='Increase the log-level from ERROR.')
   parser.add_argument('--flat', action='store_true',
     help='Instruct certain operation to produce flat instead of nested output.')
   parser.add_argument('--json', action='store_true',
     help='Instruct certain operations to output JSON.')
+  parser.add_argument('--json-graph', action='store_true',
+    help='Instruct certain operations to output JSON Graph.')
   parser.add_argument('--dotviz', action='store_true',
     help='Instruct certain operations to output Dotviz.')
   parser.add_argument('--search',
@@ -171,9 +97,8 @@ def get_argument_parser(prog=None):
   group.add_argument('--entry', action='append', default=[], metavar='SPEC',
     help='Create an executable from a Python entrypoint specification '
          'and optional arguments in the standalone distribution directory. '
-         'The created executable will run in console mode.')
-  group.add_argument('--wentry', action='append', default=[], metavar='SPEC',
-    help='The same as --entry, but the executable will run in GUI mode.')
+         'The created executable will run in console mode unless the spec '
+         'is prefixed with an @ sign (as in @prog=module:fun).')
   group.add_argument('--resource', action='append', default=[], metavar='SRC[:DST]',
     help='Copy thepath(s) to the bundle directory. If DST is not specified, '
          'it defaults to res/{srcbasename}/. The path to the res/ directory '
@@ -205,10 +130,6 @@ def get_argument_parser(prog=None):
   group.add_argument('--copy-always', action='store_true',
     help='Always copy files, even if the target file already exists and the '
          'timestamp indicates that it hasn\'t changed.')
-  group.add_argument('--sparse', action='store_true',
-    help='Collect modules sparsely, only including package members that '
-         'appear to actually be used. This affects only Python modules, not '
-         'package data.')
 
   group = parser.add_argument_group('optional arguments (search)')
   group.add_argument('--no-default-module-path', action='store_true',
@@ -253,44 +174,79 @@ def main(argv=None, prog=None):
       value = 'true'
     hook_options[key.lower()] = value
 
-  finder = ModuleFinder(excludes=common_excludes)
-  if args.no_default_excludes:
-    finder.excludes = []
-  if args.no_default_module_path:
-    finder.path = []
-  else:
-    finder.path.insert(0, os.getcwd())
-  if args.no_default_hooks_path:
-    finder.hooks.search_path = []
-  finder.path += split_multiargs(args.module_path)
-  finder.hooks.options.update(hook_options)
-  finder.hooks.search_path += split_multiargs(args.hooks_path)
-  finder.excludes += split_multiargs(args.exclude)
+  builder = DistributionBuilder(
+    collect = args.collect,
+    dist = args.dist,
+    entries = args.entry,
+    resources = args.resource,
+    bundle_dir = args.bundle_dir,
+    excludes = split_multiargs(args.exclude),
+    default_excludes = not args.no_default_excludes,
+    includes = split_multiargs(args.args),
+    default_includes = not args.no_default_includes,
+    compile_modules = args.compile_modules,
+    zip_modules = args.zip_modules,
+    zip_file = args.zip_file,
+    srcs = not args.no_srcs,
+    copy_always = args.copy_always,
+    module_path = split_multiargs(args.module_path),
+    default_module_path = not args.no_default_module_path,
+    hooks_path = split_multiargs(args.hooks_path),
+    default_hooks_path = not args.no_default_hooks_path,
+    hook_options = hook_options
+  )
 
   if args.show_module_path:
-    dump_list(finder.path, args)
+    dump_list(builder.finder.path, args)
     return 0
 
   if args.show_hooks_path:
-    dump_list(finder.hooks.search_path, args)
+    dump_list(builder.hook.path, args)
     return 0
 
   if args.package_members:
     result = {}
+    flat = []
     for name in args.args:
-      module = finder.find_module(name)
+      module = builder.finder.find_module(name)
       if not args.json:
         print('{} ({})'.format(module.name, module.type))
-      contents = result.setdefault(module.name, {})
-      for submodule in stream.chain([module], finder.iter_package_modules(module)):
-        contents[submodule.name] = {'type': submodule.type, 'filename': submodule.filename}
+      contents = result.setdefault(module.name, [])
+      for submodule in stream.chain([module], builder.finder.iter_package_modules(module)):
+        data = {'name': submodule.name, 'type': submodule.type, 'filename': submodule.filename}
+        contents.append(data)
+        flat.append(data)
         if not args.json and submodule != module:
           print('  {} ({})'.format(submodule.name, submodule.type))
     if args.json:
-      json.dump(result, sys.stdout, indent=2, sort_keys=True)
+      json.dump(flat if args.flat else result, sys.stdout, indent=2, sort_keys=True)
     return 0
 
   if args.deps:
+    def callback(module, depth):
+      print('  ' * depth + '{} ({})'.format(module.name, module.type))
+    if args.json or args.dotviz or args.json_graph:
+      callback = None
+    for name in args.args:
+      builder.graph.collect_modules(name, callback=callback)
+    if args.json_graph:
+      nodes = set()
+      graph = {'nodes': [], 'edges': []}
+      def mknode(name):
+        if name not in nodes:
+          graph['nodes'].append({'id': name})
+          nodes.add(name)
+      def mkedge(a, b):
+        mknode(a)
+        mknode(b)
+        graph['edges'].append({'source': a, 'target': b})
+      for mod in builder.graph:
+        mknode(mod.name)
+        for name in mod.imported_from:
+          mkedge(mod.name, name)
+      json.dump({'graph': graph}, sys.stdout, indent=2, sort_keys=True)
+
+    """
     # TODO: Dotviz output
     result = []
     current = []
@@ -317,6 +273,7 @@ def main(argv=None, prog=None):
           current.append(data)
     if args.json:
       json.dump(flat if args.flat else result, sys.stdout, indent=2, sort_keys=True)
+    """
     return 0
 
   if args.nativedeps:
@@ -348,164 +305,7 @@ def main(argv=None, prog=None):
       json.dump(result, sys.stdout, indent=2, sort_keys=True)
     return 0
 
-  # Joint operations:
-  show_usage = True
-
-  if args.entry or args.wentry:
-    show_usage = False
-    python_executable = os.path.join('runtime', os.path.basename(sys.executable))
-    for spec in args.entry:
-      data = make_script(python_executable, args.bundle_dir, spec, gui=False)
-      args.args += data['modules']
-      # TODO: Take imports of data['files'] into account
-    for spec in args.wentry:
-      data = make_script(python_executable, args.bundle_dir, spec, gui=True)
-      args.args += data['modules']
-      # TODO: Take imports of data['files'] into account
-
-  if args.resource:
-    show_usage = False
-    for path in args.resource:
-      src, dst = path.partition(':')[::2]
-      if not dst:
-        dst = os.path.join('res', os.path.basename(src))
-      copy_files_checked(src, os.path.join(args.bundle_dir, dst), args.copy_always)
-
-  if args.dist or args.collect:
-    show_usage = False
-    if args.no_srcs and not args.compile_modules:
-      parser.error('remove --no-srcs or add --compile-modules')
-
-    print('Resolving dependencies ...')
-    modules = [] if args.no_default_includes else list(core_libs)
-    modules += args.args
-    finder.find_modules(modules, sparse=args.sparse)
-    finder.finalize()
-
-    notfound = 0
-    modules = []
-    for mod in finder.modules.values():
-      if mod.type == mod.NOTFOUND:
-        logger.warn('Module could not be found: {}'.format(mod.name))
-        notfound += 1
-      elif mod.type != mod.BUILTIN:
-        modules.append(mod)
-    if notfound != 0:
-      logger.error('{} modules could not be found.'.format(notfound))
-      logger.error("But do not panic, most of them are most likely imports "
-                   "that are platform dependent or member imports.")
-      logger.error('Increase the verbosity with -v, --verbose for details.')
-
-    lib_dir = os.path.join(args.bundle_dir, 'lib')
-    if args.zip_modules:
-      compile_dir = os.path.join(args.bundle_dir, '.compile-cache')
-    else:
-      compile_dir = lib_dir
-
-    if args.compile_modules and modules:
-      print('Compiling modules in "{}" ...'.format(compile_dir))
-      for mod in modules:
-        if mod.type == mod.SRC:
-          dst = os.path.join(compile_dir, mod.relative_filename + 'c')
-          mod.compiled_file = dst
-          if args.copy_always or nr.fs.compare_timestamp(mod.filename, dst):
-            nr.fs.makedirs(os.path.dirname(dst))
-            py_compile.compile(mod.filename, dst, doraise=True)
-
-    if args.zip_modules and modules:
-      if not args.zip_file:
-        args.zip_file = os.path.join(args.bundle_dir, 'libs.zip')
-
-      # TODO: Exclude core modules that must be copied to the lib/
-      #       directory anyway in the case of the 'dist' operation.
-      # TODO: Also zip up package data?
-
-      print('Creating module zipball at "{}" ...'.format(args.zip_file))
-      not_zippable = []
-      with zipfile.ZipFile(args.zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for mod in modules:
-          if not mod.check_zippable(finder.modules):
-            not_zippable.append(mod)
-            continue
-
-          if mod.type == mod.SRC:
-            files = []
-            if not args.no_srcs:
-              files.append((mod.relative_filename, mod.filename))
-            if args.compile_modules:
-              files.append((mod.relative_filename + 'c', mod.compiled_file))
-            assert files
-          else:
-            files = [(mod.relative_filename, mod.filename)]
-
-          for arcname, filename in files:
-            zipf.write(filename, arcname.replace(os.sep, '/'))
-
-      copy_modules = not_zippable
-      if not_zippable:
-        print('Note: There are modules that can not be zipped, they will be copied into the lib/ folder.')
-
-    else:
-      copy_modules = modules if args.dist else []
-
-    if copy_modules:
-      print('Copying modules to "{}" ...'.format(lib_dir))
-      for mod in copy_modules:
-        # Copy the module itself.
-        src = mod.filename
-        dst = os.path.join(lib_dir, mod.relative_filename)
-        if mod.type == mod.SRC and args.no_srcs:
-          src = mod.compiled_file
-          dst += 'c'
-        if args.copy_always or nr.fs.compare_timestamp(src, dst):
-          nr.fs.makedirs(os.path.dirname(dst))
-          shutil.copy(src, dst)
-
-        # Copy package data.
-        for name in mod.package_data:
-          src = os.path.join(mod.directory, name)
-          dst = os.path.join(lib_dir, mod.relative_directory, name)
-          copy_files_checked(src, dst, force=args.copy_always)
-
-    if args.dist:
-      print('Analyzing native dependencies ...')
-      deps = nativedeps.Collection(exclude_system_deps=True)
-
-      # Compile a set of all the absolute native dependencies to exclude.
-      stdpath = lambda x: nr.fs.norm(nr.fs.get_long_path_name(x)).lower()
-      native_deps_exclude = set()
-      for mod in modules:
-        native_deps_exclude.update(stdpath(x) for x in mod.native_deps_exclude)
-
-      # Resolve dependencies.
-      search_path = deps.search_path
-      deps.add(sys.executable, recursive=True)
-      deps.add(os.path.join(os.path.dirname(sys.executable), os.path.basename(sys.executable).replace('python', 'pythonw')), recursive=True)
-      for mod in modules:
-        deps.search_path = list(stream.concat(x.native_deps_path for x in mod.hierarchy_chain())) + search_path
-        if mod.type == mod.NATIVE and mod.do_native_deps:
-          deps.add(mod.filename, dependencies_only=True, recursive=True)
-        for dep in mod.native_deps:
-          deps.add(dep, recursive=True)
-
-      # Warn about dependencies that can not be found.
-      notfound = 0
-      for dep in deps:
-        if not dep.filename:
-          notfound += 1
-          logger.warn('Native dependency could not be found: {}'.format(dep.name))
-      if notfound != 0:
-        logger.error('{} native dependencies could not be found.'.format(notfound))
-
-      runtime_dir = os.path.join(args.bundle_dir, 'runtime')
-      print('Copying Python interpreter and native dependencies to "{}"...'.format(runtime_dir))
-      nr.fs.makedirs(runtime_dir)
-      for dep in deps:
-        if dep.filename and stdpath(dep.filename) not in native_deps_exclude:
-          dst = os.path.join(runtime_dir, os.path.basename(dep.filename))
-          if args.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
-            shutil.copy(dep.filename, dst)
-
+  show_usage = not builder.build()
   if show_usage:
     parser.print_usage()
     return 0
