@@ -326,25 +326,31 @@ class PythonAppBundle(object):
     `site` module that contains the site snippets added to the bundle.
     """
 
+    if not 'site' in self.modules:
+      return
+
     import atexit  # TODO: Maybe create a context manager for the PythonAppBundle instead
     fp = nr.fs.tempfile('.py', text=True)
     fp.__enter__()
     atexit.register(lambda: fp.__exit__(None, None, None))
+
     with open(self.modules['site'].filename) as src:
       fp.write(src.read())
+
+    fp.write('\n\n')
+    for snippet in self.site_snippets:
+      fp.write('###@@@ Site-Snippet: {}\n'.format(snippet.source))
+      fp.write(snippet.code.rstrip())
       fp.write('\n\n')
-      for snippet in self.site_snippets:
-        fp.write('###@@@ Site-Snippet: {}\n'.format(snippet.source))
-        fp.write(snippet.code.rstrip())
-        fp.write('\n\n')
-      fp.write('def rthooks():\n')
-      fp.write('  " Runtime-hooks installed from nr.pybundle hooks. "\n')
-      for snippet in self.rthooks:
-        fp.write('  ###@@@ RtHook: {}\n'.format(snippet.source))
-        for line in snippet.code.split('\n'):
-          fp.write('  {}\n'.format(line))
-        fp.write('\n')
-      fp.close()
+    fp.write('def rthooks():\n')
+    fp.write('  " Runtime-hooks installed from nr.pybundle hooks. "\n')
+    for snippet in self.rthooks:
+      fp.write('  ###@@@ RtHook: {}\n'.format(snippet.source))
+      for line in snippet.code.split('\n'):
+        fp.write('  {}\n'.format(line))
+      fp.write('\n')
+    fp.close()
+
     self.modules['site'].filename = fp.name
 
   def create_bundle(self, copy_always):
