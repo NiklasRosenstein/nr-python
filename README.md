@@ -9,6 +9,10 @@
 
 ### Changes
 
+#### v1.0.3 (2018-08-06)
+
+* Fix `NameError` on platforms where `os.name != 'nt'`
+
 #### v1.0.2 (2018-07-14)
 
 * Changed `get_long_path_name()` is now an alias for `fixcase()`

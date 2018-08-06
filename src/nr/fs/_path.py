@@ -42,6 +42,7 @@ import errno
 import functools
 import operator
 import os
+import platform
 import stat as _stat
 
 from os import (
@@ -75,7 +76,7 @@ except ImportError as exc:
   del exc
 
 
-is_case_sensitive = not (os.name == 'nt' or 'windows' in platform.platform.lower())
+is_case_sensitive = not (os.name == 'nt' or 'windows' in platform.platform().lower())
 
 
 def canonical(path, parent=None):
