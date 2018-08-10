@@ -9,6 +9,10 @@
 
 ### Changes
 
+#### v1.0.4
+
+* Add `compare_all_timestamps()` function
+
 #### v1.0.3 (2018-08-06)
 
 * Fix `NameError` on platforms where `os.name != 'nt'`

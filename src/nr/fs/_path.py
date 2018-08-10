@@ -33,8 +33,8 @@ __all__ = [
   # local definitions
   'canonical', 'abs', 'rel', 'isfile_cs', 'isrel', 'issub', 'isglob', 'glob', 'addtobase',
   'addprefix', 'addsuffix', 'setsuffix', 'rmvsuffix', 'getsuffix', 'makedirs',
-  'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp', 'fixcase',
-
+  'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp',
+  'compare_all_timestamps', 'fixcase',
 ]
 
 import ctypes
@@ -391,6 +391,33 @@ def compare_timestamp(src, dst):
 
   src_time = os.path.getmtime(src)
   return src_time > dst_time
+
+
+def compare_all_timestamps(srclist, dstlist):
+  """
+  Compares the timestamps of all files in *srclist* with *dstlist*. If any
+  of the files in *dstlist* does not exist or any of the files in *srclist*
+  is newer than any of the files in *dstlist*, True will be returned.
+  """
+
+  if not dstlist:
+    return True  # no output, always dirty
+
+  min_dst = None
+  for x in dstlist:
+    try:
+      time = os.path.getmtime(x)
+    except OSError as exc:
+      if exc.errno == errno.ENOENT:
+        return True  # dst does not exist
+    if min_dst is None or time < min_dst:
+      min_dst = time
+
+  if not srclist:
+    return False  # dst exists with no sources
+
+  max_src = max(os.path.getmtime(x) for x in srclist)
+  return max_src > min_dst
 
 
 def fixcase(path):

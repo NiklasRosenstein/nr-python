@@ -10,7 +10,7 @@ with io.open('requirements.txt', encoding='utf8') as fp:
 
 setuptools.setup(
   name = 'nr.fs',
-  version = '1.0.3',
+  version = '1.0.4',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Filesystem and path manipulation tools.',
