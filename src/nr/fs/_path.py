@@ -388,6 +388,7 @@ def compare_timestamp(src, dst):
   except OSError as exc:
     if exc.errno == errno.ENOENT:
       return True  # dst does not exist
+    raise
 
   src_time = os.path.getmtime(src)
   return src_time > dst_time
@@ -410,6 +411,7 @@ def compare_all_timestamps(srclist, dstlist):
     except OSError as exc:
       if exc.errno == errno.ENOENT:
         return True  # dst does not exist
+      raise
     if min_dst is None or time < min_dst:
       min_dst = time
 
