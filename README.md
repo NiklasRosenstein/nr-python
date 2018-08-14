@@ -12,6 +12,7 @@
 #### v1.0.4
 
 * Add `compare_all_timestamps()` function
+* Add `mtime_consistent_file` class
 
 #### v1.0.3 (2018-08-06)
 
