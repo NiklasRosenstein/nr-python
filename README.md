@@ -9,7 +9,7 @@
 
 ### Changes
 
-#### v1.0.4
+#### v1.1.0 (2018-08-18)
 
 * Add `compare_all_timestamps()` function
 * Add `mtime_consistent_file` class
