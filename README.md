@@ -9,6 +9,10 @@
 
 ### Changes
 
+#### v1.1.1
+
+* Fix `issub()` and add `at_curr=True` parameter
+
 #### v1.1.0 (2018-08-18)
 
 * Add `compare_all_timestamps()` function

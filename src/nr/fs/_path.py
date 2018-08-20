@@ -142,18 +142,23 @@ def isrel(path):
   return not isabs(path)
 
 
-def issub(path):
+def issub(path, at_curr=True):
   """
   Returns #True if *path* is a relative path that does not point outside
-  of its parent directory or is equal to its parent directory (thus, this
-  function will also return False for a path like `./`).
+  of its parent directory or is equal to the parent directory (ie. is equal
+  to the #curdir string) unless *at_curr* is set to False.
+
+  If the *path* is absolute or points upwards (eg. `../foo`) it will
+  return False.
   """
 
   if isabs(path):
     return False
-  if path.startswith(curdir + sep) or path.startswith(pardir + sep) or \
-      path == curdir or path == pardir:
+  path = norm(path)
+  if path == pardir or path.startswith(pardir + sep):
     return False
+  if path == curdir or path == curdir + sep:
+    return at_curr
   return True
 
 
