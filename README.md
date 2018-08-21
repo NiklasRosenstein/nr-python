@@ -9,7 +9,7 @@
 
 ### Changes
 
-#### v1.1.1
+#### v1.1.1 (2018-08-21)
 
 * Fix `issub()` and add `at_curr=True` parameter
 
