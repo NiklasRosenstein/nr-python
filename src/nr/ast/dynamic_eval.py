@@ -47,7 +47,7 @@ Will be converted to:
       __dict__['print'](filename)
 """
 
-__all__ = ['dynamic_exec', 'dynamic_eval']
+__all__ = ['dynamic_exec', 'dynamic_eval', 'transform']
 
 import ast
 import collections
@@ -268,93 +268,24 @@ class NameRewriter(ast.NodeTransformer):
 
 
 def transform(ast_node, data_var='__dict__'):
-  ast_node = NameRewriter('__dict__').visit(ast_node)
+  ast_node = NameRewriter(data_var).visit(ast_node)
   ast_node = ast.fix_missing_locations(ast_node)
   return ast_node
 
 
-def dynamic_exec(code, resolve, assign=None, delete=None, automatic_builtins=True,
+def dynamic_exec(code, mapping, automatic_builtins=True,
                  filename=None, module_name=None, _type='exec'):
   """
   Transforms the Python source code *code* and evaluates it so that the
-  *resolve* and *assign* functions are called respectively for when a global
-  variable is access or assigned.
+  all global variables are accessed through the specified *mapping*.
 
-  If *resolve* is a mapping, *assign* must be omitted. #KeyError#s raised by
-  the mapping are automatically converted to #NameError#s.
-
-  Otherwise, *resolve* and *assign* must be callables that have the same
-  interface as `__getitem__()`, and `__setitem__()`. If *assign* is omitted
-  in that case, assignments will be redirected to a separate dictionary and
-  keys in that dictionary will be checked before continuing with the *resolve*
-  callback.
+  It is recommended to use the #DynamicMapping class.
   """
 
   parse_filename = filename or '<string>'
   ast_node = transform(ast.parse(code, parse_filename, mode=_type))
   code = compile(ast_node, parse_filename, _type)
-  if hasattr(resolve, '__getitem__'):
-    if assign is not None:
-      raise TypeError('"assign" parameter specified where "resolve" is a mapping')
-    if delete is not None:
-      raise TypeError('"delete" parameter specified where "resolve" is a mapping')
-    input_mapping = resolve
 
-    def resolve(x):
-      try:
-        return input_mapping[x]
-      except KeyError:
-        raise NameError(x)
-
-    assign = input_mapping.__setitem__
-
-    delete = input_mapping.__delitem__
-  else:
-    input_mapping = False
-
-  class DynamicMapping(object):
-    _data = {}
-    _deleted = set()
-    def __repr__(self):
-      if input_mapping:
-        return 'DynamicMapping({!r})'.format(input_mapping)
-      else:
-        return 'DynamicMapping(resolve={!r}, assign={!r})'.format(resolve, assign)
-    def __getitem__(self, key):
-      if key in self._deleted:
-        raise NameError(key)
-      if assign is None:
-        try:
-          return self._data[key]
-        except KeyError:
-          pass  # Continue with resolve()
-      try:
-        return resolve(key)
-      except NameError as exc:
-        if automatic_builtins and not key.startswith('_'):
-          try:
-            return getattr(builtins, key)
-          except AttributeError:
-            pass
-        raise exc
-    def __setitem__(self, key, value):
-      self._deleted.discard(key)
-      if assign is None:
-        self._data[key] = value
-      else:
-        assign(key, value)
-    def __delitem__(self, key):
-      if delete is None:
-        self._deleted.add(key)
-      else:
-        delete(key)
-    def get(self, key, default=None):
-      try:
-        return self[key]
-      except NameError:
-        return default
-
-  mapping = DynamicMapping()
   globals_ = {'__dict__': mapping}
 
   if filename:
@@ -370,3 +301,52 @@ def dynamic_exec(code, resolve, assign=None, delete=None, automatic_builtins=Tru
 
 def dynamic_eval(*args, **kwargs):
   return dynamic_exec(*args, _type='eval', **kwargs)
+
+
+class DynamicMapping(object):
+  """
+  This dictionary can be used as the global `__dict__` for code that has
+  been transformed with #transform(). It will translate failed lookups into
+  #NameError#s and properly fall back to the Python builtins.
+  """
+
+  def __init__(self, target=None, automatic_builtins=True):
+    if target is None:
+      target = {}
+    self._data = target
+    self._deleted = set()
+    self._automatic_builtins = automatic_builtins
+
+  def __repr__(self):
+    return 'DynamicMapping({!r})'.format(self._data)
+
+  def __getitem__(self, key):
+    if key in self._deleted:
+      raise NameError(key)
+    try:
+      return self._data[key]
+    except KeyError:
+      pass  # Continue with resolve()\
+    if self._automatic_builtins and not key.startswith('_'):
+      try:
+        return getattr(builtins, key)
+      except AttributeError:
+        pass
+    raise NameError(key)
+
+  def __setitem__(self, key, value):
+    self._deleted.discard(key)
+    self._data[key] = value
+
+  def __delitem__(self, key):
+    try:
+      self._data.pop(key)
+    except KeyError:
+      raise UnboundLocalError("local variable '{}' referenced before assignment".format(key))
+    self._deleted.add(key)
+
+  def get(self, key, default=None):
+    try:
+      return self[key]
+    except NameError:
+      return default
