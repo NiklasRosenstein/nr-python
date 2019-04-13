@@ -1,5 +1,7 @@
 # nr.types
 
+[![CircleCI](https://circleci.com/gh/NiklasRosenstein/python-nr.types.svg?style=svg)](https://circleci.com/gh/NiklasRosenstein/python-nr.types)
+
 The `nr.types` package provides a number os useful data types for day-to-day
 Python programming. It is compatible with Python 2.7 and modern versions of
 Python 3.
