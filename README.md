@@ -28,7 +28,7 @@ provide a move for these modules).
 Tools to help with Python function internals such as closures, code
 and function objects.
 
-<details><summary>Example:</summary>
+<details doctest name='functools.example'><summary>Example:</summary>
 
 ```python
 import nr.types.functools as ft
@@ -47,7 +47,7 @@ assert y() == 99
 
 Allows you to implement generic types, ie. classes with parameters.
 
-<details><summary>Example:</summary>
+<details doctest name='generic.example'><summary>Example:</summary>
 
 ```python
 from nr.types import generic
@@ -78,7 +78,7 @@ Provides the following mapping (and mapping-related) implementations:
 
 Provides useful metaclasses, such as `InlineMetaclass`.
 
-<details><summary>Example:</summary>
+<details doctest name='meta.example'><summary>Example:</summary>
 
 ```python
 from nr.types.meta import InlineMetaclassBase
@@ -98,11 +98,12 @@ a record, eg. via Python 3.6+ class-level annotations, specifying a class-level
 `__fields__` member or declaring attributes by creating `record.Field()`
 objects.
 
-<details><summary>Example:</summary>
+<details doctest pymin="3.6" name="record.example"><summary>Example:</summary>
 
 ```python
 import random
 from nr.types import record
+
 class Person(record.Record):
   name: str
   mail: str = None
@@ -115,7 +116,7 @@ assert 10 <= p.age <= 50
 ```
 </details>
 
-<details><summary>Alternatives:</summary>
+<details doctest name="record.alternatives"><summary>Alternatives:</summary>
 
 ```python
 import random
@@ -140,8 +141,8 @@ Person = record.create_record('Person', [
 ])
 
 Person = record.create_record('Person', {
-  'name': str,
-  'mail': (str, None),
+  'name': record.Field(str),
+  'mail': record.Field(str, None),
   'age': record.Field(str, lambda: random.randint(10, 50))
 })
 
@@ -151,13 +152,11 @@ assert list(Person.__fields__.keys()) == ['name', 'mail', 'age']
 
 #### `nr.types.sets`
 
-Provides the following set implementations:
-
-* `OrderedSet`
+Currently only provides an `OrderedSet` implementation.
 
 #### `nr.types.stream`
 
-<details><summary>Example:</summary>
+<details doctest name='stream.example'><summary>Example:</summary>
 
 ```python
 from nr.types import stream
@@ -168,7 +167,7 @@ stream.map(range(10), lambda x: x*2)
 
 #### `nr.types.sumtype`
 
-<details><summary>Example:</summary>
+<details doctest name='sumtype.example'><summary>Example:</summary>
 
 ```python
 from nr.types import record, sumtype
