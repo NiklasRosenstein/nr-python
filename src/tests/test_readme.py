@@ -57,7 +57,7 @@ def parse_readme():
 
   soup = bs4.BeautifulSoup(content, 'html.parser')
   for idx, node in enumerate(soup.findAll(None, {'doctest': True})):
-    name = node.attrs.get('name', u'{:0>2}'.format(idx)).encode()
+    name = str(node.attrs.get('name', u'{:0>2}'.format(idx)))
     pymin = node.attrs.get('pymin')
     match = expr.search(node.text)
     if not match:
