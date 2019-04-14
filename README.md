@@ -118,6 +118,9 @@ assert 10 <= p.age <= 50
 <details><summary>Alternatives:</summary>
 
 ```python
+import random
+from nr.types import record
+
 class Person(record.Record):
   name = record.Field(str)
   mail = record.Field(str, None)

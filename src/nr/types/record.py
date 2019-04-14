@@ -188,7 +188,12 @@ class CleanRecord(InlineMetaclassBase):
       fields = []
       for key, value in iteritems(dict):
         if isinstance(value, Field):
-          fields.append(key, value)
+          if value.name is None:
+            value.name = key
+          elif value.name != key:
+            raise ValueError('Field.name mismatches key: {!r} != {!r}'
+              .format(value.name, key))
+          fields.append(value)
 
     # Merge with parent class fields.
     mro_fields = {}
