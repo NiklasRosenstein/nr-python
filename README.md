@@ -67,7 +67,7 @@ UnsafeHashDict = HashDict[hash]
 
 Similar to `zope.interface`, but Python 3 compatible and less magical.
 
-<detail doctest name="interface.example"><summary>Example:</summary>
+<details doctest name="interface.example"><summary>Example:</summary>
 
 ```python
 from nr.types.interface import Interface, Implementation, implements, attr
@@ -101,7 +101,7 @@ assert IFoo.provided_by(Foo())
 assert list(IFoo.implementations()) == [Foo]
 assert Foo(42).x == 42
 ```
-</detail>
+</details>
 
 #### `nr.types.maps`
 
