@@ -29,7 +29,6 @@ jobs:
             $INSTALL_PYTHON_ENV3
             . venv/bin/activate
             pip install -e .
-            python setup.py test
 
       #- save_cache:
       #    paths:
@@ -40,7 +39,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            pytest
+            python setup.py test
 
       - store_artifacts:
           path: test-reports
