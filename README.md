@@ -144,6 +144,8 @@ Person = record.create_record('Person', {
   'mail': (str, None),
   'age': record.Field(str, lambda: random.randint(10, 50))
 })
+
+assert list(Person.__fields__.keys()) == ['name', 'mail', 'age']
 ```
 </details>
 
@@ -170,19 +172,27 @@ stream.map(range(10), lambda x: x*2)
 
 ```python
 from nr.types import record, sumtype
+
 class Filter(sumtype):
   Date = record.create_record('Date', 'min,max')
   Keyword = sumtype.constructor('text')
+  class Duration(record.Record):
+    value = record.Field(int, lambda: 3600)
 
 f = Filter.Keyword('building')
 assert isinstance(f, Filter)
 assert f.is_keyword()
 assert f.text == 'building'
 
-#f = Filter.Date(10, 42)
-#assert isinstance(f, Filter)
-#assert f.is_date()
-#assert (f.min, fmax) == (10, 42)
+f = Filter.Date(10, 42)
+assert isinstance(f, Filter)
+assert f.is_date()
+assert (f.min, f.max) == (10, 42)
+
+f = Filter.Duration()
+assert isinstance(f, Filter)
+assert f.is_duration()
+assert f.value == 3600
 ```
 </details>
 

@@ -28,6 +28,7 @@ from six import iteritems, itervalues
 
 import inspect
 import six
+import sys
 import types
 
 
@@ -320,7 +321,12 @@ class Record(CleanRecord, ToJSON, AsDict, Sequence):
   pass
 
 
-def create_record(name, fields, *mixins):
+def _get_calling_module_name(_stackdepth=0):
+  frame = sys._getframe(_stackdepth+2)
+  return frame.f_globals.get('__name__', __name__)
+
+
+def create_record(name, fields, *mixins, **kwargs):
   """
   Creates a new #Record subclass. If at least one *mixin* is specified, it is
   mixed into the parent class of the created #Record subclass. One of the
@@ -328,12 +334,35 @@ def create_record(name, fields, *mixins):
   as the parent class instead of #Record.
   """
 
-  base = next((x for x in mixins if isinstance(x, CleanRecord)), None)
+  module = kwargs.pop('module', None)
+  if module is None:
+    module = _get_calling_module_name()
+
+  for key in kwargs:
+    raise TypeError('unexpected keyword argument: {!r}'.format(key))
+
+  base = next((x for x in mixins if issubclass(x, CleanRecord)), None)
   if not base:
     mixins = mixins + (Record,)
 
-  module = inspect.currentframe().f_back.f_globals.get('__name__', __name__)
   return type(name, mixins, {'__fields__': fields, '__module__': module})
+
+
+def clone_record(record_cls, name=None, module=None):
+  """
+  Creates a clone of the specified *record_cls*. Optionally overrides the
+  new classes *name*.
+  """
+
+  if module is None:
+    module = _get_calling_module_name()
+
+  assert isinstance(record_cls, type), record_cls
+  assert issubclass(record_cls, CleanRecord), record_cls
+
+  name = name or record_cls.__name__
+  return create_record(name, record_cls.__fields__, *record_cls.__bases__,
+    module=module)
 
 
 create = create_record

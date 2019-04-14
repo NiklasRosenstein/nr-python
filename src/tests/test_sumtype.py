@@ -1,5 +1,5 @@
 
-from nr.types import sumtype
+from nr.types import record, sumtype
 
 
 def test_sumtypes():
@@ -7,7 +7,9 @@ def test_sumtypes():
   class Result(sumtype):
     Loading = sumtype.constructor('progress')
     Error = sumtype.constructor('message')
-    Ok = sumtype.constructor('filename', 'load')
+
+    class Ok(record.Record):
+      __fields__ = ['filename', 'load']
 
     @sumtype.member_of([Loading])
     def alert(self):
@@ -28,3 +30,25 @@ def test_sumtypes():
   assert not hasattr(x, 'static_error_member')
   assert x.alert() == 'Progress: 0.5'
   assert x.progress == 0.5
+
+  class MoreResult(Result):
+    InvalidState = sumtype.constructor()
+
+  assert MoreResult.Loading is not Result.Loading
+  assert MoreResult.Error is not Result.Error
+  assert MoreResult.Ok is not Result.Ok
+
+  x = MoreResult.Loading(0.5)
+  assert isinstance(x, Result)
+  assert x.is_loading()
+  assert not x.is_error()
+  assert not x.is_ok()
+  assert hasattr(x, 'alert')
+  assert not hasattr(x, 'static_error_member')
+  assert x.alert() == 'Progress: 0.5'
+  assert x.progress == 0.5
+  assert isinstance(x, MoreResult)
+
+  x = MoreResult.InvalidState()
+  assert x.is_invalid_state()
+  assert isinstance(x, MoreResult)
