@@ -87,12 +87,15 @@ def compile_fields(decl):
   * Type
   """
 
+  is_ordered = True
+
   # Split string into list of field names.
   if isinstance(decl, str):
     decl = [x.strip() for x in decl.split(',' if ',' in decl else ' ')]
 
   # Convert a mapping to the list form.
   elif isinstance(decl, abc.Mapping):
+    is_ordered = False
     new_decl = []
     for key, value in iteritems(decl):
       if isinstance(value, tuple):
@@ -127,6 +130,10 @@ def compile_fields(decl):
     if field.name in compiled_fields:
       raise ValueError('duplicate Field name: {!r}'.format(field.name))
     compiled_fields[field.name] = field
+
+  if not is_ordered:
+    ordered = sorted(compiled_fields.items(), key=lambda x: x[1].create_index)
+    compiled_fields = OrderedDict(ordered)
 
   return compiled_fields
 
@@ -197,7 +204,7 @@ class CleanRecord(InlineMetaclassBase):
           fields.append(value)
 
     # Merge with parent class fields.
-    mro_fields = {}
+    mro_fields = OrderedDict()
     for base in reversed(bases):
       if hasattr(base, '__fields__'):
         mro_fields.update(base.__fields__)
@@ -209,8 +216,6 @@ class CleanRecord(InlineMetaclassBase):
           .format(name, field.name))
 
     self.__fields__ = mro_fields
-    self.__ifields__ = sorted(itervalues(mro_fields),
-      key=lambda x: x.create_index)
 
   def __init__(self, *args, **kwargs):
     type_name = type(self).__name__
@@ -228,7 +233,7 @@ class CleanRecord(InlineMetaclassBase):
           .format(type_name, key))
 
     # Map positional arguments to keyword arguments.
-    for arg, field in zip(args, self.__ifields__):
+    for arg, (key, field) in zip(args, iteritems(self.__fields__)):
       if field.name in kwargs:
         raise TypeError('{}() got duplicate argument "{}"'
           .format(type_name, name))
@@ -244,7 +249,7 @@ class CleanRecord(InlineMetaclassBase):
       setattr(self, key, value)
 
   def __repr__(self):
-    values = ((f.name, getattr(self, f.name)) for f in self.__ifields__)
+    values = ((f.name, getattr(self, f.name)) for f in self.__fields__)
     members = ', '.join('{}={!r}'.format(k, v) for k, v in values)
     return '{}({})'.format(type(self).__name__, members)
 
@@ -300,7 +305,7 @@ class Sequence(object):
 
   def __getitem__(self, index):
     if hasattr(index, '__index__'):
-      return getattr(self, self.__ifields__[index.__index__()].name)
+      return getattr(self, self.__fields__[index.__index__()].name)
     elif isinstance(index, str):
       return getattr(self, str)
     else:
@@ -309,7 +314,7 @@ class Sequence(object):
 
   def __setitem__(self, index, value):
     if hasattr(index, '__index__'):
-      setattr(self, self.__ifields__[index.__index__()].name, value)
+      setattr(self, self.__fields__[index.__index__()].name, value)
     elif isinstance(index, str):
       setattr(self, index, value)
     else:
