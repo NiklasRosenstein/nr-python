@@ -30,6 +30,15 @@ import six
 class Constructor(object):
   """
   Represents a Constructor for a sumtype.
+
+  # Attributes
+
+  name (str): Name of the constructor. Automatically assigned when the
+    #Sumtype is constructed.
+  type (type): The #Sumtype subclass that this constructor belongs to.
+  args (tuple): The arguments that the #Constructor was created with.
+  members (dict): A dictionary of members that only belong to this
+    #Constructor object (usually added with the #member_of decorator).
   """
 
   def __init__(self, *args):
@@ -112,7 +121,7 @@ class Sumtype(InlineMetaclassBase):
   def __metanew__(cls, name, bases, attrs):
     subtype = type.__new__(cls, name, bases, attrs)
 
-    # Collect all new constructors.
+    # Get all previous constructors and get all new ones.
     constructors = getattr(subtype, '__constructors__', {}).copy()
     for key, value in iteritems(vars(subtype)):
       if isinstance(value, Constructor):
@@ -207,5 +216,5 @@ Sumtype.add_is_methods = add_is_methods
 Sumtype.__addins__.append(add_is_methods)
 
 import sys
-_module = sys.modules[__name__]  #keep explicit reference for Py2
+Sumtype.__module_object__ = sys.modules[__name__]  # keep explicit reference for Py2
 sys.modules[__name__] = Sumtype

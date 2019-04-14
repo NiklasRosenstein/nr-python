@@ -138,6 +138,12 @@ Person = record.create_record('Person', [
   record.Field.with_name('mail', str, None),
   ('age', str, lambda: random.randint(10, 50))
 ])
+
+Person = record.create_record('Person', {
+  'name': str,
+  'mail': (str, None),
+  'age': record.Field(str, lambda: random.randint(10, 50))
+})
 ```
 </details>
 
@@ -163,21 +169,21 @@ stream.map(range(10), lambda x: x*2)
 <details><summary>Example:</summary>
 
 ```python
-from nr.types import sumtype
+from nr.types import record, sumtype
 class Filter(sumtype):
-  Date = sumtype.constructor('min', 'max')
+  Date = record.create_record('Date', 'min,max')
   Keyword = sumtype.constructor('text')
 
 f = Filter.Keyword('building')
 assert isinstance(f, Filter)
 assert f.is_keyword()
 assert f.text == 'building'
+
+#f = Filter.Date(10, 42)
+#assert isinstance(f, Filter)
+#assert f.is_date()
+#assert (f.min, fmax) == (10, 42)
 ```
-</details>
-
-<details><summary>Planned Features:</summary>
-
-* Ability to declare constructors like records (see `nr.types.record`)
 </details>
 
 ---
