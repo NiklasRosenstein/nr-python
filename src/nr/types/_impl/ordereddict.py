@@ -19,6 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import six
+
 from nr.types.abc import MutableMapping
 
 
@@ -42,8 +44,9 @@ class OrderedDict(MutableMapping):
     if isinstance(iterable, OrderedDict):
       self.__items = iterable.__items[:]
     elif iterable is not None:
-      iterable = dict(iterable)
-      self.__items = iterable.items()
+      self.__items = []
+      for key, value in iterable:
+        self.__items.append((key, value))
     else:
       self.__items = []
 
@@ -110,14 +113,20 @@ class OrderedDict(MutableMapping):
     for item in self.__items:
       yield (item[0], item[1])
 
-  def keys(self):
-    return list(self.iterkeys())
+  if six.PY2:
+    def keys(self):
+      return list(self.iterkeys())
 
-  def values(self):
-    return list(self.itervalues())
+    def values(self):
+      return list(self.itervalues())
 
-  def items(self):
-    return list(self.iteritems())
+    def items(self):
+      return list(self.iteritems())
+  else:
+    keys = iterkeys
+    values = itervalues
+    items = iteritems
+    del iterkeys, itervalues, iteritems
 
   def get(self, key, default=None):
     try:
