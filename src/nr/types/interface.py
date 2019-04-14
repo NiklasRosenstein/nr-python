@@ -29,14 +29,16 @@ import six
 import sys
 import types
 
+from . import NotSet
 from .meta import InlineMetaclassBase
 
 
 class _Member(object):
 
-  def __init__(self, interface, name):
+  def __init__(self, interface, name, hidden=False):
     self.interface = interface
     self.name = name
+    self.hidden = hidden
 
   def __repr__(self):
     result = '<{} {!r}'.format(type(self).__name__, self.name)
@@ -53,23 +55,44 @@ class _Member(object):
 
 class Method(_Member):
 
-  def __init__(self, interface, name, impl=None, final=False):
+  def __init__(self, interface, name, impl=None, final=False, hidden=False):
     super(Method, self).__init__(interface, name)
     self.impl = impl
     self.final = final
+    self.hidden = hidden
+
+  def __repr__(self):
+    s = super(Method, self).__repr__()
+    if self.hidden:
+      s = '<hidden ' + s[1:]
+    if self.final:
+      s = '<final ' + s[1:]
+    return s
 
   def __call__(self, *a, **kw):
     if self.impl:
       return self.impl(*a, **kw)
     return None
 
-  @staticmethod
-  def is_candidate(name, value):
-    if name.startswith('_') and not name.endswith('_'):
-      return False
-    if name in ('__new__', '__init__', '__constructed__'):
+  @classmethod
+  def is_candidate(cls, name, value):
+    if name.startswith('_') and not name.endswith('_'):  # Private function
       return False
     return isinstance(value, types.FunctionType)
+
+  @classmethod
+  def wrap_candidate(cls, interface, name, value):
+    if cls.is_candidate(name, value):
+      # We don't want these functions to be an actual "member" of the interface
+      # API as they can be implemented for every interface and not collide.
+      hidden = name in ('__new__', '__init__', '__constructed__')
+      # If it's one of the hidden methods, they also act as the "default"
+      # implementation because we actually want to call them independently
+      # of potential overrides by the implementation.
+      impl = value if getattr(value, '__is_default__', hidden) else None
+      final = getattr(value, '__is_final__', False)
+      return Method(interface, name, impl, final, hidden)
+    return None
 
 
 class Attribute(_Member):
@@ -150,6 +173,12 @@ class Property(_Member):
     return isinstance(value, property)
 
   @classmethod
+  def wrap_candidate(cls, interface, name, value):
+    if cls.is_candidate(name, value):
+      return Property.from_python_property(interface, name, value)
+    return None
+
+  @classmethod
   def from_python_property(cls, interface, name, value):
     assert isinstance(value, property), type(value)
     if value.fget and getattr(value.fget, '__is_default__', False):
@@ -188,17 +217,17 @@ class InterfaceClass(type):
     # Convert function declarations in the class to Method objects and
     # bind Attribute objects to the new interface class.
     for key, value in vars(self).items():
+      member = None
       if isinstance(value, _Member) and not value.is_bound:
         value.interface = self
         value.name = key
-        self.__members[key] = value
-      elif Method.is_candidate(key, value):
-        impl = value if getattr(value, '__is_default__', False) else None
-        final = getattr(value, '__is_final__', False)
-        self.__members[key] = Method(self, key, impl, final)
-      elif Property.is_candidate(key, value):
-        prop = Property.from_python_property(self, key, value)
-        self.__members[key] = prop
+        member = value
+      if member is None:
+        member = Method.wrap_candidate(self, key, value)
+      if member is None:
+        member = Property.wrap_candidate(self, key, value)
+      if member is not None:
+        self.__members[key] = member
 
     for key in self.__members:
       delattr(self, key)
@@ -214,8 +243,13 @@ class InterfaceClass(type):
   def __iter__(self):
     return iter(self.__members)
 
-  def members(self):
-    return iter(six.itervalues(self.__members))
+  def get(self, key, default=None):
+    return self.__members.get(key, default)
+
+  def members(self, include_hidden=False):
+    for member in six.itervalues(self.__members):
+      if include_hidden or not member.hidden:
+        yield member
 
   def implemented_by(self, x):
     if not issubclass(x, Implementation):
@@ -332,25 +366,28 @@ class Implementation(InlineMetaclassBase):
     for interface in implements:
       errors = []
       for member in interface.members():
+        value = getattr(self, member.name, NotSet)
         if isinstance(member, Method):
-          if member.final and hasattr(self, member.name) and member.impl != getattr(self, member.name):
+          if isinstance(value, types.MethodType):
+            value = value.im_func
+          if member.final and value is not NotSet and member.impl != value:
             errors.append('implemented final method: {}()'.format(member.name))
             continue
-          if not hasattr(self, member.name):
+          if value is NotSet:
             errors.append('missing method: {}()'.format(member.name))
-          elif not isinstance(getattr(self, member.name), types.FunctionType):
+          elif not isinstance(value, (types.FunctionType, types.MethodType)):
             errors.append('expected method, got {}: {}()'.format(
-              type(getattr(self, member.name)).__name__, member.name))
+              type(value).__name__, member.name))
         elif isinstance(member, Property):
           if not hasattr(member.name):
             if not member.is_pure_default():
               errors.append('missing property: {}'.format(member.name))
-          elif not isinstance(getattr(self, member.name), property):
+          elif not isinstance(value, property):
             errors.append('expected property, got {}: {}'.format(
-              type(getattr(self, member.name)).__name__, member.name))
+              type(value).__name__, member.name))
           else:
             try:
-              value = member.satisfy(getattr(self, member.name))
+              value = member.satisfy(value)
             except ValueError as exc:
               errors.append(str(exc))
             else:
@@ -388,11 +425,13 @@ class Implementation(InlineMetaclassBase):
 
   def __init__(self):
     for interface in self.__implements__:
-      if hasattr(interface, '__init__'):
-        interface.__init__(self)
+      member = interface.get('__init__')
+      if member:
+        member.impl(self)
     for interface in self.__implements__:
-      if hasattr(interface, '__constructed__'):
-        interface.__constructed__(self)
+      member = interface.get('__constructed__')
+      if member:
+        member.impl(self)
 
 
 class ImplementationError(RuntimeError):
