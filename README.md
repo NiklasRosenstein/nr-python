@@ -63,6 +63,46 @@ UnsafeHashDict = HashDict[hash]
 ```
 </details>
 
+#### `nr.types.interface`
+
+Similar to `zope.interface`, but Python 3 compatible and less magical.
+
+<detail doctest name="interface.example"><summary>Example:</summary>
+
+```python
+from nr.types.interface import Interface, Implementation, implements, attr
+
+class IFoo(Interface):
+  """ The foo interface. """
+
+  x = attr("""Some attribute.""")
+
+  def bar(self, q, r=None):
+    """ The bar function. """
+
+assert set(IFoo) == set(['x', 'bar'])
+assert not hasattr(IFoo, 'x')
+assert not hasattr(IFoo, 'bar')
+assert IFoo['x'].name == 'x'
+assert IFoo['bar'].name == 'bar'
+
+@implements(IFoo)
+class Foo(object):
+
+  def __init__(self, x=None):
+    self.x = x
+
+  def bar(self, q, r=None):
+    return q, r, self.x
+
+assert issubclass(Foo, Implementation)
+assert IFoo.implemented_by(Foo)
+assert IFoo.provided_by(Foo())
+assert list(IFoo.implementations()) == [Foo]
+assert Foo(42).x == 42
+```
+</detail>
+
 #### `nr.types.maps`
 
 Provides the following mapping (and mapping-related) implementations:
