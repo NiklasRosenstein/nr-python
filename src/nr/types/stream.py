@@ -24,6 +24,7 @@ from __future__ import absolute_import
 import functools
 import itertools
 
+from . import NotSet
 from six.moves import range
 
 
@@ -161,12 +162,15 @@ class stream(object):
     return cls(getattr(x, attr_name) for x in iterable)
 
   @_dualmethod
-  def item(cls, iterable, key):
+  def item(cls, iterable, key, default=NotSet):
     """
     Applies `__getitem__` on all elements of *iterable*.
     """
 
-    return cls(x[key] for x in iterable)
+    if default is NotSet:
+      return cls(x[key] for x in iterable)
+    else:
+      return cls(x.get(key, default) for x in iterable)
 
   @_dualmethod
   def of_type(cls, iterable, types):
@@ -180,10 +184,13 @@ class stream(object):
   def partition(cls, iterable, pred):
     """
     Use a predicate to partition items into false and true entries.
+    Returns a tuple of two streams with the first containing all elements
+    for which *pred* returned #False and the other containing all elements
+    where *pred* returned #True.
     """
 
     t1, t2 = itertools.tee(iterable)
-    return cls(itertools.filterfalse(pred, t1), filter(pred, t2))
+    return cls(itertools.filterfalse(pred, t1)), cls(filter(pred, t2))
 
   @_dualmethod
   def dropwhile(cls, iterable, pred):
@@ -221,8 +228,6 @@ class stream(object):
       count += 1
     return count
 
-  count = length  # deprecated
-
   @_dualmethod
   def consume(cls, iterable, n=None):
     if n is not None:
@@ -240,8 +245,8 @@ class stream(object):
     return iterable
 
   @_dualmethod
-  def collect(cls, iterable, collect_cls=None):
-    return (collect_cls or list)(iterable)
+  def collect(cls, iterable, collect_cls=None, *args, **kwargs):
+    return (collect_cls or list)(iterable, *args, **kwargs)
 
 
 import sys
