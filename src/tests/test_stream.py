@@ -119,6 +119,7 @@ def test_slice():
 def test_next():
   values = [4, 2, 1]
   assert stream.next(values) == 4
+  assert stream(values).next() == 4
 
 
 def test_length():
