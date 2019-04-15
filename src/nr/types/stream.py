@@ -23,9 +23,12 @@ from __future__ import absolute_import
 
 import functools
 import itertools
+import six
 
 from . import NotSet
-from six.moves import range
+from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
+
+_next = next
 
 
 class _dualmethod(object):
@@ -59,7 +62,7 @@ class stream(object):
     return iter(self.iterable)
 
   def __next__(self):
-    return next(self.iterable)
+    return _next(self.iterable)
 
   def __getitem__(self, val):
     if isinstance(val, slice):
@@ -127,7 +130,7 @@ class stream(object):
     Collects elements in fixed-length chunks.
     """
 
-    return cls(itertools.zip_longest(*[iter(iterable)] * n, fillvalue=fill))
+    return cls(zip_longest(*[iter(iterable)] * n, fillvalue=fill))
 
   @_dualmethod
   def concat(cls, iterables):
@@ -190,7 +193,7 @@ class stream(object):
     """
 
     t1, t2 = itertools.tee(iterable)
-    return cls(itertools.filterfalse(pred, t1)), cls(filter(pred, t2))
+    return cls(_filterfalse(pred, t1)), cls(_filter(pred, t2))
 
   @_dualmethod
   def dropwhile(cls, iterable, pred):
@@ -208,9 +211,17 @@ class stream(object):
   def slice(cls, iterable, *args, **kwargs):
     return cls(itertools.islice(iterable, *args, **kwargs))
 
-  @_dualmethod
-  def first(cls, iterable):
-    return next(iter(iterable))
+  if six.PY2:
+    @_dualmethod
+    def next(cls, iterable):
+      if isinstance(iterable, stream):
+        return iterable.__next__()
+      else:
+        return _next(iter(iterable))
+  else:
+    @_dualmethod
+    def next(cls, iterable):
+      return _next(iter(iterable))
 
   @_dualmethod
   def length(cls, iterable):
@@ -222,7 +233,7 @@ class stream(object):
     count = 0
     while True:
       try:
-        next(iterable)
+        _next(iterable)
       except StopIteration:
         break
       count += 1
@@ -233,13 +244,13 @@ class stream(object):
     if n is not None:
       for _ in range(n):
         try:
-          next(iterable)
+          _next(iterable)
         except StopIteration:
           break
     else:
       while True:
         try:
-          next(iterable)
+          _next(iterable)
         except StopIteration:
           break
     return iterable

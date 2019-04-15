@@ -116,9 +116,9 @@ def test_slice():
   assert list(stream.slice(range(10), 3, 8)) == [3, 4, 5, 6, 7]
 
 
-def test_first():
+def test_next():
   values = [4, 2, 1]
-  assert stream.first(values) == 4
+  assert stream.next(values) == 4
 
 
 def test_length():
