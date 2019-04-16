@@ -4,6 +4,8 @@ import os
 import pytest
 import sys
 
+from nr.types import record
+
 sys.path.append(os.path.dirname(__file__))
 
 
@@ -31,3 +33,10 @@ def test_record_36():
 def test_record():
   import _record
   _test_record(_record)
+
+
+def test_module_inheritablity():
+  class Person(record):
+    pass
+  assert issubclass(Person, record.Record)
+  assert Person.__bases__ == (record.Record,)
