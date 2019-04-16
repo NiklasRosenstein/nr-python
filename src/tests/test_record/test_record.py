@@ -48,5 +48,7 @@ def test_module_inheritablity():
     mail = record.Field(str)
   assert issubclass(Person, record.Record)
   assert Person.__bases__ == (record.Record,)
-  assert Person('John', 'foo@bar.com').name == 'John'
-  assert Person('John', 'foo@bar.com').mail == 'foo@bar.com'
+  p = Person('John', 'foo@bar.com')
+  assert p.name == 'John'
+  assert p.mail == 'foo@bar.com'
+  assert str(p) == "Person(name='John', mail='foo@bar.com')"

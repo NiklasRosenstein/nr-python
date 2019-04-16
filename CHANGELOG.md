@@ -1,5 +1,9 @@
 # Changelog
 
+### v2.0.1 (2019-04-16)
+
+* `nr.types.record`: Fix Python 2 field order
+
 ### v2.0.0 (2019-04-16)
 
 * Restructure of the `nr.types` module

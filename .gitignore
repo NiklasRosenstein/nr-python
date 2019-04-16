@@ -1,7 +1,8 @@
 *.egg-info
 .eggs
 .pytest_cache
-.venv
+.venv*
+dist
 
 # Coverage
 .coverage

@@ -202,6 +202,7 @@ class CleanRecord(InlineMetaclassBase):
             raise ValueError('Field.name mismatches key: {!r} != {!r}'
               .format(value.name, key))
           fields.append(value)
+      fields.sort(key=lambda x: x.create_index)
 
     # Merge with parent class fields.
     mro_fields = OrderedDict()
