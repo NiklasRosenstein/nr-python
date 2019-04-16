@@ -24,6 +24,7 @@ from .utils import system
 from .hooks import Hook
 
 import ast
+import contextlib
 import copy
 import fnmatch
 import itertools
@@ -236,6 +237,7 @@ class ModuleInfo(record):
       return self._zippable
     if self.parent:
       return self.parent.is_zippable
+    return True
 
   @is_zippable.setter
   def is_zippable(self, value):
@@ -318,6 +320,17 @@ class ModuleInfo(record):
     if self.filename is not None:
       return os.path.dirname(self.filename)
     return None
+
+  @contextlib.contextmanager
+  def replace_file(self, directory, mode='w'):
+    path = nr.fs.join(directory, self.relative_filename)
+    with nr.fs.tempfile(text='b' not in mode) as fp:
+      yield fp
+      if not fp.closed:
+        fp.close()
+      nr.fs.makedirs(nr.fs.dir(path))
+      os.rename(fp.name, path)
+      self.filename = path
 
   def load_imports(self):
     self.imports = []

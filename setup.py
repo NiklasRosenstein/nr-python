@@ -26,7 +26,7 @@ setuptools.setup(
     'distlib>=0.2.7',
     'pefile>=2017.11.5',
     'nr.gitignore>=1.0.0',
-    'nr.fs>=1.0.2',
+    'nr.fs>=1.2.0',
     'nr.types>=1.0.6',
   ],
   entry_points = {

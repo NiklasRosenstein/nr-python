@@ -82,7 +82,8 @@ class DirConfig(record):
     ('lib', str),
     ('lib_dynload', str, None),
     ('runtime', str, None),
-    ('resource', str, None)
+    ('resource', str, None),
+    ('temp', str, '.bundler-temp')
   ]
 
   @classmethod
@@ -333,32 +334,29 @@ class PythonAppBundle(object):
     `site` module that contains the site snippets added to the bundle.
     """
 
-    if not 'site' in self.modules:
+    if 'site' not in self.modules:
       return
 
-    import atexit  # TODO: Maybe create a context manager for the PythonAppBundle instead
-    fp = nr.fs.tempfile('.py', text=True)
-    fp.__enter__()
-    atexit.register(lambda: fp.__exit__(None, None, None))
+    mod = self.modules['site']
 
-    with open(self.modules['site'].filename) as src:
-      fp.write(src.read())
+    with mod.replace_file(nr.fs.join(self.dirconfig.temp, 'modules')) as fp:
+      # Load the original contents of the site module.
+      with open(self.modules['site'].filename) as src:
+        fp.write(src.read())
 
-    fp.write('\n\n')
-    for snippet in self.site_snippets:
-      fp.write('###@@@ Site-Snippet: {}\n'.format(snippet.source))
-      fp.write(snippet.code.rstrip())
+      # Add our site code.
       fp.write('\n\n')
-    fp.write('def rthooks():\n')
-    fp.write('  " Runtime-hooks installed from nr.pybundle hooks. "\n')
-    for snippet in self.rthooks:
-      fp.write('  ###@@@ RtHook: {}\n'.format(snippet.source))
-      for line in snippet.code.split('\n'):
-        fp.write('  {}\n'.format(line))
-      fp.write('\n')
-    fp.close()
-
-    self.modules['site'].filename = fp.name
+      for snippet in self.site_snippets:
+        fp.write('###@@@ Site-Snippet: {}\n'.format(snippet.source))
+        fp.write(snippet.code.rstrip())
+        fp.write('\n\n')
+      fp.write('def rthooks():\n')
+      fp.write('  " Runtime-hooks installed from nr.pybundle hooks. "\n')
+      for snippet in self.rthooks:
+        fp.write('  ###@@@ RtHook: {}\n'.format(snippet.source))
+        for line in snippet.code.split('\n'):
+          fp.write('  {}\n'.format(line))
+        fp.write('\n')
 
   def create_bundle(self, copy_always):
     """
@@ -498,7 +496,7 @@ class DistributionBuilder(record):
           files = [(mod.relative_filename, mod.filename)]
 
         for arcname, filename in files:
-          zipf.write(filename, arcname.replace(os.sep, '/'))
+          zipf.write(filename, arcname.replace(nr.fs.sep, '/'))
 
     if not_zippable:
       print('Note: There are modules that can not be zipped, they will be copied into the lib/ folder.')
