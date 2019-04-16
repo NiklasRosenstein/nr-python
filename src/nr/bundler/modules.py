@@ -566,17 +566,22 @@ class ModuleGraph(object):
       self.add(module)
     return module
 
-  def collect_modules(self, module_name, source_module='*', callback=None, depth=0):
+  def collect_modules(self, module_name, source_module='*', callback=None,
+                      depth=0, sparse=None):
     """
     Collects the specified *module_name* and all of its imports into the
-    module graph. If *sparse* is set to #True, it will not automatically
-    collect submodules if *module_name* is a package.
+    module graph. Modules are collected sparsely by default unless a `+` is
+    appended to the *module_name*, #sparse is set to #False or the module is
+    listed in #collect_whole.
+
+    Sparse collection can be enforced by passing #True to the *sparse*
+    parameter.
     """
 
     if module_name.endswith('+'):
-      sparse = False
       module_name = module_name[:-1]
-    else:
+      sparse = False if sparse is None else sparse
+    elif sparse is None:
       sparse = self.sparse and module_name not in self.collect_whole
 
     module = self.find_module(module_name)
@@ -604,17 +609,18 @@ class ModuleGraph(object):
     for import_name in module.imports:
       if not self.import_filter.accept(import_name, module.name):
         continue
+      at_parent = False
       while import_name:
-        # TODO: If self.sparse==False, we should at some point of this
-        #       iteration prevent the collection of submodules if they
-        #       belong to a completely different subpackage of a namespace
-        #       module.
-        self.collect_modules(import_name, module.name, callback, depth+1)
+        # If we're at a parent module (any module but the first import_name),
+        # we want to enforce that it is collected sparsely. We need parent
+        # packages, otherwise the original import_name can not be imported
+        # (duh) but that doesn't mean we want to include all other submodules.
+        self.collect_modules(import_name, module.name, callback, depth+1,
+                             sparse=True if at_parent else None)
         mod = self._modules[import_name]
-        if mod.type == mod.NOTFOUND:
-          import_name = import_name.rpartition('.')[0]
-        else:
-          break
+        import_name = import_name.rpartition('.')[0]
+        if mod.type != mod.NOTFOUND:
+          at_parent = True
 
   def collect_data(self, bundle):
     """
