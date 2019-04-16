@@ -24,10 +24,10 @@ in parentheses.
 $ nr python-bundler --help
 usage: nr python-bundler [-h] [--version] [-v] [--flat] [--json]
                          [--json-graph] [--dotviz] [--search SEARCH]
-                         [--recursive] [--deps] [--package-members]
-                         [--nativedeps] [--show-module-path]
-                         [--show-hooks-path] [--collect] [--dist]
-                         [--entry SPEC] [--resource SRC[:DST]]
+                         [--recursive] [--whitelist GLOB] [--deps]
+                         [--package-members] [--nativedeps]
+                         [--show-module-path] [--show-hooks-path] [--collect]
+                         [--dist] [--entry SPEC] [--resource SRC[:DST]]
                          [--bundle-dir DIRECTORY] [--exclude EXCLUDE]
                          [--no-default-includes] [--no-default-excludes]
                          [--compile-modules] [--zip-modules]
@@ -44,11 +44,19 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --version             show program's version number and exit
   -v, --verbose         Increase the log-level from ERROR.
   --flat                Instruct certain operation to produce flat instead of
                         nested output.
   --json                Instruct certain operations to output JSON.
+  --json-graph          Instruct certain operations to output JSON Graph.
   --dotviz              Instruct certain operations to output Dotviz.
+  --search SEARCH       Instruct certain operations to search for the
+                        specified string. Used with --nativedeps
+  --recursive           Instruct certain operations to operate recursively.
+                        Used with --nativedeps
+  --whitelist GLOB      Only search and bundle modules matching the specified
+                        glob pattern.
 
 operations (dump):
   --deps                Dump the dependency tree of the specified Python
@@ -71,12 +79,14 @@ operations (build):
                         Additional arguments are treated as modules that are
                         to be included in the distribution.
   --entry SPEC          Create an executable from a Python entrypoint
-                        specification in the standalone distribution
-                        directory. This executable will run in console mode.
-                        This option can be used multiple times and may have
-                        comma-separated elements.
-  --wentry SPEC         The same as --entry, but the executable will run in
-                        GUI mode.
+                        specification and optional arguments in the standalone
+                        distribution directory. The created executable will
+                        run in console mode unless the spec is prefixed with
+                        an @ sign (as in @prog=module:fun).
+  --resource SRC[:DST]  Copy thepath(s) to the bundle directory. If DST is not
+                        specified, it defaults to res/{srcbasename}/. The path
+                        to the res/ directory can be retrieved with
+                        `sys.frozen_env["resource_dir"]`.
 
 optional arguments (build):
   --bundle-dir DIRECTORY
@@ -103,9 +113,6 @@ optional arguments (build):
   --copy-always         Always copy files, even if the target file already
                         exists and the timestamp indicates that it hasn't
                         changed.
-  --sparse              Collect modules sparsely, only including package
-                        members that appear to actually be used. This affects
-                        only Python modules, not package data.
 
 optional arguments (search):
   --no-default-module-path

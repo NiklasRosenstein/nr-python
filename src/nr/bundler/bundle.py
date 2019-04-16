@@ -391,6 +391,7 @@ class DistributionBuilder(record):
     ('excludes', list, ()),
     ('default_excludes', bool, True),
     ('includes', list, ()),
+    ('whitelist', list, ()),
     ('default_includes', bool, True),
     ('compile_modules', bool, False),
     ('zip_modules', bool, False),
@@ -411,7 +412,7 @@ class DistributionBuilder(record):
     self.python_bin = next(k for k in self.python_bins if 'w' not in k)
     self.includes = list(self.includes)
     self.finder = ModuleFinder([])
-    self.filter = ModuleImportFilter(self.excludes)
+    self.filter = ModuleImportFilter(self.excludes, self.whitelist)
     self.hook = DelegateHook()
     self.graph = ModuleGraph(self.finder, self.filter, self.hook)
     self.bundle = PythonAppBundle(

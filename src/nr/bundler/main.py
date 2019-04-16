@@ -69,6 +69,9 @@ def get_argument_parser(prog=None):
   parser.add_argument('--recursive', action='store_true',
     help='Instruct certain operations to operate recursively. '
          'Used with --nativedeps')
+  parser.add_argument('--whitelist', action='append', default=[],
+    dest='whitelist', metavar='GLOB',
+    help='Only search and bundle modules matching the specified glob pattern.')
 
   group = parser.add_argument_group('operations (dump)')
   group.add_argument('--deps', action='store_true',
@@ -183,6 +186,7 @@ def main(argv=None, prog=None):
     excludes = split_multiargs(args.exclude),
     default_excludes = not args.no_default_excludes,
     includes = split_multiargs(args.args),
+    whitelist = split_multiargs(args.whitelist),
     default_includes = not args.no_default_includes,
     compile_modules = args.compile_modules,
     zip_modules = args.zip_modules,

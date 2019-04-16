@@ -25,6 +25,7 @@ from .hooks import Hook
 
 import ast
 import copy
+import fnmatch
 import itertools
 import logging
 import nr.fs
@@ -624,8 +625,9 @@ class ModuleImportFilter(object):
   Used in the #ModuleGraph to filter module imports.
   """
 
-  def __init__(self, excludes):
+  def __init__(self, excludes, whitelist=()):
     self.excludes = excludes
+    self.whitelist = whitelist
 
   def accept(self, module_name, imported_from):
     """
@@ -634,6 +636,12 @@ class ModuleImportFilter(object):
     name or two module names combined by the string `->` like `X->Y` to
     indicate that the module `Y` should be ignored when it is imported from `X`.
     """
+
+    if self.whitelist:
+      for pattern in self.whitelist:
+        if fnmatch.fnmatch(module_name, pattern):
+          return True
+      return False
 
     prefix = imported_from + '->' + module_name
     for exclude in self.excludes:
