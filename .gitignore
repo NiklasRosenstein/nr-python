@@ -5,6 +5,7 @@
 *.egg-info
 .venv/
 __pycache__/
+dist/
 
 # nr.bundler
 .bundler-temp
