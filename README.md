@@ -10,6 +10,11 @@ Python 3.
 
     pip install nr.types
 
+### Run Tests
+
+    pip install -e .[test]
+    pytest --cov=./src/nr
+
 ### API
 
 #### `nr.types.NotSet`

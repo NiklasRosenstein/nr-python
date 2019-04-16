@@ -28,7 +28,7 @@ jobs:
             $INSTALL_PYTHON_ENV2
             $INSTALL_PYTHON_ENV3
             . venv/bin/activate
-            pip install -e . setuptools --upgrade
+            pip install -e .[test]
 
       #- save_cache:
       #    paths:
@@ -39,11 +39,14 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python setup.py test
+            pytest --cov=./src/nr
+            coverage html
 
       - store_artifacts:
-          path: test-reports
-          destination: test-reports
+          path: .coverage
+
+      - store_artifacts:
+          path: htmlcov
 
   test-3.7:
     <<: *test

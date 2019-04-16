@@ -2,3 +2,7 @@
 .eggs
 .pytest_cache
 .venv
+
+# Coverage
+.coverage
+htmlcov

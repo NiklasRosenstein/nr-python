@@ -19,6 +19,7 @@ setuptools.setup(
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
   install_requires = ['six'],
-  setup_requires = ['pytest-runner'],
-  tests_require = ['pytest', 'BeautifulSoup4']
+  extras_require = {
+    'test': ['pytest', 'pytest-cov', 'BeautifulSoup4']
+  }
 )
