@@ -9,6 +9,14 @@
 
 ### Changes
 
+#### v1.3.0 (2019-04-16)
+
+* Use `pkgutil` instead of `pkg_resources` namespace packages
+
+#### v1.2.0 (2019-04-16)
+
+* Fix `tempfile.closed`
+
 #### v1.1.1 (2018-08-21)
 
 * Fix `issub()` and add `at_curr=True` parameter
