@@ -3,7 +3,7 @@ import os
 import sys
 
 is_cygwin = sys.platform.startswith('cygwin')
-is_msys = sys.platform.startswith('msys') or (not is_cygwin and os.sep == '/')  # mingw-...-python3 builds have sys.platform == win
+is_msys = sys.platform.startswith('msys') or (not is_cygwin and os.sep == '/' and sys.platform.startswith('win'))  # mingw-...-python3 builds have sys.platform == win
 is_win = is_msys or is_cygwin or sys.platform.startswith('win32')
 is_purewin = os.name == 'nt' and os.sep == '\\'
 
