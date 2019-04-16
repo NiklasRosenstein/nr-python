@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.2.1
+
+* `ModuleGraph.collect_modules()` now sparsely collects _all_ parent packages
+* The `DistributionBundle.fill_namespace_modules` option now writes the
+  `pkgutil` namespace package clause into the generated file
+
 ### v1.2.0 (2019-04-16)
 
 * Remove imports in `nr.bundler` root module
