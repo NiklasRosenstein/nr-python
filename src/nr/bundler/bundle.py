@@ -485,7 +485,7 @@ class DistributionBuilder(record):
 
   def do_compile_modules(self, modules):
     if self.zip_modules:
-      compile_dir = nr.fs.join(self.bundle_dir, '.compile-cache')
+      compile_dir = nr.fs.join(self.dirconfig.temp, 'compile-cache')
     else:
       compile_dir = self.dirconfig.lib
     print('Compiling modules in "{}" ...'.format(compile_dir))
@@ -506,6 +506,8 @@ class DistributionBuilder(record):
     # TODO: Also zip up package data?
 
     print('Creating module zipball at "{}" ...'.format(self.zip_file))
+    nr.fs.makedirs(nr.fs.dir(self.zip_file))
+
     not_zippable = []
     with zipfile.ZipFile(self.zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
       for mod in modules:
