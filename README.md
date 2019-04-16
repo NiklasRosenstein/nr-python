@@ -88,3 +88,15 @@ TODO
 ## Future
 
 * Vendor `dateutil.tz` module?
+
+## Changelog
+
+### v1.1.0 (2019-04-16)
+
+* Fix microsecond (`%f`) formatting
+* Fix parsing of timezone offset with colon (`%z`)
+* Use `pkgutil` instead of `pkg_resources` namespace packages
+
+### v1.0.0 (2019-04-06)
+
+* Initial release
