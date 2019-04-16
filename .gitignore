@@ -1,6 +1,11 @@
+# System files
+.DS_Store
+
+# Python
 *.egg-info
-__pycache__
-README.rst
 .venv/
+__pycache__/
+
+# nr.bundler
 .bundler-temp
 bundle/
