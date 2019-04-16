@@ -21,6 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from nr.types import record, sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
 from .utils import system
@@ -30,13 +31,12 @@ from . import nativedeps
 import distlib.scripts
 import logging
 import nr.fs
-import nr.types
 import shlex
 import sys
 import textwrap
 
 
-class AppResource(nr.types.Named):
+class AppResource(record):
   """
   Represents a file or directory that that is an application resource file
   and will need to be copied to the application folder.
@@ -55,7 +55,7 @@ class AppResource(nr.types.Named):
     self.source = nr.fs.canonical(self.source)
 
 
-class SiteSnippet(nr.types.Named):
+class SiteSnippet(record):
   """
   A code snippet that is inserted into the `site.py` module .
   """
@@ -69,7 +69,7 @@ class SiteSnippet(nr.types.Named):
   ]
 
 
-class DirConfig(nr.types.Named):
+class DirConfig(record):
   """
   The configuration where the bundle files will be placed.
   """
@@ -94,7 +94,7 @@ class DirConfig(nr.types.Named):
                nr.fs.join(bundle_dir, 'res'))
 
 
-class Entrypoint(nr.types.Sumtype):
+class Entrypoint(sumtype):
   """
   Represents an entrypoint specification of the format
   `[@]name=<spec> [args...]` where `<spec>` can be of the format
@@ -104,8 +104,8 @@ class Entrypoint(nr.types.Sumtype):
   be executed in GUI mode.
   """
 
-  File = nr.types.Sumtype.Constructor(*'name filename args gui'.split())
-  Qid = nr.types.Sumtype.Constructor(*'name module function args gui'.split())
+  File = sumtype.constructor('name filename args gui')
+  Qid = sumtype.constructor('name module function args gui')
 
   def distlib_spec(self):
     if self.is_file():
@@ -376,7 +376,7 @@ class PythonAppBundle(object):
       self.scripts.make_script(ep)
 
 
-class DistributionBuilder(nr.types.Named):
+class DistributionBuilder(record):
   """
   This object handles building a distribution and contains most of the
   functionality that is also provided via the pybundle command-line.
@@ -401,7 +401,7 @@ class DistributionBuilder(nr.types.Named):
     ('default_module_path', bool, True),
     ('hooks_path', list, ()),
     ('default_hooks_path', bool, True),
-    ('hook_options', dict, nr.types.Named.Initializer(dict)),
+    ('hook_options', dict, lambda: {}),
     ('logger', logging.Logger, None)
   ]
 

@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from .vendor import pip_pep425tags as tags
-from nr.stream import stream
+from nr.types import record, stream
 from .utils import system
 from .hooks import Hook
 
@@ -28,7 +28,6 @@ import copy
 import itertools
 import logging
 import nr.fs
-import nr.types
 import os
 import sys
 import sysconfig
@@ -89,7 +88,7 @@ def get_imports(filename, source=None):
   return result
 
 
-class ImportInfo(nr.types.Named):
+class ImportInfo(record):
   __annotations__ = [
     ('name', str),
     ('filename', str),
@@ -171,7 +170,7 @@ class ImportInfo(nr.types.Named):
     return ImportInfo(module_name, self.filename, self.lineno, self.is_from_import)
 
 
-class ModuleInfo(nr.types.Named):
+class ModuleInfo(record):
   """
   Represents a Python module.
   """
@@ -239,7 +238,7 @@ class ModuleInfo(nr.types.Named):
 
   @is_zippable.setter
   def is_zippable(self, value):
-    self._zippable = is_zippable
+    self._zippable = value
 
   @property
   def sparse(self):

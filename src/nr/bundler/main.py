@@ -18,7 +18,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.stream import stream
+from nr.types import stream
 from . import nativedeps, __version__
 from .utils import system
 from .bundle import DistributionBuilder

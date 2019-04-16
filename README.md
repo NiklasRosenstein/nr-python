@@ -1,4 +1,4 @@
-# nr.pybundle
+# nr.bundler
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -21,17 +21,17 @@ in parentheses.
 #### Synopsis
 
 ```
-$ nr pybundle --help
-usage: nr pybundle [-h] [-v] [--flat] [--json] [--dotviz] [--deps]
-                   [--package-members] [--nativedeps] [--show-module-path]
-                   [--show-hooks-path] [--collect] [--dist] [--entry SPEC]
-                   [--wentry SPEC] [--bundle-dir DIRECTORY]
-                   [--exclude EXCLUDE] [--no-default-includes]
-                   [--no-default-excludes] [--compile-modules] [--zip-modules]
-                   [--zip-file ZIP_FILE] [--no-srcs] [--copy-always]
-                   [--sparse] [--no-default-module-path] [--module-path PATH]
-                   [--no-default-hooks-path] [--hooks-path PATH]
-                   [args [args ...]]
+$ nr bundler --help
+usage: nr bundler [-h] [-v] [--flat] [--json] [--dotviz] [--deps]
+                  [--package-members] [--nativedeps] [--show-module-path]
+                  [--show-hooks-path] [--collect] [--dist] [--entry SPEC]
+                  [--wentry SPEC] [--bundle-dir DIRECTORY]
+                  [--exclude EXCLUDE] [--no-default-includes]
+                  [--no-default-excludes] [--compile-modules] [--zip-modules]
+                  [--zip-file ZIP_FILE] [--no-srcs] [--copy-always]
+                  [--sparse] [--no-default-module-path] [--module-path PATH]
+                  [--no-default-hooks-path] [--hooks-path PATH]
+                  [args [args ...]]
 
 Create standalone distributions of Python applications.
 
