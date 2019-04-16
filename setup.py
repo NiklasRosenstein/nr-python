@@ -1,12 +1,25 @@
 
-import setuptools
 import io
+import setuptools
+import sys
+
+sys.path.append('src')
+from nr.bundler.utils import system
 
 with io.open('README.md') as fp:
   readme = fp.read()
 
-with io.open('requirements.txt') as fp:
-  requirements = fp.readlines()
+requirements = {
+  '*': [
+    'distlib>=0.2.7',
+    'nr.fs>=1.2.0',
+    'nr.types>=2.0.0',
+  ],
+  'win': [
+    'appdirs>=1.4.3',
+    'pefile>=2017.11.5'
+  ]
+}
 
 setuptools.setup(
   name = 'nr.bundler',
@@ -21,14 +34,10 @@ setuptools.setup(
   namespace_packages = ['nr'],
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
-  install_requires = [
-    'appdirs>=1.4.3',
-    'distlib>=0.2.7',
-    'pefile>=2017.11.5',
-    'nr.gitignore>=1.0.0',
-    'nr.fs>=1.2.0',
-    'nr.types>=2.0.0',
-  ],
+  install_requires = requirements['*'] + requirements.get(system.name, []),
+  extras_require = {
+    'win': requirements['win']
+  },
   entry_points = {
     'nr.cli.commands': [
       'python-bundler = nr.bundler.main:main',

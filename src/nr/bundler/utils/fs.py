@@ -1,8 +1,9 @@
 
 import os
 import nr.fs
-import nr.gitignore
 import shutil
+
+from . import gitignore
 
 
 def copy_files_checked(src, dst, force=False, ignore=None):
@@ -11,14 +12,14 @@ def copy_files_checked(src, dst, force=False, ignore=None):
   already exist in *dst* will be timestamp-compared to avoid unnecessary
   copying, unless *force* is specified.
 
-  If *ignore* is specified, it must be a #nr.gitignore.IgnoreList instance.
+  If *ignore* is specified, it must be a #gitignore.IgnoreList instance.
 
   Returns the number the total number of files and the number of files
   copied.
   """
 
   if ignore:
-    if not isinstance(ignore, (nr.gitignore.IgnoreList, nr.gitignore.IgnoreListCollection)):
+    if not isinstance(ignore, (gitignore.IgnoreList, gitignore.IgnoreListCollection)):
       raise TypeError('ignore must be None, IgnoreList or IgnoreListCollection', type(ignore))
     def check(path, isdir):
       return not ignore.is_ignored(path, isdir)
@@ -51,4 +52,3 @@ def copy_files_checked(src, dst, force=False, ignore=None):
             copied_files += 1
 
   return total_files, copied_files
-

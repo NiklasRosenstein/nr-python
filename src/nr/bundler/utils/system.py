@@ -11,6 +11,15 @@ is_linux = sys.platform.startswith('linux')
 is_osx = sys.platform.startswith('darwin')
 is_unix = is_msys or is_cygwin or is_linux or is_osx
 
+if is_win:
+  name = 'win'
+elif is_osx:
+  name = 'osx'
+elif is_linux:
+  name = 'linux'
+else:
+  raise EnvironmentError('what is this platform?')
+
 
 def find_in_path(name, search_path=None, common_ext=True):
   """
