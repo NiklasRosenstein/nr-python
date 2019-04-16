@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.1 (2019-04-16)
+## v1.1.0 (2019-04-16)
 
 * Remove `nr.gitignore` dependency (vendor the module instead)
 * Remove `requirements.txt`
