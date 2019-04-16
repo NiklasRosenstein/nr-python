@@ -249,7 +249,7 @@ class CleanRecord(InlineMetaclassBase):
       setattr(self, key, value)
 
   def __repr__(self):
-    values = ((f.name, getattr(self, f.name)) for f in self.__fields__)
+    values = ((k, getattr(self, k)) for k in self.__fields__)
     members = ', '.join('{}={!r}'.format(k, v) for k, v in values)
     return '{}({})'.format(type(self).__name__, members)
 

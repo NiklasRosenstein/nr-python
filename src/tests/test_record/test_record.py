@@ -26,6 +26,9 @@ def _test_record(m):
   assert list(m.Student.__fields__) == ['name', 'mail', 'age', 'school']
   assert list(m.Change.__fields__) == ['type', 'section', 'key', 'value']
 
+  assert repr(c) == "Change(type='NEW', section='user', key='name', value='John Smith')"
+  assert repr(c) == str(c)
+
 
 @pytest.mark.skipif(sys.version_info < (3,6),
                     reason="requires python3.6 or higher")
