@@ -22,6 +22,10 @@ def _test_record(m):
   assert c == c
   assert copy.copy(c) == c
 
+  assert list(m.Person.__fields__) == ['name', 'mail', 'age']
+  assert list(m.Student.__fields__) == ['name', 'mail', 'age', 'school']
+  assert list(m.Change.__fields__) == ['type', 'section', 'key', 'value']
+
 
 @pytest.mark.skipif(sys.version_info < (3,6),
                     reason="requires python3.6 or higher")
@@ -37,6 +41,9 @@ def test_record():
 
 def test_module_inheritablity():
   class Person(record):
-    pass
+    name = record.Field(str)
+    mail = record.Field(str)
   assert issubclass(Person, record.Record)
   assert Person.__bases__ == (record.Record,)
+  assert Person('John', 'foo@bar.com').name == 'John'
+  assert Person('John', 'foo@bar.com').mail == 'foo@bar.com'

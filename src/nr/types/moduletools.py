@@ -40,7 +40,7 @@ class _InheritableModuleType(type):
     else:
       raise RuntimeError
     bases = tuple(x for x in bases if not isinstance(x, _InheritableModuleType))
-    return type.__new__(type(inheritable_type), name, (inheritable_type,) + bases, attrs)
+    return type(name, (inheritable_type,) + bases, attrs)
 
   def __getattr__(self, name):
     return getattr(self.__wrap_module__, name)
