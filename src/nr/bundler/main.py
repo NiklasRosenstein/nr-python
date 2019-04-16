@@ -89,8 +89,14 @@ def get_argument_parser(prog=None):
 
   group = parser.add_argument_group('operations (build)')
   group.add_argument('--collect', action='store_true',
-    help='Collect all modules in the bundle/modules/. This is operation is '
+    help='Collect all modules in bundle/lib/. This is operation is '
          'is automatically implied with the --dist operation.')
+  group.add_argument('--collect-to', metavar='PATH',
+    help='Collect all modules to the specified directory. This argument '
+         'cannot be used to alter the bundle\'s lib/ directory. As this '
+         'will not create a bundle but simply collect Python modules into '
+         'the designated directory, this option can not be combined with '
+         '--dist.')
   group.add_argument('--dist', action='store_true',
     help='Create a standalone distribution of the Python interpreter. '
          'Unless --no-defaults is specified, this will include just the '
@@ -179,6 +185,7 @@ def main(argv=None, prog=None):
 
   builder = DistributionBuilder(
     collect = args.collect,
+    collect_to = args.collect_to,
     dist = args.dist,
     entries = args.entry,
     resources = args.resource,

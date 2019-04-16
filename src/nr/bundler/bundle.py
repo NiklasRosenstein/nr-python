@@ -31,9 +31,12 @@ from . import nativedeps
 import distlib.scripts
 import logging
 import nr.fs
+import py_compile
 import shlex
+import shutil
 import sys
 import textwrap
+import zipfile
 
 
 class AppResource(record):
@@ -75,15 +78,19 @@ class DirConfig(record):
   """
 
   __annotations__ = [
-    ('bundle', str),
+    ('bundle', str, None),
     ('lib', str),
-    ('lib_dynload', str),
-    ('runtime', str),
-    ('resource', str)
+    ('lib_dynload', str, None),
+    ('runtime', str, None),
+    ('resource', str, None)
   ]
 
   @classmethod
-  def get(cls, bundle_dir):
+  def for_collect_to(cls, path):
+    return cls(None, path, path, None, None)
+
+  @classmethod
+  def for_bundle(cls, bundle_dir):
     if system.is_unix:
       lib = nr.fs.join(bundle_dir, 'lib/python{}'.format(sys.version[:3]))
       lib_dynload = nr.fs.join(lib, 'lib-dynload')
@@ -359,6 +366,8 @@ class PythonAppBundle(object):
     entrypoints.
     """
 
+    assert self.dirconfig.bundle
+
     # TODO: Do most of the stuff from the #DistributionBuilder here,
     #       like copying module files etc.
 
@@ -383,7 +392,8 @@ class DistributionBuilder(record):
   """
 
   __annotations__ = [
-    ('collect', str, False),
+    ('collect', bool, False),
+    ('collect_to', str, None),
     ('dist', str, False),
     ('entries', list, ()),
     ('resources', list, ()),
@@ -415,8 +425,18 @@ class DistributionBuilder(record):
     self.filter = ModuleImportFilter(self.excludes, self.whitelist)
     self.hook = DelegateHook()
     self.graph = ModuleGraph(self.finder, self.filter, self.hook)
+
+    if self.collect_to:
+      self.dirconfig = DirConfig.for_collect_to(self.collect_to)
+      self.collect = True
+      self.bundle = None
+      if self.dist:
+        raise ValueError('collect_to can not be combined with dist')
+    else:
+      self.dirconfig = DirConfig.for_bundle(self.bundle_dir)
+
     self.bundle = PythonAppBundle(
-      dirconfig = DirConfig.get(self.bundle_dir),
+      dirconfig = self.dirconfig,
       scripts = ScriptMaker(
         nr.fs.join('runtime', nr.fs.base(self.python_bin)),
         self.bundle_dir),
@@ -437,9 +457,119 @@ class DistributionBuilder(record):
     if not self.logger:
       self.logger = logging.getLogger(__name__)
 
-  def build(self):
-    import shutil
+  def do_compile_modules(self, modules):
+    if self.zip_modules:
+      compile_dir = nr.fs.join(self.bundle_dir, '.compile-cache')
+    else:
+      compile_dir = self.dirconfig.lib
+    print('Compiling modules in "{}" ...'.format(compile_dir))
+    for mod in modules:
+      if mod.type == mod.SRC:
+        dst = nr.fs.join(compile_dir, mod.relative_filename + 'c')
+        mod.compiled_file = dst
+        if self.copy_always or nr.fs.compare_timestamp(mod.filename, dst):
+          nr.fs.makedirs(nr.fs.dir(dst))
+          py_compile.compile(mod.filename, dst, doraise=True)
 
+  def do_zip_modules(self, modules):
+    if not self.zip_file:
+      self.zip_file = nr.fs.join(self.bundle_dir, 'libs.zip')
+
+    # TODO: Exclude core modules that must be copied to the lib/
+    #       directory anyway in the case of the 'dist' operation.
+    # TODO: Also zip up package data?
+
+    print('Creating module zipball at "{}" ...'.format(self.zip_file))
+    not_zippable = []
+    with zipfile.ZipFile(self.zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+      for mod in modules:
+        if not mod.is_zippable:
+          not_zippable.append(mod)
+          continue
+
+        if mod.type == mod.SRC:
+          files = []
+          if self.srcs:
+            files.append((mod.relative_filename, mod.filename))
+          if self.compile_modules:
+            files.append((mod.relative_filename + 'c', mod.compiled_file))
+          assert files
+        else:
+          files = [(mod.relative_filename, mod.filename)]
+
+        for arcname, filename in files:
+          zipf.write(filename, arcname.replace(os.sep, '/'))
+
+    if not_zippable:
+      print('Note: There are modules that can not be zipped, they will be copied into the lib/ folder.')
+    return not_zippable
+
+  def do_copy_modules(self, modules):
+    lib_dir = self.dirconfig.lib
+    lib_dynload_dir = self.dirconfig.lib_dynload
+    print('Copying modules to "{}" ...'.format(lib_dir))
+    for mod in modules:
+      # Copy the module itself.
+      src = mod.filename
+      dst = nr.fs.join(lib_dir, mod.relative_filename)
+      if mod.type == mod.SRC and not self.srcs:
+        src = mod.compiled_file
+        dst += 'c'
+      elif mod.type == mod.NATIVE and mod.name.count('.') == 0:
+        dst = nr.fs.join(lib_dynload_dir, mod.relative_filename)
+      if self.copy_always or nr.fs.compare_timestamp(src, dst):
+        nr.fs.makedirs(nr.fs.dir(dst))
+        shutil.copy(src, dst)
+
+      # Copy package data.
+      ignore = nr.gitignore.IgnoreList(mod.directory)
+      ignore.parse(mod.package_data_ignore)
+      for name in mod.package_data:
+        src = nr.fs.join(mod.directory, name)
+        dst = nr.fs.join(lib_dir, mod.relative_directory, name)
+        copy_files_checked(src, dst, self.copy_always, ignore)
+
+  def do_dist(self):
+    print('Analyzing native dependencies ...')
+    deps = nativedeps.Collection(exclude_system_deps=True)
+
+    # Compile a set of all the absolute native dependencies to exclude.
+    stdpath = lambda x: nr.fs.norm(nr.fs.fixcase(x)).lower()
+    native_deps_exclude = set()
+    # TODO
+    #for mod in self.graph:
+    #  native_deps_exclude.update(stdpath(x) for x in mod.native_deps_exclude)
+
+    # Resolve dependencies.
+    search_path = deps.search_path
+    for name, path in self.python_bins.items():
+      dep = deps.add(path, recursive=True)
+      dep.name = name
+    for mod in self.graph:
+      if mod.type == mod.NATIVE and not mod.skip_auto_native_deps:
+        deps.add(mod.filename, dependencies_only=True, recursive=True)
+      for dep in mod.native_deps:
+        deps.add(dep, recursive=True)
+
+    # Warn about dependencies that can not be found.
+    notfound = 0
+    for dep in deps:
+      if not dep.filename:
+        notfound += 1
+        self.logger.warn('Native dependency could not be found: {}'.format(dep.name))
+    if notfound != 0:
+      self.logger.error('{} native dependencies could not be found.'.format(notfound))
+
+    runtime_dir = nr.fs.join(self.bundle_dir, 'runtime')
+    print('Copying Python interpreter and native dependencies to "{}"...'.format(runtime_dir))
+    nr.fs.makedirs(runtime_dir)
+    for dep in deps:
+      if dep.filename and stdpath(dep.filename) not in native_deps_exclude:
+        dst = nr.fs.join(runtime_dir, nr.fs.base(dep.name))
+        if self.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
+          shutil.copy(dep.filename, dst)
+
+  def build(self):
     did_stuff = False
 
     if self.entries:
@@ -471,126 +601,23 @@ class DistributionBuilder(record):
       print('  {} modules not found (many of which may be member imports)'
             .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
 
-    self.bundle.prepare()
+    if self.dirconfig.bundle:
+      self.bundle.prepare()
 
     if self.dist or self.collect:
       modules = [x for x in self.graph if x.type not in (x.NOTFOUND, x.BUILTIN)]
-
-      lib_dir = self.bundle.dirconfig.lib
-      lib_dynload_dir = self.bundle.dirconfig.lib_dynload
-      if self.zip_modules:
-        compile_dir = nr.fs.join(self.bundle_dir, '.compile-cache')
-      else:
-        compile_dir = lib_dir
-
       if self.compile_modules and modules:
-        print('Compiling modules in "{}" ...'.format(compile_dir))
-        for mod in modules:
-          if mod.type == mod.SRC:
-            dst = nr.fs.join(compile_dir, mod.relative_filename + 'c')
-            mod.compiled_file = dst
-            if self.copy_always or nr.fs.compare_timestamp(mod.filename, dst):
-              nr.fs.makedirs(nr.fs.dir(dst))
-              py_compile.compile(mod.filename, dst, doraise=True)
-
+        self.do_compile_modules(modules)
       if self.zip_modules and modules:
-        if not self.zip_file:
-          self.zip_file = nr.fs.join(self.bundle_dir, 'libs.zip')
+        # Some of the modules may need to be copied.
+        modules = self.do_zip_modules(modules)
+      if modules:
+        self.do_copy_modules(modules)
 
-        # TODO: Exclude core modules that must be copied to the lib/
-        #       directory anyway in the case of the 'dist' operation.
-        # TODO: Also zip up package data?
+    if self.dist:
+      self.do_dist()
 
-        print('Creating module zipball at "{}" ...'.format(self.zip_file))
-        not_zippable = []
-        with zipfile.ZipFile(self.zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-          for mod in modules:
-            if not mod.is_zippable:
-              not_zippable.append(mod)
-              continue
+    if self.dirconfig.bundle:
+      self.bundle.create_bundle(self.copy_always)
 
-            if mod.type == mod.SRC:
-              files = []
-              if self.srcs:
-                files.append((mod.relative_filename, mod.filename))
-              if self.compile_modules:
-                files.append((mod.relative_filename + 'c', mod.compiled_file))
-              assert files
-            else:
-              files = [(mod.relative_filename, mod.filename)]
-
-            for arcname, filename in files:
-              zipf.write(filename, arcname.replace(os.sep, '/'))
-
-        copy_modules = not_zippable
-        if not_zippable:
-          print('Note: There are modules that can not be zipped, they will be copied into the lib/ folder.')
-
-      else:
-        copy_modules = modules if self.dist else []
-
-      if copy_modules:
-        print('Copying modules to "{}" ...'.format(lib_dir))
-        for mod in copy_modules:
-          # Copy the module itself.
-          src = mod.filename
-          dst = nr.fs.join(lib_dir, mod.relative_filename)
-          if mod.type == mod.SRC and not self.srcs:
-            src = mod.compiled_file
-            dst += 'c'
-          elif mod.type == mod.NATIVE and mod.name.count('.') == 0:
-            dst = nr.fs.join(lib_dynload_dir, mod.relative_filename)
-          if self.copy_always or nr.fs.compare_timestamp(src, dst):
-            nr.fs.makedirs(nr.fs.dir(dst))
-            shutil.copy(src, dst)
-
-          # Copy package data.
-          ignore = nr.gitignore.IgnoreList(mod.directory)
-          ignore.parse(mod.package_data_ignore)
-          for name in mod.package_data:
-            src = nr.fs.join(mod.directory, name)
-            dst = nr.fs.join(lib_dir, mod.relative_directory, name)
-            copy_files_checked(src, dst, self.copy_always, ignore)
-
-      if self.dist:
-        print('Analyzing native dependencies ...')
-        deps = nativedeps.Collection(exclude_system_deps=True)
-
-        # Compile a set of all the absolute native dependencies to exclude.
-        stdpath = lambda x: nr.fs.norm(nr.fs.fixcase(x)).lower()
-        native_deps_exclude = set()
-        # TODO
-        #for mod in self.graph:
-        #  native_deps_exclude.update(stdpath(x) for x in mod.native_deps_exclude)
-
-        # Resolve dependencies.
-        search_path = deps.search_path
-        for name, path in self.python_bins.items():
-          dep = deps.add(path, recursive=True)
-          dep.name = name
-        for mod in self.graph:
-          if mod.type == mod.NATIVE and not mod.skip_auto_native_deps:
-            deps.add(mod.filename, dependencies_only=True, recursive=True)
-          for dep in mod.native_deps:
-            deps.add(dep, recursive=True)
-
-        # Warn about dependencies that can not be found.
-        notfound = 0
-        for dep in deps:
-          if not dep.filename:
-            notfound += 1
-            self.logger.warn('Native dependency could not be found: {}'.format(dep.name))
-        if notfound != 0:
-          self.logger.error('{} native dependencies could not be found.'.format(notfound))
-
-        runtime_dir = nr.fs.join(self.bundle_dir, 'runtime')
-        print('Copying Python interpreter and native dependencies to "{}"...'.format(runtime_dir))
-        nr.fs.makedirs(runtime_dir)
-        for dep in deps:
-          if dep.filename and stdpath(dep.filename) not in native_deps_exclude:
-            dst = nr.fs.join(runtime_dir, nr.fs.base(dep.name))
-            if self.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
-              shutil.copy(dep.filename, dst)
-
-    self.bundle.create_bundle(self.copy_always)
     return did_stuff

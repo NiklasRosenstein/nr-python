@@ -235,7 +235,7 @@ class ModuleInfo(record):
     if self._zippable is not None:
       return self._zippable
     if self.parent:
-      return self.parent.zippable
+      return self.parent.is_zippable
 
   @is_zippable.setter
   def is_zippable(self, value):
