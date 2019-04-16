@@ -1,10 +1,15 @@
 
 import io
+import re
 import setuptools
 import sys
 
 sys.path.append('src')
 from nr.bundler.utils import system
+
+# Read the version number from package entrypoint.
+with open('src/nr/bundler/__init__.py') as fp:
+    version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 with io.open('README.md') as fp:
   readme = fp.read()
@@ -23,7 +28,7 @@ requirements = {
 
 setuptools.setup(
   name = 'nr.bundler',
-  version = '1.0.0',
+  version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Bundle the modules of a Python application. (WIP)',
