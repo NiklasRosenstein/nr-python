@@ -135,6 +135,23 @@ assert MyClass.value == 'foo'
 ```
 </details>
 
+#### `nr.types.moduletools`
+
+Provides some tools for working with modules. Currently only provides the
+`make_inheritable()` function which can be used from within your module to
+make the module object itself usable as a parent class.
+
+```python
+# myclass.py
+class MyClass(object): pass
+make_inheritable(__name__)
+
+# test.py
+import myclass
+class MySubclass(myclass): pass
+assert issubclass(MySubclass, myclass.MyClass)
+```
+
 #### `nr.types.record`
 
 Similar to `namedtuple` but mutable, with support for keyword arguments,
