@@ -15,7 +15,6 @@ setuptools.setup(
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/python-nr.types',
   license = 'MIT',
-  namespace_packages = ['nr'],
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
   install_requires = ['six'],
