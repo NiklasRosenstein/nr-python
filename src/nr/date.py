@@ -73,9 +73,13 @@ class TimezoneFormatOption(BaseFormatOption):
 		self.regex = re.compile(r'(?:Z|[-+]\d{2}:?\d{2})')
 
 	def parse(self, string):
+		match = self.regex.match(string)
+		if not match:
+			raise ValueError('not a timezone string: {!r}'.format(string))
 		if string == 'Z':
 			return tz.UTC
 		else:
+			string = string.replace(':', '')
 			sign = -1 if string[0] == '-' else 1
 			hours = int(string[1:3])
 			minutes = int(string[3:5])
