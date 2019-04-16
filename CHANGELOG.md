@@ -1,6 +1,12 @@
 # Changelog
 
-## v1.1.0 (2019-04-16)
+### v1.2.0 (2019-04-16)
+
+* Remove imports in `nr.bundler` root module
+* Fix incorrect use of `nr.gitignore` in `bundle.py`
+* Use `pkgutil` instead of `pkg_resources` namespace packages
+
+### v1.1.0 (2019-04-16)
 
 * Remove `nr.gitignore` dependency (vendor the module instead)
 * Remove `requirements.txt`
@@ -9,6 +15,6 @@
 * Update `MANIFEST.in`
 * Add `name` member to `nr.bundler.utils.system` module
 
-## v1.0.0 (2019-04-16)
+### v1.0.0 (2019-04-16)
 
 * Initial release

@@ -7,7 +7,6 @@ import sys
 sys.path.append('src')
 from nr.bundler.utils import system
 
-# Read the version number from package entrypoint.
 with open('src/nr/bundler/__init__.py') as fp:
     version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
@@ -36,7 +35,6 @@ setuptools.setup(
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/python-nr.bundler',
   license = 'MIT',
-  namespace_packages = ['nr'],
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
   install_requires = requirements['*'] + requirements.get(system.name, []),
