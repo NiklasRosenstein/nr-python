@@ -21,17 +21,20 @@ in parentheses.
 #### Synopsis
 
 ```
-$ nr bundler --help
-usage: nr bundler [-h] [-v] [--flat] [--json] [--dotviz] [--deps]
-                  [--package-members] [--nativedeps] [--show-module-path]
-                  [--show-hooks-path] [--collect] [--dist] [--entry SPEC]
-                  [--wentry SPEC] [--bundle-dir DIRECTORY]
-                  [--exclude EXCLUDE] [--no-default-includes]
-                  [--no-default-excludes] [--compile-modules] [--zip-modules]
-                  [--zip-file ZIP_FILE] [--no-srcs] [--copy-always]
-                  [--sparse] [--no-default-module-path] [--module-path PATH]
-                  [--no-default-hooks-path] [--hooks-path PATH]
-                  [args [args ...]]
+$ nr python-bundler --help
+usage: nr python-bundler [-h] [--version] [-v] [--flat] [--json]
+                         [--json-graph] [--dotviz] [--search SEARCH]
+                         [--recursive] [--deps] [--package-members]
+                         [--nativedeps] [--show-module-path]
+                         [--show-hooks-path] [--collect] [--dist]
+                         [--entry SPEC] [--resource SRC[:DST]]
+                         [--bundle-dir DIRECTORY] [--exclude EXCLUDE]
+                         [--no-default-includes] [--no-default-excludes]
+                         [--compile-modules] [--zip-modules]
+                         [--zip-file ZIP_FILE] [--no-srcs] [--copy-always]
+                         [--no-default-module-path] [--module-path PATH]
+                         [--no-default-hooks-path] [--hooks-path PATH]
+                         [args [args ...]]
 
 Create standalone distributions of Python applications.
 
