@@ -7,7 +7,7 @@ support for timezone offsets. The goal of this package is to
 2. be faster than `dateutil.parser.parse()`
 
 You can control the regex backend with the `PYTHON_NR_DATE_REGEX_BACKEND`
-environment variable. The default is `re`. You can use this variable to 
+environment variable. The default is `re`. You can use this variable to
 make it use the `regex` module instead.
 
 Currently supported format options are:
