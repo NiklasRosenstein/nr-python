@@ -24,14 +24,17 @@ libraries and executables.
 
 import os
 import sys
+import warnings
 from ._base import Dependency
 from ..utils import system
 
 
 if system.is_win:
   from .windll import is_binary, get_dependencies, resolve_dependency
+  is_available = True
 else:
-  raise NotImplemntedError(sys.platform)
+  warnings.warn('No nativedeps implementation available for current platform.')
+  from .shallow import is_binary, get_dependencies, resolve_dependency
 
 
 class Collection(object):
