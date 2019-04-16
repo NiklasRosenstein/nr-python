@@ -239,8 +239,9 @@ class DateFormatSet(list):
 				return fmt.parse(string)
 			except ValueError as exc:
 				pass
-		raise ValueError('Date "{}" does not match any of the {!r} formats'
-			.format(string, self.name))
+		msg = 'Date "{}" does not match any of the {!r} formats.\n- {}'
+		formats = '\n- '.join(x.string for x in self)
+		raise ValueError(msg.format(string, self.name, formats))
 
 	def format(self, date):
 		return self[0].format(date)
@@ -253,7 +254,7 @@ root_option_set = FormatOptionSet([
     FormatOption('H', 'hour', r'\d{2}', int, lambda d: str(d.hour).rjust(2, '0')),
     FormatOption('M', 'minute', r'\d{2}', int, lambda d: str(d.minute).rjust(2, '0')),
     FormatOption('S', 'second', r'\d{2}', int, lambda d: str(d.second).rjust(2, '0')),
-    FormatOption('f', 'microsecond', r'\d+', lambda s: int(s) * (10 ** max(6-len(s), 0)), lambda d: str(d.microsecond).rstrip('0')),
+    FormatOption('f', 'microsecond', r'\d+', lambda s: int(s) * (10 ** max(6-len(s), 0)), lambda d: str(d.microsecond).rstrip('0') or '0'),
     TimezoneFormatOption(),
 ])
 
@@ -274,14 +275,14 @@ def create_format_set(name, formats):
 	return root_option_set.create_format_set(name, formats)
 
 
-ISO_8601 = create_format_set('iso:8601', [
+ISO_8601 = create_format_set('ISO_8601', [
 	'%Y-%m-%dT%H:%M:%S.%f%z',  # RFC 3339
 	'%Y-%m-%dT%H:%M:%S.%f',    # ISO 8601 extended format
 	'%Y%m%dT%H%M%S.%f',        # ISO 8601 basic format
 	'%Y%m%d',                  # ISO 8601 basic format, date only
 ])
 
-JAVA_OFFSET_DATETIME = create_format_set('java:OffsetDateTime', [
+JAVA_OFFSET_DATETIME = create_format_set('JAVA_OFFSET_DATETIME', [
 	'%Y-%m-%dT%H:%M:%S.%f%z',
 	'%Y-%m-%dT%H:%M:%S%z',
 	'%Y-%m-%dT%H:%M%z',
