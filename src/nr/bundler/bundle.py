@@ -24,7 +24,7 @@
 from nr.types import record, sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
-from .utils import system
+from .utils import gitignore, system
 from .utils.fs import copy_files_checked
 from . import nativedeps
 
@@ -550,7 +550,7 @@ class DistributionBuilder(record):
         shutil.copy(src, dst)
 
       # Copy package data.
-      ignore = nr.gitignore.IgnoreList(mod.directory)
+      ignore = gitignore.IgnoreList(mod.directory)
       ignore.parse(mod.package_data_ignore)
       for name in mod.package_data:
         src = nr.fs.join(mod.directory, name)
