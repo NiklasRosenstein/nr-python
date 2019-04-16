@@ -16,7 +16,7 @@ setuptools.setup(
   description = 'Bundle the modules of a Python application. (WIP)',
   long_description = readme,
   long_description_content_type = 'text/markdown',
-  url = 'https://gitlab.niklasrosenstein.com/NiklasRosenstein/python/nr.pybundle',
+  url = 'https://github.com/NiklasRosenstein/python-nr.bundler',
   license = 'MIT',
   namespace_packages = ['nr'],
   packages = setuptools.find_packages('src'),

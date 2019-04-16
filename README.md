@@ -6,6 +6,8 @@ PyBundle is a command-line tool to create standalone Python applications. It
 aims to be a cross-platform replacement for cx_Freeze and a lightweight
 alternative to PyInstaller.
 
+Currently native dependency resolution is only supported on Windows.
+
 #### Hooks
 
 Big Python libraries for which hooks exist only include elements of the module
