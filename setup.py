@@ -17,7 +17,7 @@ setuptools.setup(
   description = 'Filesystem and path manipulation tools.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = 'https://github.com/NiklasRosenstein/python-nr/tree/master/nr.fs',
+  url = 'https://github.com/NiklasRosenstein/python-nr.fs',
   license = 'MIT',
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
