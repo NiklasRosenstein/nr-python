@@ -1,8 +1,13 @@
-# `nr.parse`
+# nr.parse
 
 &ndash; A simple text scanning/lexing/parsing library.
 
 ## Changelog
+
+### 1.1.0 (2019-04-16)
+
+* Depend on `nr.types>=2.0.1`
+* Use `pkgutil` instead of `pkg_resources` namespace packages.
 
 ### 1.0.1 (2018-08-18)
 
