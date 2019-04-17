@@ -1,10 +1,20 @@
 # Changelog
 
-### v1.2.1
+### v1.2.1 (2019-04-17)
 
 * `ModuleGraph.collect_modules()` now sparsely collects _all_ parent packages
 * The `DistributionBundle.fill_namespace_modules` option now writes the
   `pkgutil` namespace package clause into the generated file
+* Add `DistributionBundler.exclude_stdlib`
+* Add `DistributionBundler.exclude_in_path`
+* Add `DistributionBundler.do_init_bundle()`
+* Add `DistributionBundler.report_module_stats()`
+* Add `ModuleInfo.excludes`
+* Add `ModuleInfo.is_excluded`
+* Add `ModuleInfo.exclude()`
+* Add `ModuleInfo.is_namespace_pkg()`
+* Add `ModuleInfo.get_core_dependencies()`
+* Add `nr.bundler.utils.setup` module with `load_setup_configuration()` function
 
 ### v1.2.0 (2019-04-16)
 
