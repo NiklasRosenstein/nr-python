@@ -16,7 +16,7 @@ with io.open('README.md') as fp:
 requirements = {
   '*': [
     'distlib>=0.2.7',
-    'nr.fs>=1.2.0',
+    'nr.fs>=1.3.1',
     'nr.types>=2.0.0',
   ],
   'win': [
