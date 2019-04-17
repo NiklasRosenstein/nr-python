@@ -398,6 +398,8 @@ class DistributionBuilder(record):
     ('bundle_dir', str, 'bundle'),
     ('excludes', list, ()),
     ('default_excludes', bool, True),
+    ('exclude_stdlib', bool, False),
+    ('exclude_in_path', list, lambda: []),
     ('includes', list, ()),
     ('whitelist', list, ()),
     ('default_includes', bool, True),
@@ -443,6 +445,16 @@ class DistributionBuilder(record):
 
     if self.default_excludes:
       self.filter.excludes += get_common_excludes()
+    if self.exclude_stdlib:
+      # TODO @nrosenstein Determine all the stdlib paths. This is just a
+      #      method that seems to work on OSX.
+      import os, contextlib, json
+      try: import _pickle
+      except ImportError: import cPickle as _pickle
+      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(os.__file__)))
+      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(contextlib.__file__)))
+      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(json.__file__)))
+      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(_pickle.__file__)))
     if self.default_module_path:
       self.finder.path.insert(0, nr.fs.cwd())
       self.finder.path.extend(sys.path)
@@ -456,6 +468,19 @@ class DistributionBuilder(record):
     if not self.logger:
       self.logger = logging.getLogger(__name__)
 
+  def do_init_bundle(self):
+    if self.entries:
+      did_stuff = True
+      for entrypoint in self.entries:
+        self.bundle.add_entry_point(entrypoint)
+
+    if self.resources:
+      did_stuff = True
+      for path in self.resources:
+        src, dst = path.partition(':')[::2]
+        if not dst: dst = None
+        self.bundle.add_resource(src, dst)
+
   def do_get_modules(self):
     if not self.srcs and not self.compile_modules:
       raise ValueError('need either srcs=True or compile_modules=True')
@@ -468,10 +493,6 @@ class DistributionBuilder(record):
       self.graph.collect_modules(module_name)
     self.graph.collect_data(self.bundle)
 
-    print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND)))
-    print('  {} modules not found (many of which may be member imports)'
-          .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
-
     if self.fill_namespace_modules:
       temp_modules_dir = nr.fs.join(self.dirconfig.temp, 'modules')
       for module in list(self.graph):
@@ -482,6 +503,24 @@ class DistributionBuilder(record):
         with parent.replace_file(temp_modules_dir) as fp:
           fp.write("__path__ = __import__('pkgutil').extend_path(__path__, __name__)\n")
         self.graph.add(parent)
+
+    # Remove modules that are inside the excluded paths.
+    excluded_paths = set(nr.fs.norm(x) for x in self.exclude_in_path)
+    for module in sorted(self.graph, key=lambda x: len(x.name), reverse=True):
+      parent = module
+      while parent.parent and parent.type == parent.NOTFOUND:
+        parent = parent.parent
+      if not parent.original_filename:
+        continue
+      path = nr.fs.norm(parent.get_lib_dir())
+      if path in excluded_paths:
+        module.exclude()
+
+  def report_module_stats(self):
+    print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND)))
+    print('  {} modules marked for exclusion'.format(sum(1 for x in self.graph.excluded() if x.type != x.NOTFOUND)))
+    print('  {} modules not found (many of which may be member imports)'
+          .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
 
   def do_compile_modules(self, modules):
     if self.zip_modules:
@@ -599,22 +638,12 @@ class DistributionBuilder(record):
 
   def build(self):
     did_stuff = False
-
-    if self.entries:
-      did_stuff = True
-      for entrypoint in self.entries:
-        self.bundle.add_entry_point(entrypoint)
-
-    if self.resources:
-      did_stuff = True
-      for path in self.resources:
-        src, dst = path.partition(':')[::2]
-        if not dst: dst = None
-        self.bundle.add_resource(src, dst)
+    self.do_init_bundle()
 
     if self.dist or self.collect:
       did_stuff = True
       self.do_get_modules()
+      self.report_module_stats()
 
     if self.dirconfig.bundle:
       self.bundle.prepare()

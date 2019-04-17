@@ -191,12 +191,20 @@ class ModuleInfo(record):
     ('package_data_ignore', list, lambda: []),
     ('native_deps', list, lambda: []),
     ('skip_auto_native_deps', bool, False),
+    ('original_filename', str, None),
+    ('excludes', list, lambda: []),
   ]
+
+  _is_namespace_pkg = None
 
   SRC = 'src'
   NATIVE = 'native'
   BUILTIN = 'builtin'
   NOTFOUND = 'notfound'
+
+  def __init__(self, *args, **kwargs):
+    super(ModuleInfo, self).__init__(*args, **kwargs)
+    self.original_filename = self.original_filename or self.filename
 
   def is_pkg(self):
     """
@@ -223,6 +231,50 @@ class ModuleInfo(record):
     """
 
     return not (self.is_root() or self.is_pkg())
+
+  def is_namespace_pkg(self):
+    """
+    Returns #True if the module looks like a namespace package. This will be
+    the case if the module has children but is a builtin module or if the
+    code in the module uses #pkgutil.extend_path() or
+    #pkg_resources.declare_namespace().
+    """
+
+    if self.name in ('pkgutil', 'pkg_resources'):
+      return False
+
+    if self._is_namespace_pkg is not None:
+      return self._is_namespace_pkg
+    self._is_namespace_pkg = False
+
+    if self.type == self.BUILTIN and next(self.children, None):
+      self._is_namespace_pkg = True
+      return True
+
+    elif self.type == self.SRC and self.is_pkg():
+      with open(self.filename) as fp:
+        contents = fp.read()
+        self._is_namespace_pkg = (
+          ('pkgutil' in contents and 'extend_path' in contents) or
+          ('pkg_resources' in contents and 'declare_namespace' in contents)
+        )
+
+    return self._is_namespace_pkg
+
+  def get_root(self):
+    return self.graph.get(self.name.partition('.')[0])
+
+  def get_namespace_root(self):
+    # SKip "modules" that may just be member imports.
+    if self.type == self.NOTFOUND and self.parent and self.parent.type != self.NOTFOUND:
+      self = self.parent
+    while self.parent and not self.parent.is_namespace_pkg():
+      self = self.parent
+    return self
+
+  @property
+  def is_excluded(self):
+    return bool(self.excludes)
 
   @property
   def is_zippable(self):
@@ -261,7 +313,7 @@ class ModuleInfo(record):
   def parent(self):
     name = self.parent_name
     if name:
-      return self.graph[name]
+      return self.graph.get(name)
     return None
 
   @property
@@ -332,6 +384,32 @@ class ModuleInfo(record):
       os.rename(fp.name, path)
       self.filename = path
 
+  def exclude(self):
+    frame = sys._getframe(1)
+    # TODO @NiklasRosenstein Add more information on where this module was excluded.
+    self.excludes.append(frame.f_code.co_filename)
+
+  def get_lib_dir(self):
+    """
+    Returns the path to the library directory that contains this module. This
+    method will use the module's #original_filename.
+    """
+
+    if not self.original_filename:
+      if self.type == self.BUILTIN:
+        raise ValueError('can not get lib dir of builtin module')
+      elif self.type == self.NOTFOUND:
+        raise ValueError('can not get lib dir of module that could not be found')
+      else:
+        raise RuntimeError('module {!r} with type {!r} has no original_filename'
+          .format(self.name, self.type))
+    path = self.original_filename
+    if self.is_pkg():
+      path = nr.fs.dir(path)
+    for _ in range(self.name.count('.') + 1):
+      path = nr.fs.dir(path)
+    return path
+
   def load_imports(self):
     self.imports = []
     if self.type != self.SRC:
@@ -366,8 +444,25 @@ class ModuleInfo(record):
     """
 
     for mod in self.graph.finder.iter_package_modules(self):
-      print(mod.name)
       self.graph.collect_modules(mod.name, None)
+
+  def get_core_dependencies(self, excluded=True):
+    """
+    For every import in the module, resolves the namespace root of that import
+    and adds it to a dictionary, then returns that dictionary.
+    """
+
+    deps = {}
+    if self.type == self.NOTFOUND:
+      return deps
+    for name in self.imports:
+      if name not in self.graph: continue  # TODO
+      mod = self.graph[name]
+      if excluded or not mod.is_excluded:
+        mod = mod.get_namespace_root()
+        if excluded or not mod.is_excluded:
+          deps[mod.name] = mod
+    return deps
 
 
 class ModuleFinder(object):
@@ -510,7 +605,7 @@ class ModuleGraph(object):
     self._modules = {}
 
   def __getitem__(self, module_name):
-    return self._modules.get(module_name, None)
+    return self._modules[module_name]
 
   def __contains__(self, module_name):
     return module_name in self._modules
@@ -518,12 +613,24 @@ class ModuleGraph(object):
   def __iter__(self):
     return iter(self._modules.values())
 
+  def __len__(self):
+    return len(self._modules)
+
   def __repr__(self):
     counter = {}
     for mod in self:
       counter[mod.type] = counter.get(mod.type, 0) + 1
     info = ' '.join('{} ({})'.format(v, k) for k, v in counter.items())
     return '<ModuleGraph {}>'.format(info)
+
+  def included(self):
+    return (x for x in self._modules.values() if not x.is_excluded)
+
+  def excluded(self):
+    return (x for x in self._modules.values() if x.is_excluded)
+
+  def get(self, module_name):
+    return self._modules.get(module_name)
 
   def add(self, module):
     if not isinstance(module, ModuleInfo):
@@ -572,10 +679,11 @@ class ModuleGraph(object):
     Collects the specified *module_name* and all of its imports into the
     module graph. Modules are collected sparsely by default unless a `+` is
     appended to the *module_name*, #sparse is set to #False or the module is
-    listed in #collect_whole.
+    listed in #collect_whole. This can be overwritten with the *sparse*
+    argument.
 
-    Sparse collection can be enforced by passing #True to the *sparse*
-    parameter.
+    When a module is collected sparsely, it's submodules are not automatically
+    collected as well (but its imports are).
     """
 
     if module_name.endswith('+'):
@@ -645,8 +753,8 @@ class ModuleImportFilter(object):
   """
 
   def __init__(self, excludes, whitelist=()):
-    self.excludes = excludes
-    self.whitelist = whitelist
+    self.excludes = list(excludes)
+    self.whitelist = list(whitelist)
 
   def accept(self, module_name, imported_from):
     """
