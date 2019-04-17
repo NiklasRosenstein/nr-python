@@ -343,14 +343,14 @@ class ModuleInfo(record):
     if not self.filename:
       return None
     parts = self.name.split('.')
-    parent = os.path.join(*parts[:-1]) if len(parts) > 1 else ''
+    parent = nr.fs.join(*parts[:-1]) if len(parts) > 1 else ''
     if self.type == self.SRC:
       if self.is_pkg():
-        return os.path.join(parent, parts[-1], '__init__.py')
+        return nr.fs.join(parent, parts[-1], '__init__.py')
       else:
-        return os.path.join(parent, parts[-1] + '.py')
+        return nr.fs.join(parent, parts[-1] + '.py')
     elif self.filename:
-      return os.path.join(parent, os.path.basename(self.filename))
+      return nr.fs.join(parent, nr.fs.base(self.filename))
     else:
       raise ValueError('can not determine relative_filename of NOTFOUND module')
 
@@ -360,7 +360,7 @@ class ModuleInfo(record):
     Returns the directory of the module relative to a modules directory.
     """
 
-    return os.path.dirname(self.relative_filename)
+    return nr.fs.dir(self.relative_filename)
 
   @property
   def directory(self):
@@ -370,7 +370,7 @@ class ModuleInfo(record):
     """
 
     if self.filename is not None:
-      return os.path.dirname(self.filename)
+      return nr.fs.dir(self.filename)
     return None
 
   @contextlib.contextmanager
@@ -481,13 +481,13 @@ class ModuleFinder(object):
     #       required and namespace packages are not automatically
     #       supported.
     parts = module_name.split('.')
-    basename = os.path.join(path, *parts)
+    basename = nr.fs.join(path, *parts)
     kind = self._get_module_type(basename + '.py')
     if kind is not None:
       return ModuleInfo(module_name, basename + '.py', kind)
-    kind = self._get_module_type(os.path.join(basename, '__init__.py'))
+    kind = self._get_module_type(nr.fs.join(basename, '__init__.py'))
     if kind:
-      return ModuleInfo(module_name, os.path.join(basename, '__init__.py'), kind)
+      return ModuleInfo(module_name, nr.fs.join(basename, '__init__.py'), kind)
     for suffix in self.native_suffixes:
       kind = self._get_module_type(basename + suffix)
       if kind:
