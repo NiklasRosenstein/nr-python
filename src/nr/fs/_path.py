@@ -34,7 +34,7 @@ __all__ = [
   'canonical', 'abs', 'rel', 'isfile_cs', 'isrel', 'issub', 'isglob', 'glob', 'addtobase',
   'addprefix', 'addsuffix', 'setsuffix', 'rmvsuffix', 'getsuffix', 'makedirs',
   'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp',
-  'compare_all_timestamps', 'fixcase',
+  'compare_all_timestamps', 'fixcase', 'remove'
 ]
 
 import ctypes
@@ -43,6 +43,7 @@ import functools
 import operator
 import os
 import platform
+import shutil
 import stat as _stat
 
 from os import (
@@ -483,6 +484,13 @@ def listdir(path, do_raise=True):
       if e.errno in (errno.ENOENT, errno.EPERM):
         return []
       raise
+
+
+def remove(path):
+  if isdir(path):
+    shutil.rmtree(path)
+  else:
+    os.remove(path)
 
 
 # Backwards compatibility
