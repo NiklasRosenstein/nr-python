@@ -52,3 +52,14 @@ def test_module_inheritablity():
   assert p.name == 'John'
   assert p.mail == 'foo@bar.com'
   assert str(p) == "Person(name='John', mail='foo@bar.com')"
+
+
+def test_field_from_dict():
+  class Person(record):
+    __fields__ = [
+      {'name': 'name', 'type': str},
+      {'name': 'mail', 'type': str, 'default': 'foobar!'}
+    ]
+  assert Person('John').name == 'John'
+  assert Person('John').mail == 'foobar!'
+  assert Person('John') == Person('John', 'foobar!')

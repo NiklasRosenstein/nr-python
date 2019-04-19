@@ -61,13 +61,13 @@ class Field(object):
     return self.default
 
   @classmethod
-  def with_name(cls, name, type, default=NotSet):
-    obj = cls(type, default)
+  def with_name(cls, name, *args, **kwargs):
+    obj = cls(*args, **kwargs)
     obj.name = name
     return obj
 
 
-def compile_fields(decl):
+def compile_fields(decl, field_type):
   """
   Compiles a fields declaration to an #OrderedDict mapping to #Field objects.
   A fields declaration can be a string, list or dictionary.
@@ -110,8 +110,8 @@ def compile_fields(decl):
   compiled_fields = OrderedDict()
   for item in decl:
     if isinstance(item, str):
-      field = Field.with_name(item, None, NotSet)
-    elif isinstance(item, Field):
+      field = field_type.with_name(item, None, NotSet)
+    elif isinstance(item, field_type):
       field = item
     elif isinstance(item, tuple):
       if len(item) == 1:
@@ -122,7 +122,9 @@ def compile_fields(decl):
         name, type_, default = item
       else:
         raise ValueError('invalid tuple Field declaration: {!r}'.format(item))
-      field = Field.with_name(name, type_, default)
+      field = field_type.with_name(name, type_, default)
+    elif isinstance(item, dict):
+      field = field_type.with_name(**item)
     else:
       raise TypeError('unexpected Field declaration: {!r}'.format(item))
     if not field.name:
@@ -173,6 +175,8 @@ class CleanRecord(InlineMetaclassBase):
   ```
   """
 
+  __field_type__ = Field
+
   def __metainit__(self, name, bases, dict):
     """
     Overrides #InlineMetaclassBase.__metainit__(). Converts the fields or
@@ -183,6 +187,8 @@ class CleanRecord(InlineMetaclassBase):
     * Attribute `__annotations__`
     * Member attributes (only #Field instances)
     """
+
+    field_type = self.__field_type__
 
     # Determine the source for the field declaration.
     if '__fields__' in dict:
@@ -195,7 +201,7 @@ class CleanRecord(InlineMetaclassBase):
     else:
       fields = []
       for key, value in iteritems(dict):
-        if isinstance(value, Field):
+        if isinstance(value, field_type):
           if value.name is None:
             value.name = key
           elif value.name != key:
@@ -209,7 +215,7 @@ class CleanRecord(InlineMetaclassBase):
     for base in reversed(bases):
       if hasattr(base, '__fields__'):
         mro_fields.update(base.__fields__)
-    mro_fields.update(compile_fields(fields))
+    mro_fields.update(compile_fields(fields, field_type))
 
     for name, field in iteritems(mro_fields):
       if name != field.name:
@@ -323,7 +329,7 @@ class Sequence(object):
         .format(type(index).__name__))
 
 
-class Record(CleanRecord, ToJSON, AsDict, Sequence):
+class Record(CleanRecord, ToJSON, AsDict):
   pass
 
 
