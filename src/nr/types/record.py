@@ -282,6 +282,10 @@ class ToJSON(object):
     Converts the record to a representation that can be dumped into JSON
     format. For any member, it will check if that member has a `to_json()`
     method and call it. Mappings and sequences are converted recursively.
+
+    Note that this method does not guarantee that the returned object will
+    be JSON serializable afterwards. For special cases, the method should
+    be overwritten.
     """
 
     def coerce(value):

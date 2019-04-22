@@ -68,7 +68,6 @@ def test_field_from_dict():
 def test_to_json():
   class Container(record.CleanRecord, record.ToJSON):
     data = record.Field(object)
-  # TODO @NiklasRosenstein proper JSON serialization/deserialization
   assert Container('abc').to_json() == {'data': 'abc'}
   assert Container([Container('abc')]).to_json() == {'data': [{'data': 'abc'}]}
   assert Container(b'42').to_json() == {'data': [52, 50]}
