@@ -63,3 +63,13 @@ def test_field_from_dict():
   assert Person('John').name == 'John'
   assert Person('John').mail == 'foobar!'
   assert Person('John') == Person('John', 'foobar!')
+
+
+def test_to_json():
+  class Container(record.CleanRecord, record.ToJSON):
+    data = record.Field(object)
+  # TODO @NiklasRosenstein proper JSON serialization/deserialization
+  assert Container('abc').to_json() == {'data': 'abc'}
+  assert Container([Container('abc')]).to_json() == {'data': [{'data': 'abc'}]}
+  assert Container(b'42').to_json() == {'data': [52, 50]}
+  assert Container(bytearray(b'42')).to_json() == {'data': [52, 50]}
