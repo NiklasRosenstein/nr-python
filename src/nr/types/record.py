@@ -278,13 +278,25 @@ class ToJSON(object):
   """
 
   def to_json(self):
+    """
+    Converts the record to a representation that can be dumped into JSON
+    format. For any member, it will check if that member has a `to_json()`
+    method and call it. Mappings and sequences are converted recursively.
+    """
+
+    def coerce(value):
+      if hasattr(value, 'to_json'):
+        return value.to_json()
+      elif isinstance(value, abc.Mapping):
+        return dict((k, value[k]) for k in value)
+      elif isinstance(value, abc.Sequence) and not isinstance(value, six.string_types):
+        return [coerce(x) for x in value]
+      else:
+        return value
+
     result = {}
     for key in self.__fields__:
-      value = getattr(self, key)
-      if hasattr(value, 'to_json'):
-        value = value.to_json()
-      # TODO @NiklasRosenstein handle lists and dictionaries.
-      result[key] = value
+      result[key] = coerce(getattr(self, key))
     return result
 
 
