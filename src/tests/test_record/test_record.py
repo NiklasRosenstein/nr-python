@@ -70,5 +70,5 @@ def test_to_json():
     data = record.Field(object)
   assert Container('abc').to_json() == {'data': 'abc'}
   assert Container([Container('abc')]).to_json() == {'data': [{'data': 'abc'}]}
-  assert Container(b'42').to_json() == {'data': [52, 50]}
-  assert Container(bytearray(b'42')).to_json() == {'data': [52, 50]}
+  assert Container(b'42').to_json() == {'data': b'42'}
+  assert Container(bytearray(b'42')).to_json() == {'data': bytearray(b'42')}

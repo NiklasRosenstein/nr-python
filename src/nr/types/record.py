@@ -293,7 +293,7 @@ class ToJSON(object):
         return value.to_json()
       elif isinstance(value, abc.Mapping):
         return dict((k, value[k]) for k in value)
-      elif isinstance(value, abc.Sequence) and not isinstance(value, six.string_types):
+      elif isinstance(value, abc.Sequence) and not isinstance(value, (six.string_types, six.binary_type, bytearray)):
         return [coerce(x) for x in value]
       else:
         return value
