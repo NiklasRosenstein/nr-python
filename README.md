@@ -257,6 +257,13 @@ assert f.value == 3600
 ```
 </details>
 
+### Acknowledgements
+
+* This library vendors a modified version of the `werkzeug.local` module in
+  version 0.15.2 as the `nr.types.local` module. Werkzeug is licensed under
+  the BSD-3-Clause license and the copyright of the `nr.types.local` module
+  lies with Pallets.
+
 ---
 
 <p align="center">Copyright &copy; Niklas Rosenstein 2019</p>
