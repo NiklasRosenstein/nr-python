@@ -1,5 +1,16 @@
 # Changelog
 
+### v2.2.0 (2019-05-10)
+
+* Rename/restructure `nr.types.local` module
+    * Now called `nr.types.proxy`
+    * `proxy` class is still pretty much based on `LocalProxy`, not much you
+      can do different with this kind of class though
+    * Add `make_proxy_class(name, include=None, exclude=None)` function
+    * The `nr.types.proxy` module in itself is now callable and returns a
+      `proxy` instance
+* Add `make_callable` to `nr.types.moduletools`
+
 ### v2.1.1 (2019-05-10)
 
 * Remove `Local` and `LocalManager` class from `nr.types.local`, keeping only

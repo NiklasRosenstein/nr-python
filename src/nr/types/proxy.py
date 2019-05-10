@@ -1,82 +1,48 @@
-# -*- coding: utf-8 -*-
-# Copyright 2007 Pallets
+# -*- coding: utf8 -*-
+# Copyright (c) 2019 Niklas Rosenstein
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# Redistributions of source code must retain the above copyright notice, this
-# list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# Neither the name of the copyright holder nor the names of its contributors
-# may be used to endorse or promote products derived from this software
-# without specific prior written permission.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 
-"""
-    werkzeug.local
-    ~~~~~~~~~~~~~~
-
-    This module implements context-local objects.
-
-    :copyright: 2007 Pallets
-    :license: BSD-3-Clause
-"""
 import copy
-from six import PY2
+
+from six import PY2, iteritems
 
 
-class LocalProxy(object):
-    """Acts as a proxy for a werkzeug local.  Forwards all operations to
-    a proxied object.  The only operations not supported for forwarding
-    are right handed operands and any kind of assignment.
+class proxy(object):
+    """
+    Wraps an object returned by a callable. Every time the proxy is accessed,
+    the callable is invoked and the access is redirected to the proxied object.
 
-    Example usage::
-
-        from werkzeug.local import Local
-        l = Local()
-
-        # these are proxies
-        request = l('request')
-        user = l('user')
-
-
-        from werkzeug.local import LocalStack
-        _response_local = LocalStack()
-
-        # this is a proxy
-        response = _response_local()
-
-    Whenever something is bound to l.user / l.request the proxy objects
-    will forward all operations.  If no object is bound a :exc:`RuntimeError`
-    will be raised.
-
-    To create proxies to :class:`Local` or :class:`LocalStack` objects,
-    call the object as shown above.  If you want to have a proxy to an
-    object looked up by a function, you can (as of Werkzeug 0.6.1) pass
-    a function to the :class:`LocalProxy` constructor::
-
-        session = LocalProxy(lambda: get_current_request().session)
-
-    .. versionchanged:: 0.6.1
-       The class can be instantiated with a callable as well now.
+    > Note: that for some use cases, using a proxy can lead to problems. For
+    > example if you pass a proxy to a function that accepts an iterable or
+    > whatever other object you actually intend to pass. The instancecheck
+    > with #collections.abc.Iterable will always return #True as the #Proxy
+    > class implements the `__iter__()` method. If you are stuck with this
+    > problem, use the #make_proxy_class() function to create a new class
+    > excluding the `__iter__()` method.
     """
 
     __slots__ = ("__local", "__dict__", "__name__", "__wrapped__")
+    __is_proxy__ = True
 
     def __init__(self, local, name=None):
-        object.__setattr__(self, "_LocalProxy__local", local)
+        object.__setattr__(self, "_proxy__local", local)
         object.__setattr__(self, "__name__", name)
         if callable(local) and not hasattr(local, "__release_local__"):
             # "local" is a callable that is not an instance of Local or
@@ -84,16 +50,7 @@ class LocalProxy(object):
             object.__setattr__(self, "__wrapped__", local)
 
     def _get_current_object(self):
-        """Return the current object.  This is useful if you want the real
-        object behind the proxy at a time for performance reasons or because
-        you want to pass the object into a different context.
-        """
-        if not hasattr(self.__local, "__release_local__"):
-            return self.__local()
-        try:
-            return getattr(self.__local, self.__name__)
-        except AttributeError:
-            raise RuntimeError("no object bound to %s" % self.__name__)
+        return self.__local()
 
     @property
     def __dict__(self):
@@ -106,7 +63,7 @@ class LocalProxy(object):
         try:
             obj = self._get_current_object()
         except RuntimeError:
-            return "<%s unbound>" % self.__class__.__name__
+            return "<%s unbound>" % type(self).__name__
         return repr(obj)
 
     def __bool__(self):
@@ -208,3 +165,58 @@ class LocalProxy(object):
     __rdivmod__ = lambda x, o: x._get_current_object().__rdivmod__(o)
     __copy__ = lambda x: copy.copy(x._get_current_object())
     __deepcopy__ = lambda x, memo: copy.deepcopy(x._get_current_object(), memo)
+    __class__ = property(lambda x: type(x._get_current_object()))
+
+
+class lazy_proxy(proxy):
+
+    def _get_current_object(self):
+        attr = '_lazy_proxy__value'
+        try:
+            return object.__getattribute__(self, attr)
+        except AttributeError:
+            # NOTE Using proxy._get_current_object() is not only incorrect
+            #      here (because it returns a bound function), but it also
+            #      crashes Python 2.7.16 on macOS (untested on other platfomrs).
+            value = proxy.__dict__['_get_current_object'](self)
+            object.__setattr__(self, attr, value)
+            return value
+
+
+def make_proxy_class(name, base=None, include=None, exclude=None):
+    """
+    Produces a new class that is the same as :class:`proxy` but does not
+    inherit from it. Members can be specifically included with the *include*
+    argument or excluded with *exclude*.
+
+    If *base* is not specified, it defaults to the *proxy* class.
+    """
+
+    if base is None:
+        base = proxy
+
+    members = {}
+    for cls in reversed(base.__mro__):
+        print(cls, sorted(cls.__dict__.keys()))
+        members.update(cls.__dict__)
+
+    filtered_members = {}
+    for key, value in iteritems(members):
+        take = False
+        if include is not None and key in include:
+            take = True
+        elif include is None and (key.startswith('__') and key.endswith('__') or key == '_get_current_object'):
+            take = True
+        if exclude is not None and key in exclude:
+            take = False
+        if key in ['__name__', '__wrapped__', '__weakref__', '__module__', '__doc__'] \
+                and (not include or key not in include):
+            take = False
+        if take:
+            filtered_members[key] = value
+
+    return type(name, (object,), filtered_members)
+
+
+from . import moduletools as _moduletools
+_moduletools.make_callable(__name__, proxy)

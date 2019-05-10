@@ -22,41 +22,66 @@
 import sys
 import types
 
+from .  import NotSet
 
-class _InheritableModuleType(type):
+
+class _InheritableModuleTypeClass(type):
   """
-  Metaclass for a class type that wraps a module object and allow accessing
-  members of that module or subclassing it.
+  A meta-class to create a class that can be inherited from to actually
+  inherit from the `__inheritable_type__`, and redirect attribute access
+  to the `__wrapped__` module.
   """
 
   def __new__(cls, name, bases, attrs):
     if bases == (types.ModuleType,):
       return type.__new__(cls, name, bases, attrs)
+    new_bases = []
+    inheritable_type = NotSet
     for base in bases:
-      if isinstance(base, _InheritableModuleType):
-        module = base.__wrap_module__
+      if isinstance(base, _InheritableModuleTypeClass):
         inheritable_type = base.__inheritable_type__
-        break
-    else:
-      raise RuntimeError
-    bases = tuple(x for x in bases if not isinstance(x, _InheritableModuleType))
-    return type(name, (inheritable_type,) + bases, attrs)
+      else:
+        new_bases.append(base)
+    if inheritable_type is NotSet:
+      raise RuntimeError('__inheritable_type__ not set')
+    return type(name, (inheritable_type,) + tuple(new_bases), attrs)
 
-  def __getattr__(self, name):
-    return getattr(self.__wrap_module__, name)
+  def __init__(self, name, bases, attrs):
+    super(_InheritableModuleTypeClass, self).__init__(name, bases, attrs)
+    assert '__wrapped__' in attrs
+    assert '__inheritable_type__' in attrs
 
-  def __repr__(self):
-    return '<inheritable ' + repr(self.__wrap_module__)[1:]
+  def __getattr__(self, key):
+    return getattr(self.__wrapped__, key)
+
+  def __setattr__(self, key, value):
+    return setattr(self.__wrapped__, key, value)
 
 
-def create_inheritable_module(module, inheritable_type):
-  """
-  Wraps the specified *module* object and returns a class that can be
-  subclassed to result in a direct subclass of *inheritable_type*.
-  """
+class _ProxyModuleType(types.ModuleType):
 
-  return _InheritableModuleType(module.__name__, (types.ModuleType,),
-    {'__wrap_module__': module, '__inheritable_type__': inheritable_type})
+  def __init__(self, name, file, path, wrapped):
+    super(_ProxyModuleType, self).__init__(name)
+    types.ModuleType.__setattr__(self, '__file__', file)
+    if path is not None:
+      types.ModuleType.__setattr__(self, '__path__', path)
+    types.ModuleType.__setattr__(self, '__wrapped__', wrapped)
+
+  def __getattr__(self, key):
+    return getattr(self.__wrapped__, key)
+
+  def __setattr__(self, key, value):
+    return setattr(self.__wrapped__, key, value)
+
+
+class _CallableModuleType(_ProxyModuleType):
+
+  def __init__(self, name, file, path, wrapped, call_target):
+    super(_CallableModuleType, self).__init__(name, file, path, wrapped)
+    self.__call_target__ = call_target
+
+  def __call__(self, *args, **kwargs):
+    return self.__call_target__(*args, **kwargs)
 
 
 def make_inheritable(module_name, inheritable_type):
@@ -65,5 +90,21 @@ def make_inheritable(module_name, inheritable_type):
   specified *inheritable_type*.
   """
 
-  sys.modules[module_name] = create_inheritable_module(
-    sys.modules[module_name], inheritable_type)
+  sys.modules[module_name] = _InheritableModuleTypeClass(
+    module_name,
+    (types.ModuleType,),
+    {'__wrapped__': sys.modules[module_name], '__inheritable_type__': inheritable_type})
+
+
+def make_callable(module_name, target):
+  """
+  Makes the module with the specified *module_name* callable with *target*.
+  """
+
+  module = sys.modules[module_name]
+  sys.modules[module_name] = _CallableModuleType(
+    module_name,
+    module.__file__,
+    getattr(module, '__path__', None),
+    module,
+    target)

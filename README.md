@@ -109,34 +109,6 @@ assert Foo(42).x == 42
 </details>
 
 
-#### `nr.types.local`
-
-Vendors the `LocalProxy` class fro,m `pallets/werkzeug@0.15.2`.
-
-<details doctest name="local.proxy"><summary>Example (LocalProxy):</summary>
-
-```python
-from nr.types.local import LocalProxy
-
-count = 0
-
-def test():
-  global count
-  count += 1
-  return count
-
-proxy = LocalProxy(test)
-assert proxy == 1
-assert count == 1
-assert proxy == 2
-assert count == 2
-assert proxy == 3
-assert count == 3
-assert proxy + 10 == 14
-```
-</details>
-
-
 #### `nr.types.maps`
 
 Provides the following mapping (and mapping-related) implementations:
@@ -180,6 +152,52 @@ import myclass
 class MySubclass(myclass): pass
 assert issubclass(MySubclass, myclass.MyClass)
 ```
+
+
+#### `nr.types.proxy`
+
+Provides the `proxy` class which is a wrapper for a callable. Any kind of
+access to the proxy object is redirected to the object returned by the
+callable.
+
+<details doctest name="proxy"><summary>Example for `proxy` class:</summary>
+
+```python
+from nr.types import proxy
+
+count = 0
+
+@proxy
+def auto_increment():
+  global count
+  count += 1
+  return count
+
+assert auto_increment == 1
+assert auto_increment == 2
+assert auto_increment + 10 == 13
+```
+</details>
+
+<details doctest name="proxy.lazy"><summary>Example for `proxy` class:</summary>
+
+```python
+from nr.types.proxy import lazy_proxy
+
+count = 0
+
+@lazy_proxy
+def not_incrementing():
+  global count
+  count += 1
+  return count
+
+assert not_incrementing == 1
+assert not_incrementing == 1
+assert not_incrementing == 1
+```
+</details>
+
 
 #### `nr.types.record`
 
@@ -285,13 +303,6 @@ assert f.is_duration()
 assert f.value == 3600
 ```
 </details>
-
-### Acknowledgements
-
-* This library vendors a modified version of the `werkzeug.local` module in
-  version 0.15.2 as the `nr.types.local` module. Werkzeug is licensed under
-  the BSD-3-Clause license and the copyright of the `nr.types.local` module
-  lies with Pallets.
 
 ---
 
