@@ -1,6 +1,6 @@
 # Changelog
 
-### v2.1.0 (not released)
+### v2.1.0 (2019-05-10)
 
 * Add `CleanRecord.__field_type__` static member which can be overwritten by
   a subclass
