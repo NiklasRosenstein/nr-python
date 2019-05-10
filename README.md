@@ -108,6 +108,51 @@ assert Foo(42).x == 42
 ```
 </details>
 
+
+#### `nr.types.local`
+
+A slightly modified version of `werkzeug.local` (to make it work without
+having to import other modules from Werkzeug).
+
+<details doctest name="local.manager"><summary>Example (Local/LocalManager):</summary>
+
+```python
+from nr.types.local import Local, LocalManager
+
+local = Local()
+local_manager = LocalManager([local])
+
+# Attributes can now be assigned to the "local" object, which stores them
+# locally for the current thread. Call local_magical.cleanup() to restore
+# the default empty state of the "local".
+```
+</details>
+
+
+<details doctest name="local.proxy"><summary>Example (LocalProxy):</summary>
+
+```python
+from nr.types.local import LocalProxy
+
+count = 0
+
+def test():
+  global count
+  count += 1
+  return count
+
+proxy = LocalProxy(test)
+assert proxy == 1
+assert count == 1
+assert proxy == 2
+assert count == 2
+assert proxy == 3
+assert count == 3
+assert proxy + 10 == 14
+```
+</details>
+
+
 #### `nr.types.maps`
 
 Provides the following mapping (and mapping-related) implementations:
@@ -256,6 +301,13 @@ assert f.is_duration()
 assert f.value == 3600
 ```
 </details>
+
+### Acknowledgements
+
+* This library vendors a modified version of the `werkzeug.local` module in
+  version 0.15.2 as the `nr.types.local` module. Werkzeug is licensed under
+  the BSD-3-Clause license and the copyright of the `nr.types.local` module
+  lies with Pallets.
 
 ---
 
