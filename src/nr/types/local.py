@@ -36,9 +36,14 @@
 import copy
 from functools import update_wrapper
 
-from ._compat import implements_bool
-from ._compat import PY2
-from .wsgi import ClosingIterator
+#from ._compat import implements_bool
+#from ._compat import PY2
+#from .wsgi import ClosingIterator
+def implements_bool(cls):
+    cls.__nonzero__ = cls.__bool__
+    del cls.__bool__
+    return cls
+from six import PY2
 
 # since each thread has its own greenlet we can just use those as identifiers
 # for the context.  If greenlets are not available we fall back to the
@@ -247,6 +252,7 @@ class LocalManager(object):
         for local in self.locals:
             release_local(local)
 
+    '''
     def make_middleware(self, app):
         """Wrap a WSGI application so that cleaning up happens after
         request end.
@@ -271,6 +277,7 @@ class LocalManager(object):
         (name, docstring, module).
         """
         return update_wrapper(self.make_middleware(func), func)
+    '''
 
     def __repr__(self):
         return "<%s storages: %d>" % (self.__class__.__name__, len(self.locals))
