@@ -7,6 +7,8 @@
 * `Field.with_name()` now forwards arbitrary args/kwargs
 * Fields can now also be declared as dictionaries in `__fields__`/`__annotations__`
 * `ToJSON.to_json()` mixin method now handles mappings and sequences recursively
+* Add `nr.types.local` module (vendored from `pallets/werkzeug@0.15.2`,
+  licensed BSD-3-Clause, Copyright Pallets 2007)
 
 ### v2.0.1 (2019-04-16)
 
