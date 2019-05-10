@@ -1,5 +1,10 @@
 # Changelog
 
+### v2.1.1 (2019-05-10)
+
+* Remove `Local` and `LocalManager` class from `nr.types.local`, keeping only
+  the `LocalProxy` class
+
 ### v2.1.0 (2019-05-10)
 
 * Add `CleanRecord.__field_type__` static member which can be overwritten by

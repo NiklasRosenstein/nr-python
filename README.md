@@ -111,23 +111,7 @@ assert Foo(42).x == 42
 
 #### `nr.types.local`
 
-A slightly modified version of `werkzeug.local` (to make it work without
-having to import other modules from Werkzeug).
-
-<details doctest name="local.manager"><summary>Example (Local/LocalManager):</summary>
-
-```python
-from nr.types.local import Local, LocalManager
-
-local = Local()
-local_manager = LocalManager([local])
-
-# Attributes can now be assigned to the "local" object, which stores them
-# locally for the current thread. Call local_magical.cleanup() to restore
-# the default empty state of the "local".
-```
-</details>
-
+Vendors the `LocalProxy` class fro,m `pallets/werkzeug@0.15.2`.
 
 <details doctest name="local.proxy"><summary>Example (LocalProxy):</summary>
 
