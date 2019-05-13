@@ -197,7 +197,6 @@ def make_proxy_class(name, base=None, include=None, exclude=None):
 
     members = {}
     for cls in reversed(base.__mro__):
-        print(cls, sorted(cls.__dict__.keys()))
         members.update(cls.__dict__)
 
     filtered_members = {}
