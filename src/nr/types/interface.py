@@ -214,6 +214,10 @@ class InterfaceClass(type):
     self.__implementations = set()
     self.__members = {}
 
+    for base in bases:
+      if isinstance(base, InterfaceClass):
+        self.__members.update(base.__members)
+
     # Convert function declarations in the class to Method objects and
     # bind Attribute objects to the new interface class.
     for key, value in vars(self).items():
@@ -230,7 +234,8 @@ class InterfaceClass(type):
         self.__members[key] = member
 
     for key in self.__members:
-      delattr(self, key)
+      if key in attrs:
+        delattr(self, key)
 
     return self
 

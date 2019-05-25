@@ -106,17 +106,28 @@ def test_default():
 
   class IFoo(Interface):
     @default
+    def __eq__(self, other):
+      return other == '42'
+
+  class ISubClass(IFoo):
+    @default
     def bar(self):
       return 'Bar!'
 
-  @implements(IFoo)
+  @implements(ISubClass)
   class Foo(object):
     pass
 
-  @implements(IFoo)
+  @implements(ISubClass)
   class Bar(object):
+    @override
+    def __eq__(self, other):
+      return other == '52'
+    @override
     def bar(self):
       return 'Foo!'
 
   assert Foo().bar() == 'Bar!'
   assert Bar().bar() == 'Foo!'
+  assert Foo() == '42'
+  assert Bar() == '52'

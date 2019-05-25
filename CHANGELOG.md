@@ -1,5 +1,9 @@
 # Changelog
 
+### v2.2.1 (unreleased)
+
+* Fix `Interface` member inheritance if an interface is subclassed
+
 ### v2.2.0 (2019-05-10)
 
 * Rename/restructure `nr.types.local` module
