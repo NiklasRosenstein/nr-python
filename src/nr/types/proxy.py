@@ -41,8 +41,10 @@ class proxy(object):
     __slots__ = ("__local", "__dict__", "__name__", "__wrapped__")
     __is_proxy__ = True
 
-    def __init__(self, local, name=None):
+    def __init__(self, local, name=None, lazy=False):
         object.__setattr__(self, "_proxy__local", local)
+        object.__setattr__(self, "_proxy__lazy", lazy)
+        object.__setattr__(self, "_proxy__cache", None)
         object.__setattr__(self, "__name__", name)
         if callable(local) and not hasattr(local, "__release_local__"):
             # "local" is a callable that is not an instance of Local or
@@ -50,7 +52,12 @@ class proxy(object):
             object.__setattr__(self, "__wrapped__", local)
 
     def _get_current_object(self):
-        return self.__local()
+        if self.__lazy:
+            if self.__cache is None:
+                object.__setattr__(self, "_proxy__cache", self.__local())
+            return self.__cache
+        else:
+            return self.__local()
 
     @property
     def __dict__(self):
