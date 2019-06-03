@@ -523,7 +523,21 @@ def override(func):
   Marks a function as expected override a method in an implemented interface.
   If the function does not override a method in an implemented interface,
   a #RuntimeError will be raised when the #Implementation subclass is created.
+
+  Using #override() implies #default().
   """
 
   func.__is_override__ = True
-  return func
+  return default(func)
+
+
+def overrides(interface):
+  """
+  Same as #override() but you must specify the interface that the decorated
+  method overrides a member of.
+  """
+
+  def decorator(func):
+    return override(func)
+
+  return decorator
