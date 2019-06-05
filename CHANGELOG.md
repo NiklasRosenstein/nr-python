@@ -1,5 +1,9 @@
 # Changelog
 
+### v2.4.0
+
+* Add `stream.batch()`
+
 ### v2.3.0 (2019-06-05)
 
 * Fix `Interface` member inheritance if an interface is subclassed

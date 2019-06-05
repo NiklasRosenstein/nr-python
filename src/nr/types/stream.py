@@ -259,6 +259,41 @@ class stream(object):
   def collect(cls, iterable, collect_cls=None, *args, **kwargs):
     return (collect_cls or list)(iterable, *args, **kwargs)
 
+  @_dualmethod
+  def batch(cls, iterable, n, collect_cls=None):
+    """
+    Produces a stream that yields lists of max *n* elements taken from
+    *iterable*. The *collect_cls* can be overwritten to modify the collection
+    type for the batched elements.
+
+    If *collect_cls* is an identity function (`lambda x: x`), the elements
+    of the new stream will be generators yielding at max *n* elements.
+    """
+
+    iterable = iter(iterable)
+    if collect_cls is None:
+      collect_cls = list
+
+    def take(first):
+      yield first
+      count = 1
+      while count < n:
+        try:
+          yield next(iterable)
+        except StopIteration:
+          break
+        count += 1
+
+    def generate_batches():
+      while True:
+        try:
+          first = next(iterable)
+        except StopIteration:
+          break
+        yield collect_cls(take(first))
+
+    return cls(generate_batches())
+
 
 import sys
 _module = sys.modules[__name__]

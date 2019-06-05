@@ -141,3 +141,17 @@ def test_collect():
   assert stream(values).map(lambda x: x-2).collect() == [2, 6, 0, 5, 2]
   assert stream(values).map(lambda x: x-2).collect(sorted) == [0, 2, 2, 5, 6]
   assert stream(values).map(lambda x: x-2).collect(set) == set([0, 2, 5, 6])
+
+
+def test_batch():
+  batches = list(stream.batch(range(27), 10))
+  assert batches[0] == list(range(10))
+  assert batches[1] == list(range(10, 20))
+  assert batches[2] == list(range(20, 27))
+
+  batches = stream.batch(range(27), 10, lambda x: x)
+  assert list(next(batches)) == list(range(10))
+  assert list(next(batches)) == list(range(10, 20))
+  assert list(next(batches)) == list(range(20, 27))
+  with pytest.raises(StopIteration):
+    next(batches)
