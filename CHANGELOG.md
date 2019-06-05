@@ -1,8 +1,11 @@
 # Changelog
 
-### v2.2.1 (unreleased)
+### v2.3.0 (unreleased)
 
 * Fix `Interface` member inheritance if an interface is subclassed
+* Add `overrides()` decorator to `nr.types.interface`
+* Add `proxy(lazy=False)` parameter
+* Removed debug print in `make_proxy_class()`
 
 ### v2.2.0 (2019-05-10)
 
