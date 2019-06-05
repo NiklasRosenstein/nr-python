@@ -1,6 +1,6 @@
 # Changelog
 
-### v2.3.0 (unreleased)
+### v2.3.0 (2019-06-05)
 
 * Fix `Interface` member inheritance if an interface is subclassed
 * Add `overrides()` decorator to `nr.types.interface`
