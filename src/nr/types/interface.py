@@ -111,6 +111,17 @@ class Attribute(_Member):
     self.type = type
 
 
+class StaticAttribute(_Member):
+  """
+  Represents a static attribute on an interface class that will carry over to
+  the implementation class.
+  """
+
+  def __init__(self, interface, name, value):
+    super(StaticAttribute, self).__init__(interface, name)
+    self.value = value
+
+
 class Property(_Member):
   """
   Represents a property in an interface. A property can have default
@@ -359,11 +370,13 @@ class Implementation(InlineMetaclassBase):
     implements = reduce_interfaces(implements)
     check_conflicting_interfaces(implements)
 
-    # Assign default implementations.
+    # Assign default implementations and static attributes.
     for interface in implements:
       for member in interface.members():
         if isinstance(member, Method) and member.name not in attrs and member.impl:
           attrs[member.name] = member.impl
+        elif isinstance(member, StaticAttribute):
+          attrs[member.name] = member.value
 
     self = type.__new__(cls, name, bases, attrs)
 
@@ -496,6 +509,15 @@ def attr(type=None):
   """
 
   return Attribute(None, None, type)
+
+
+def staticattr(value):
+  """
+  Assign a static attribute to the interface. This static attribute will carry
+  over the implementation class.
+  """
+
+  return StaticAttribute(None, None, value)
 
 
 def default(func):
