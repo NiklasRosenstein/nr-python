@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.2.2 (2019-06-24)
+
+* Add `nr/bundler/vendor/__init__.py` to fix normal installations of the
+  package (not develop mode)
+
 ### v1.2.1 (2019-04-17)
 
 * `ModuleGraph.collect_modules()` now sparsely collects _all_ parent packages
