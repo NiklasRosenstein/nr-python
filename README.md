@@ -9,6 +9,10 @@
 
 ### Changes
 
+#### v1.4.0 (2019-04-16)
+
+* Add `nr.fs.remove()` function
+
 #### v1.3.0 (2019-04-16)
 
 * Use `pkgutil` instead of `pkg_resources` namespace packages
