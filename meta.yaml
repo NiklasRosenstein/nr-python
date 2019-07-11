@@ -1,0 +1,33 @@
+
+package:
+  name: nr.types
+  version: {{ load_setup_py_data()['version'] }}
+
+source:
+  path: .
+
+build:
+  noarch: python
+  script: "python -m pip install . --no-deps --ignore-installed -vv"
+  include_recipe: false
+
+requirements:
+  host:
+    - pip
+    - python
+  run:
+    - python
+    - six >=1.11.0
+
+about:
+  home: https://github.com/NiklasRosenstein/python-nr.types
+  license: MIT
+  license_family: MIT
+  license_file:
+  summary: Provides a number os useful data types for day-to-day Python programming.
+  doc_url:
+  dev_url:
+
+extra:
+  recipe-maintainers:
+    - nrosenstein
