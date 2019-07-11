@@ -1,7 +1,8 @@
+{% set data = load_setup_py_data() %}
 
 package:
   name: nr.types
-  version: {{ load_setup_py_data()['version'] }}
+  version: {{ data.get('version') }}
 
 source:
   path: .
@@ -20,11 +21,11 @@ requirements:
     - six >=1.11.0
 
 about:
-  home: https://github.com/NiklasRosenstein/python-nr.types
-  license: MIT
-  license_family: MIT
-  license_file:
-  summary: Provides a number os useful data types for day-to-day Python programming.
+  home: {{ data.get('url') }}
+  license: {{ data.get('license') }}
+  license_family: {{ data.get('license') }}
+  license_file: LICENSE.txt
+  summary: {{ data.get('description') }}
   doc_url:
   dev_url:
 
