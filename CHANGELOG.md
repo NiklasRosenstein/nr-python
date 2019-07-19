@@ -5,15 +5,22 @@
 * Updated `nr.types.interface`
   * Added `Attribute(default)` parameter and `default` member
   * Added `Attribute(static)` parameter and `static` member
-  * Added `Method(static)` parameter and `static` member
   * Added `Attribute.make_default()` parameter and `static` member
+  * Added `Method(static)` parameter and `static` member
+  * Added internal `Decoration()` class which is now used instead of
+    setting members on the functions decorated with `@default`, `@final`,
+    `@override` and `@overrides()`
   * Changed `staticattr()`, now returns an `Attribute` instance
     with `static=True`
   * Changed `Method.is_candidate()` to accept `staticmethod`
     and `classmethod` instances
   * Changed `Method.wrap_candidate()` to accept `staticmethod`
     and `classmethod` instances
+  * Changed `ImplementationError` which now resembles errors from multiple
+    interfaces as well as functions marked with `@override` which do not
+    actually override a member
   * Removed `StaticAttribute`
+  * Fixed spelling mistake in `ValueError` raised by `Property.satisfy()`
 * Added `nr.types.structured`
   * Successor to `nr.config`, which is now deprecated
 

@@ -88,9 +88,10 @@ class Method(_Member):
   def is_candidate(cls, name, value):
     if name.startswith('_') and not name.endswith('_'):  # Private function
       return False
-    if not isinstance(value, (types.FunctionType, staticmethod, classmethod)):
+    props, value = Decoration.split(value)
+    if props.skip:
       return False
-    if getattr(value, '__skip__', False):
+    if not isinstance(value, (types.FunctionType, staticmethod, classmethod)):
       return False
     return True
 
@@ -100,13 +101,13 @@ class Method(_Member):
       # We don't want these functions to be an actual "member" of the interface
       # API as they can be implemented for every interface and not collide.
       hidden = name in ('__new__', '__init__', '__constructed__')
+      props, value = Decoration.split(value)
       # If it's one of the hidden methods, they also act as the "default"
       # implementation because we actually want to call them independently
       # of potential overrides by the implementation.
-      impl = value if getattr(value, '__is_default__', hidden) else None
-      final = getattr(value, '__is_final__', False)
+      impl = value if props.is_default or hidden else None
       static = isinstance(value, (staticmethod, classmethod))
-      return Method(interface, name, impl, final, hidden, static)
+      return Method(interface, name, impl, props.is_final, hidden, static)
     return None
 
 
@@ -167,11 +168,11 @@ class Property(_Member):
   def satisfy(self, value):
     assert isinstance(value, property), type(value)
     if value.fget and self.getter_final:
-      raise ValueError('propery {}: getter must not be implemented'.format(self.name))
+      raise ValueError('property {}: getter must not be implemented'.format(self.name))
     if value.fset and self.setter_final:
-      raise ValueError('propery {}: setter must not be implemented'.format(self.name))
+      raise ValueError('property {}: setter must not be implemented'.format(self.name))
     if value.fdel and self.deleter_final:
-      raise ValueError('propery {}: deleter must not be implemented'.format(self.name))
+      raise ValueError('property {}: deleter must not be implemented'.format(self.name))
     if self.getter_impl is None and not value.fget:
       raise ValueError('property {}: missing getter'.format(self.name))
     if self.setter_impl is None and not value.fset:
@@ -214,27 +215,31 @@ class Property(_Member):
   @classmethod
   def from_python_property(cls, interface, name, value):
     assert isinstance(value, property), type(value)
-    if value.fget and getattr(value.fget, '__is_default__', False):
-      getter = value.fget
+    if Decoration.wraps(value.fget).is_default:
+      getter = Decoration.unwraps(value.fget)
     else:
       getter = None
-    if value.fset and getattr(value.fset, '__is_default__', False):
-      setter = value.fset
+    if Decoration.wraps(value.fset).is_default:
+      setter = Decoration.unwraps(value.fset)
     elif value.fset:
       setter = None
     else:
       setter = NotImplemented
-    if value.fdel and getattr(value.fdel, '__is_default__', False):
-      deleter = value.fdel
+    if Decoration.wraps(value.fdel).is_default:
+      deleter = Decoration.unwraps(value.fdel)
     elif value.fdel:
       deleter = None
     else:
       deleter = NotImplemented
-    getter_final = getattr(value.fget, '__is_final__', False)
-    setter_final = getattr(value.fset, '__is_final__', False)
-    deleter_final = getattr(value.fdel, '__is_final__', False)
-    return cls(interface, name, getter, setter, deleter, getter_final,
-      setter_final, deleter_final)
+    return cls(
+      interface,
+      name,
+      getter,
+      setter,
+      deleter,
+      Decoration.wraps(value.fget).is_final,
+      Decoration.wraps(value.fset).is_final,
+      Decoration.wraps(value.fdel).is_final)
 
 
 class InterfaceClass(type):
@@ -306,13 +311,43 @@ class InterfaceClass(type):
     return iter(self.__implementations)
 
 
-def skip(func):
+class Decoration(object):
   """
-  Marks a function in an interface as not part of the interface.
+  A wrapper for functions decorated with one of the decorators of this module.
+  Using this wrapper class has two main advantages:
+  - Trying to decorate staticmethod/classmethod in the "wrong order" results
+    in an error (they won't accept an instance of this class)
+  - Decorating staticmethod/classmethod works in Python 2 due to this wrapper
+    class
   """
 
-  func.__skip__ = True
-  return func
+  def __init__(self, func):
+    self.func = func
+    self.is_default = False
+    self.is_final = False
+    self.is_override = False
+    self.skip = False
+
+  @classmethod
+  def wraps(cls, func, **set_members):
+    if not isinstance(func, cls):
+      func = cls(func)
+    for key, value in six.iteritems(set_members):
+      if not hasattr(func, key):
+        raise AttributeError('{}.{}'.format(cls.__name__, key))
+      setattr(func, key, value)
+    return func
+
+  @classmethod
+  def unwraps(cls, func):
+    if isinstance(func, cls):
+      return func.func
+    return func
+
+  @classmethod
+  def split(cls, func):
+    decoration = cls.wraps(func)
+    return decoration, decoration.func
 
 
 class Interface(six.with_metaclass(InterfaceClass)):
@@ -320,10 +355,11 @@ class Interface(six.with_metaclass(InterfaceClass)):
   Base class for interfaces. Interfaces can not be instantiated.
   """
 
-  @skip
   def __new__(cls):
     msg = 'interface {} can not be instantiated'.format(cls.__name__)
     raise RuntimeError(msg)
+
+  __new__ = Decoration.wraps(__new__, skip=True)
 
 
 def is_interface(obj):
@@ -392,6 +428,33 @@ def reduce_interfaces(interfaces):
   return result
 
 
+class ImplementationError(RuntimeError):
+
+  def __init__(self, impl, interfaces=(), errors=()):
+    self.impl = impl
+    self.interfaces = list(interfaces)
+    self.errors = list(errors)
+
+  def add(self, interface, message):
+    if interface and interface not in self.interfaces:
+      self.interfaces.append(interface)
+    self.errors.append(message)
+
+  def __str__(self):
+    lines = []
+    lines.append(
+      "'{}' does not meet requirements of interface{} {}"
+      .format(
+        self.impl.__name__,
+        '' if len(self.interfaces) == 1 else 's',
+        self.interfaces[0].__name__ if len(self.interfaces) == 1 else
+          set(x.__name__ for x in self.interfaces),
+      )
+    )
+    lines += ['  - {}'.format(x) for x in self.errors]
+    return '\n'.join(lines)
+
+
 class Implementation(InlineMetaclassBase):
   """
   Parent for classes that implement one or more interfaces.
@@ -411,53 +474,53 @@ class Implementation(InlineMetaclassBase):
           attrs[member.name] = member.make_default()
 
     self = type.__new__(cls, name, bases, attrs)
+    impl_error = ImplementationError(self)
+
+    # Unwrap all [[Decoration]] members and validate the is_override
+    # decoration.
+    for key, value in vars(self).items():
+      if not isinstance(value, Decoration) or not value.is_override:
+        continue
+      for interface in implements:
+        if key in interface:
+          break
+      else:
+        impl_error.add(None, "'{}' does not override a method of any of "
+          "the implemented interfaces.".format(key))
+      setattr(self, key, value.func)  # unpack the Decoration
 
     # Ensure all interface members are satisfied.
     for interface in implements:
-      errors = []
       for member in interface.members():
         value = getattr(self, member.name, NotSet)
         if isinstance(member, Method):
           if isinstance(value, types.MethodType):
             value = value.im_func
           if member.final and value is not NotSet and member.impl != value:
-            errors.append('implemented final method: {}()'.format(member.name))
+            impl_error.add(interface, 'implemented final method: {}()'.format(member.name))
             continue
           if value is NotSet:
-            errors.append('missing method: {}()'.format(member.name))
+            impl_error.add(interface, 'missing method: {}()'.format(member.name))
           elif not isinstance(value, (types.FunctionType, types.MethodType)):
-            errors.append('expected method, got {}: {}()'.format(
+            impl_error.add(interface, 'expected method, got {}: {}()'.format(
               type(value).__name__, member.name))
         elif isinstance(member, Property):
-          if not hasattr(member.name):
+          if not hasattr(self, member.name):
             if not member.is_pure_default():
-              errors.append('missing property: {}'.format(member.name))
+              impl_error.add(interface, 'missing property: {}'.format(member.name))
           elif not isinstance(value, property):
-            errors.append('expected property, got {}: {}'.format(
+            impl_error.add(interface, 'expected property, got {}: {}'.format(
               type(value).__name__, member.name))
           else:
             try:
               value = member.satisfy(value)
             except ValueError as exc:
-              errors.append(str(exc))
+              impl_error.add(interface, str(exc))
             else:
               setattr(self, member.name, value)
-      if errors:
-        raise ImplementationError(self, interface, errors)
 
-    # Check member functions for whether they have been marked with
-    # the @override decorator.
-    for key, value in vars(self).items():
-      if not isinstance(value, types.FunctionType):
-        continue
-      if not getattr(value, '__is_override__', False):
-        continue
-      for interface in implements:
-        if key in interface:
-          break
-      else:
-        raise RuntimeError("'{}' does not override a method of any of the "
-          "implemented interfaces.".format(key))
+    if impl_error.errors:
+      raise impl_error
 
     # The implementation is created successfully, add it to the
     # implementations set of all interfaces and their parents.
@@ -485,21 +548,6 @@ class Implementation(InlineMetaclassBase):
       member = interface.get('__constructed__')
       if member:
         member.impl(self)
-
-
-class ImplementationError(RuntimeError):
-
-  def __init__(self, impl, interface, errors):
-    self.impl = impl
-    self.interface = interface
-    self.errors = errors
-
-  def __str__(self):
-    lines = []
-    lines.append("'{}' does not meet requirements "
-                "of interface '{}'".format(self.impl.__name__, self.interface.__name__))
-    lines += ['  - {}'.format(x) for x in self.errors]
-    return '\n'.join(lines)
 
 
 class ConflictingInterfacesError(RuntimeError):
@@ -572,8 +620,7 @@ def default(func):
   Decorator for interface methods to mark them as a default implementation.
   """
 
-  func.__is_default__ = True
-  return func
+  return Decoration.wraps(func, is_default=True)
 
 
 def final(func):
@@ -582,9 +629,7 @@ def final(func):
   default implementation and that it may not actually be implemented.
   """
 
-  func.__is_default__ = True
-  func.__is_final__ = True
-  return func
+  return Decoration.wraps(func, is_default=True, is_final=True)
 
 
 def override(func):
@@ -596,8 +641,7 @@ def override(func):
   Using #override() implies #default().
   """
 
-  func.__is_override__ = True
-  return default(func)
+  return Decoration.wraps(func, is_override=True)
 
 
 def overrides(interface):
