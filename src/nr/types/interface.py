@@ -405,9 +405,6 @@ class Implementation(InlineMetaclassBase):
     # Assign default implementations and static attributes.
     for interface in implements:
       for member in interface.members():
-        if isinstance(member, Attribute):
-          print(member)
-
         if isinstance(member, Method) and member.name not in attrs and member.impl:
           attrs[member.name] = member.impl
         elif isinstance(member, Attribute) and member.static and member.default is not NotSet:
