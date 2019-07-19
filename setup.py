@@ -21,7 +21,7 @@ setuptools.setup(
   license = 'MIT',
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
-  install_requires = ['six'],
+  install_requires = ['six', 'typing'],
   extras_require = {
     'test': ['pytest', 'pytest-cov', 'BeautifulSoup4']
   }
