@@ -38,7 +38,9 @@ from nr.types.interface import (
   override,
   staticattr)
 from nr.types.utils.typing import is_generic, get_generic_args
-from six import string_types
+from six import string_types, PY2
+
+getargspec = getattr(__import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
 
 
 class IDataType(Interface):
@@ -50,7 +52,7 @@ class IDataType(Interface):
   def __repr__(self):
     # This default implementation tries to produce a sensible string
     # representation that is applicable to common implementations.
-    spec = inspect.getfullargspec(type(self).__init__)
+    spec = getargspec(type(self).__init__)
     no_kw_count = len(spec.args) - len(spec.defaults or [])
     parts = []
     parts += [str(getattr(self, k)) for k in spec.args[1:no_kw_count]]
