@@ -21,7 +21,7 @@
 
 __all__ = [
   'Interface', 'Implementation', 'ImplementationError', 'ConflictingInterfacesError',
-  'is_interface', 'implements', 'attr', 'default', 'final', 'override'
+  'is_interface', 'implements', 'attr', 'staticattr', 'default', 'final', 'override'
 ]
 
 import itertools
@@ -54,20 +54,30 @@ class _Member(object):
 
 
 class Method(_Member):
+  """
+  Represents a method on an interface. A method is considered static if it is
+  a [[classmethod]] or [[staticmethod]].
 
-  def __init__(self, interface, name, impl=None, final=False, hidden=False):
+  *Changed in 2.5.0*: Added *static* argument and member.
+  """
+
+  def __init__(self, interface, name, impl=None, final=False, hidden=False,
+               static=False):
     super(Method, self).__init__(interface, name)
     self.impl = impl
     self.final = final
     self.hidden = hidden
+    self.static = static
 
   def __repr__(self):
-    s = super(Method, self).__repr__()
+    s = super(Method, self).__repr__()[1:]
+    if self.static:
+      s = 'static ' + s
     if self.hidden:
-      s = '<hidden ' + s[1:]
+      s = 'hidden ' + s
     if self.final:
-      s = '<final ' + s[1:]
-    return s
+      s = 'final ' + s
+    return '<' + s
 
   def __call__(self, *a, **kw):
     if self.impl:
@@ -78,7 +88,11 @@ class Method(_Member):
   def is_candidate(cls, name, value):
     if name.startswith('_') and not name.endswith('_'):  # Private function
       return False
-    return isinstance(value, types.FunctionType)
+    if not isinstance(value, (types.FunctionType, staticmethod, classmethod)):
+      return False
+    if getattr(value, '__skip__', False):
+      return False
+    return True
 
   @classmethod
   def wrap_candidate(cls, interface, name, value):
@@ -91,7 +105,8 @@ class Method(_Member):
       # of potential overrides by the implementation.
       impl = value if getattr(value, '__is_default__', hidden) else None
       final = getattr(value, '__is_final__', False)
-      return Method(interface, name, impl, final, hidden)
+      static = isinstance(value, (staticmethod, classmethod))
+      return Method(interface, name, impl, final, hidden, static)
     return None
 
 
@@ -104,22 +119,29 @@ class Attribute(_Member):
   Inside an interface declaration, use the #attr() function to create an
   attribute that will be bound automatically when the interface class is
   constructed.
+
+  *Changed in 2.5.0*: Added *default* argument and member.
+  *Changed in 2.5.0*: Added *static* argument and member.
   """
 
-  def __init__(self, interface, name, type=None):
+  def __init__(self, interface, name, type=None, default=NotSet, static=False):
     super(Attribute, self).__init__(interface, name)
     self.type = type
+    self.default = default
+    self.static = static
 
+  def __repr__(self):
+    s = super(Attribute, self).__repr__()[1:]
+    if self.static:
+      s = 'static ' + s
+    return '<' + s
 
-class StaticAttribute(_Member):
-  """
-  Represents a static attribute on an interface class that will carry over to
-  the implementation class.
-  """
-
-  def __init__(self, interface, name, value):
-    super(StaticAttribute, self).__init__(interface, name)
-    self.value = value
+  def make_default(self):
+    if self.default is None:
+      raise RuntimeError('Attribute.default is NotSet')
+    if callable(self.default):
+      return self.default
+    return self.default
 
 
 class Property(_Member):
@@ -231,7 +253,7 @@ class InterfaceClass(type):
 
     # Convert function declarations in the class to Method objects and
     # bind Attribute objects to the new interface class.
-    for key, value in vars(self).items():
+    for key, value in six.iteritems(attrs):
       member = None
       if isinstance(value, _Member) and not value.is_bound:
         value.interface = self
@@ -284,11 +306,21 @@ class InterfaceClass(type):
     return iter(self.__implementations)
 
 
+def skip(func):
+  """
+  Marks a function in an interface as not part of the interface.
+  """
+
+  func.__skip__ = True
+  return func
+
+
 class Interface(six.with_metaclass(InterfaceClass)):
   """
   Base class for interfaces. Interfaces can not be instantiated.
   """
 
+  @skip
   def __new__(cls):
     msg = 'interface {} can not be instantiated'.format(cls.__name__)
     raise RuntimeError(msg)
@@ -373,10 +405,13 @@ class Implementation(InlineMetaclassBase):
     # Assign default implementations and static attributes.
     for interface in implements:
       for member in interface.members():
+        if isinstance(member, Attribute):
+          print(member)
+
         if isinstance(member, Method) and member.name not in attrs and member.impl:
           attrs[member.name] = member.impl
-        elif isinstance(member, StaticAttribute):
-          attrs[member.name] = member.value
+        elif isinstance(member, Attribute) and member.static and member.default is not NotSet:
+          attrs[member.name] = member.make_default()
 
     self = type.__new__(cls, name, bases, attrs)
 
@@ -443,6 +478,9 @@ class Implementation(InlineMetaclassBase):
 
   def __init__(self):
     for interface in self.__implements__:
+      for member in interface.members():
+        if isinstance(member, Attribute) and not member.static and member.default is not NotSet:
+          setattr(self, member.name, member.make_default())
       member = interface.get('__init__')
       if member:
         member.impl(self)
@@ -501,23 +539,35 @@ def implements(*interfaces):
   return decorator
 
 
-def attr(type=None):
+def attr(type=None, default=NotSet):
   """
   Declare an unnamed attribute that will be bound when the interface is
   constructed. The result of this function must be assigned to a member
   on the class-level of an #Interface declaration.
+
+  *default* can be a callable, in which case it is called at the time
+  the default value is needed, or an arbitrary value.
+
+  *Changed in 2.5.0*: Added *default* parameter.
   """
 
-  return Attribute(None, None, type)
+  return Attribute(None, None, type, default, False)
 
 
 def staticattr(value):
   """
   Assign a static attribute to the interface. This static attribute will carry
   over the implementation class.
+
+  *value* can be a callable, in which case it is called at the time
+  the default value is needed, or an arbitrary value.
+
+  *Changed in 2.4.0*: Added. \\
+  *Changed in 2.5.0*: Now returns an [[Attribute]] instance of a
+  `StaticAttribute` instance.
   """
 
-  return StaticAttribute(None, None, value)
+  return Attribute(None, None, None, value, True)
 
 
 def default(func):

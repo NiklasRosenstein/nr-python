@@ -131,3 +131,54 @@ def test_default():
   assert Bar().bar() == 'Foo!'
   assert Foo() == '42'
   assert Bar() == '52'
+
+
+class test_staticmethod_override():
+
+  class IFoo(Interface):
+    @staticmethod
+    def a_static_method():
+      pass
+
+  assert 'a_static_method' in IFoo
+  assert IFoo['a_static_method'].static
+
+  class IBar(Interface):
+    @classmethod
+    def a_class_method():
+      pass
+
+  assert 'a_class_method' in IBar
+  assert IBar['a_class_method'].static  # A classmethod is also considered static
+
+  # TODO(nrosenstein): Assert that overriding a static method non-statically
+  #                    does not work.
+
+
+class test_attr_default():
+
+  class IFoo(Interface):
+    x = attr(int, 24)
+
+  @implements(IFoo)
+  class Bar(object):
+    pass
+
+  assert not hasattr(Bar, 'x')
+  assert hasattr(Bar(), 'x')
+  assert Bar().x == 24
+
+
+class test_staticattr_default():
+
+  class IFoo(Interface):
+    x = staticattr(24)
+
+  @implements(IFoo)
+  class Bar(object):
+    pass
+
+  assert hasattr(Bar, 'x')
+  assert Bar.x == 24
+  assert Bar().x == 24
+  assert 'x' not in vars(Bar())
