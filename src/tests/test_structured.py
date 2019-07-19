@@ -225,7 +225,10 @@ def test_object():
   payload = {'name': 'John Wick', 'telephone_numbers': ['+1 1337 38991']}
   with pytest.raises(ExtractValueError) as excinfo:
     extract(payload, Person)
-  assert excinfo.value.message == "strict object type \"Person\" does not allow additional keys on extract, but found {'telephone_numbers'}"
+  if six.PY2:
+    assert excinfo.value.message == "strict object type \"Person\" does not allow additional keys on extract, but found set(['telephone_numbers'])"
+  else:
+    assert excinfo.value.message == "strict object type \"Person\" does not allow additional keys on extract, but found {'telephone_numbers'}"
 
   payload = [
     {'name': 'John Wick', 'age': 54},
