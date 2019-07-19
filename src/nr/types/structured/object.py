@@ -402,8 +402,8 @@ class Object(object):
       raise TypeError('expected at max {} arguments, got {}'
                        .format(len(self.__fields__), argcount))
 
-    # Add all underived arguments to the kwargs for extraction.
-    for field, arg in zip(self.__fields__.underived().values(), args):
+    # Add all arguments to the kwargs for extraction.
+    for field, arg in zip(self.__fields__.values(), args):
       if field.name in kwargs:
         raise TypeError('duplicate arguments for "{}"'.format(field.name))
       kwargs[field.name] = arg
