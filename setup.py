@@ -14,7 +14,7 @@ setuptools.setup(
   version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Provides a number os useful data types for day-to-day Python programming.',
+  description = 'Toolbox with useful Python classes and type magic.',
   long_description = readme,
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/python-nr.types',
