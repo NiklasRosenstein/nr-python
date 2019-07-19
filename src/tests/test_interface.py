@@ -1,6 +1,6 @@
 
 import pytest
-
+import six
 from nr.types.interface import *
 
 
@@ -249,7 +249,10 @@ def test_property_wrongtype():
       def foo(self):
         pass
   assert excinfo.value.interfaces == [IFoo]
-  assert excinfo.value.errors == ["expected property, got instancemethod: foo"]
+  if six.PY2:
+    assert excinfo.value.errors == ["expected property, got instancemethod: foo"]
+  else:
+    assert excinfo.value.errors == ["expected property, got function: foo"]
 
 
 def test_property_ok():
