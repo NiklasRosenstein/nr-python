@@ -274,6 +274,30 @@ stream.map(range(10), lambda x: x*2)
 ```
 </details>
 
+#### `nr.types.structured`
+
+<details doctest name='structured.example'><summary>Example:</summary>
+
+```python
+from nr.types import structured
+
+Person = structured.ForwardDecl('Person')
+People = structured.translate_field_type({Person})
+class Person(structured.Object):
+  name = structured.ObjectKeyField()
+  age = structured.Field(int)
+  numbers = structured.Field([str])
+
+data = {
+  'John': {'age': 52, 'numbers': ['+1 123 5423435']},
+  'Barbara': {'age': 29, 'numbers': ['+44 1523/5325323']}
+}
+people = structured.extract(data, People)
+assert people['John'] == Person('John', 52, ['+1 123 5423435'])
+assert people['Barbara'] == Person('Barbara', 29, ['+44 1523/5325323'])
+```
+</details>
+
 #### `nr.types.sumtype`
 
 <details doctest name='sumtype.example'><summary>Example:</summary>

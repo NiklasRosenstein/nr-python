@@ -2,17 +2,20 @@
 
 ### v2.5.0 (2019-07-19)
 
-* Added `nr.interface.Attribute(default)` parameter and `default` member
-* Added `nr.interface.Attribute(static)` parameter and `static` member
-* Added `nr.interface.Method(static)` parameter and `static` member
-* Added `nr.interface.Attribute.make_default()` parameter and `static` member
-* Changed `nr.interface.staticattr()`, now returns an `Attribute` instance
-  with `static=True`
-* Changed `nr.interface.Method.is_candidate()` to accept `staticmethod`
-  and `classmethod` instances
-* Changed `nr.interface.Method.wrap_candidate()` to accept `staticmethod`
-  and `classmethod` instances
-* Removed `nr.interface.StaticAttribute`
+* Updated `nr.types.interface`
+  * Added `Attribute(default)` parameter and `default` member
+  * Added `Attribute(static)` parameter and `static` member
+  * Added `Method(static)` parameter and `static` member
+  * Added `Attribute.make_default()` parameter and `static` member
+  * Changed `staticattr()`, now returns an `Attribute` instance
+    with `static=True`
+  * Changed `Method.is_candidate()` to accept `staticmethod`
+    and `classmethod` instances
+  * Changed `Method.wrap_candidate()` to accept `staticmethod`
+    and `classmethod` instances
+  * Removed `StaticAttribute`
+* Added `nr.types.structured`
+  * Successor to `nr.config`, which is now deprecated
 
 ### v2.4.0 (2019-06-25)
 
