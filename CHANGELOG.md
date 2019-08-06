@@ -7,6 +7,9 @@
   * Added a testcase for this part of the metaclass that checks if the
     implementation satisfies the interfaces
 * Fix `RuntimeError` raised when using `attr(default=None)`
+* Allow using `@staticattr` to decorate methods, which will then be kept
+  as an actual member on the interface. A common use case will be to define
+  a `@classmethod` on the interface itself.
 
 ### v2.5.0 (2019-07-19)
 

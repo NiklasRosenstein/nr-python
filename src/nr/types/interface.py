@@ -271,9 +271,12 @@ class InterfaceClass(type):
       if member is not None:
         self.__members[key] = member
 
-    for key in self.__members:
+    for key, attr in six.iteritems(self.__members):
       if key in attrs:
         delattr(self, key)
+      if isinstance(attr, Attribute) and attr.static and \
+          not any(hasattr(x, key) for x in bases):
+        setattr(self, key, attr.default)
 
     return self
 

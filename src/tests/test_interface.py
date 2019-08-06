@@ -257,6 +257,23 @@ def test_staticattr_default():
   assert 'x' not in vars(Bar())
 
 
+def test_staticattr_for_classmethod():
+
+  class IFoo(Interface):
+    A = '-abc'
+
+    @staticattr
+    @classmethod
+    def test(cls):
+      return cls.__name__ + cls.A
+
+  class IBar(IFoo):
+    A = '-def'
+
+  assert IFoo.test() == 'IFoo-abc'
+  assert IBar.test() == 'IBar-def'
+
+
 def test_override_works_on_staticmethod():
   """
   In Python 2.7 you cannot set a member on an instance of the [[staticmethod]]
