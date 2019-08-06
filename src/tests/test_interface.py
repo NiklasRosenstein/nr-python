@@ -172,6 +172,29 @@ def test_default():
   assert Bar() == '52'
 
 
+def test_default_classmethod():
+
+  class IFoo(Interface):
+    @default
+    @classmethod
+    def my_classmethod(self):
+      return self.__name__
+
+  @implements(IFoo)
+  class NoOverride(object):
+    pass
+
+  assert NoOverride.my_classmethod() == 'NoOverride'
+
+  @implements(IFoo)
+  class WithOverride(object):
+    @classmethod
+    def my_classmethod(self):
+      return 'Foobar!'
+
+  assert WithOverride.my_classmethod() == 'Foobar!'
+
+
 def test_staticmethod_override():
 
   class IFoo(Interface):

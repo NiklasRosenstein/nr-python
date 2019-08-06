@@ -1,5 +1,12 @@
 # Changelog
 
+### v2.5.1 @unreleased
+
+* Fixed unpacking `MethodType` in `Implementation.__metanew__()`
+  * This error would surface when using a `@classmethod` in an interface
+  * Added a testcase for this part of the metaclass that checks if the
+    implementation satisfies the interfaces
+
 ### v2.5.0 (2019-07-19)
 
 * Updated `nr.types.interface`

@@ -398,6 +398,8 @@ def check_conflicting_interfaces(interfaces):
   """
 
   for x in interfaces:
+    if not is_interface(x):
+      raise TypeError('expected Interface subclass')
     for y in interfaces:
       if x is not y and get_conflicting_members(x, y):
         raise ConflictingInterfacesError(x, y)
@@ -495,7 +497,7 @@ class Implementation(InlineMetaclassBase):
         value = getattr(self, member.name, NotSet)
         if isinstance(member, Method):
           if isinstance(value, types.MethodType):
-            value = value.im_func
+            value = value.im_func if six.PY2 else value.__func__
           if member.final and value is not NotSet and member.impl != value:
             impl_error.add(interface, 'implemented final method: {}()'.format(member.name))
             continue
