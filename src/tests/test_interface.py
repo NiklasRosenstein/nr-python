@@ -39,6 +39,28 @@ def test_value():
   assert Foo('foobar!').x == 'foobar!'
 
 
+def test_attr_overridden_at_classlevel():
+
+  class IFoo(Interface):
+    x = attr()
+
+  @implements(IFoo)
+  class Foo(object):
+    x = 42
+
+  assert hasattr(Foo, 'x')
+  assert Foo.x == 42
+  assert Foo().x == 42
+
+  class ISubclassFoo(IFoo):
+    x = 'foobar'
+
+  # Interface members are removed from the interface class itself
+  # because they are moved into the members dict.
+  # "x" is a member inherited from the parent interface.
+  assert not hasattr(ISubclassFoo, 'x')
+
+
 def test_final():
 
   class IFoo(Interface):
