@@ -230,6 +230,17 @@ def test_attr_default():
   assert hasattr(Bar(), 'x')
   assert Bar().x == 24
 
+  class IFoo(Interface):
+    x = attr(default=None)
+
+  @implements(IFoo)
+  class Impl(object):
+    pass
+
+  assert not hasattr(Impl, 'x')
+  assert hasattr(Impl(), 'x')
+  assert Impl().x is None
+
 
 def test_staticattr_default():
 

@@ -6,6 +6,7 @@
   * This error would surface when using a `@classmethod` in an interface
   * Added a testcase for this part of the metaclass that checks if the
     implementation satisfies the interfaces
+* Fix `RuntimeError` raised when using `attr(default=None)`
 
 ### v2.5.0 (2019-07-19)
 

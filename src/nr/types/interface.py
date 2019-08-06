@@ -138,7 +138,7 @@ class Attribute(_Member):
     return '<' + s
 
   def make_default(self):
-    if self.default is None:
+    if self.default is NotSet:
       raise RuntimeError('Attribute.default is NotSet')
     if callable(self.default):
       return self.default
