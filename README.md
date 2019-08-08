@@ -309,7 +309,9 @@ class Filter(sumtype):
   Date = record.create_record('Date', 'min,max')
   Keyword = sumtype.constructor('text')
   class Duration(record.Record):
-    value = record.Field(int, lambda: 3600)
+    value = record.Field(int, default=3600)
+    def to_hours(self):
+      return self.value / 3600.0
 
 f = Filter.Keyword('building')
 assert isinstance(f, Filter)
@@ -325,6 +327,10 @@ f = Filter.Duration()
 assert isinstance(f, Filter)
 assert f.is_duration()
 assert f.value == 3600
+
+f = Filter.Duration(value=4759)
+assert f.value == 4759
+assert f.to_hours() == (4759 / 3600.0)
 ```
 </details>
 
