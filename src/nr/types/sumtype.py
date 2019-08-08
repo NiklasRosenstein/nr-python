@@ -83,22 +83,10 @@ class member_of(object):
   """
 
   def __init__(self, constructors=None, value=None, name=None):
-    def accept(x):
-      return isinstance(x, Constructor) or (
-        isinstance(x, type) and issubclass(x, _record.CleanRecord))
-    def coerce(x):
-      if isinstance(x, Constructor):
-        return x
-      elif isinstance(x, type) and issubclass(x, _record.CleanRecord):
-        # NOTE(nrosenstein): This only works because
-        #   [[Constructor.add_member()]] actually adds the member to the
-        #   internal record type, which here is "x".
-        return Constructor(x)
-      else:
-        raise TypeError('expected Constructor or record type', x)
-    if accept(constructors):
+    if isinstance(constructors, Constructor):
       constructors = [constructors]
-    constructors = [coerce(x) for x in constructors]
+    if any(not isinstance(x, Constructor) for x in constructors):
+      raise TypeError('expected Constructor objects', constructors)
     self.constructors = constructors
     self.value = value
     self.name = name
@@ -121,7 +109,13 @@ class member_of(object):
 
 class Sumtype(InlineMetaclassBase):
   """
-  Base class for sumtypes.
+  Base class for sumtypes. Subclass and created [[Constructor]] objects at
+  the class-level.
+
+  A `__default__` constructor may be specified which is created when
+  instantiating an instance of the [[Sumtype]] directly. The `__default__`
+  may be set to a [[Constructor]] instance or to the name of a constructor.
+  Note that the `__default__` is not handled on subclasses.
   """
 
   __addins__ = []
@@ -134,11 +128,14 @@ class Sumtype(InlineMetaclassBase):
 
     # Get all previous constructors and get all new ones.
     constructors = getattr(subtype, '__constructors__', {}).copy()
+    default_constructor = None
     for key, value in iteritems(vars(subtype)):
       if isinstance(value, Constructor):
-        constructors[key] = value
-      elif isinstance(value, type) and issubclass(value, _record.CleanRecord):
-        constructors[key] = Constructor(value)
+        if key == '__default__':
+          default_constructor = value
+        else:
+          value.name = key
+          constructors[key] = value
 
     # Update constructors from member_of declarations.
     for key, value in list(iteritems(vars(subtype))):
@@ -149,12 +146,32 @@ class Sumtype(InlineMetaclassBase):
     for key, value in iteritems(constructors):
       setattr(subtype, key, value.bind(key, subtype))
     subtype.__constructors__ = constructors
+    if default_constructor:
+      assert default_constructor.name
+      subtype.__default__ = default_constructor.name
 
     # Invoke addons.
     for addin in getattr(subtype, '__addins__', []):
       addin(subtype)
 
     return subtype
+
+  def __new__(cls, *args, **kwargs):
+    if hasattr(cls, '__constructor__'):
+      # This is acually trying to construct from a constructor.
+      assert issubclass(cls, _record.CleanRecord)
+      obj = object.__new__(cls)
+      obj.__init__(*args, **kwargs)
+      return obj
+
+    if '__default__' in vars(cls):  # Don't inherit __default__
+      constructor = getattr(cls, cls.__default__)
+      return constructor(*args, **kwargs)
+
+    constructors = ','.join(x for x in cls.__constructors__ if not x.startswith('_'))
+    raise TypeError('cannot construct sumtype {!r}, use any of its '
+                    'constructors instead: {{{}}}'
+                    .format(cls.__name__, constructors))
 
 
 def add_is_methods(sumtype):

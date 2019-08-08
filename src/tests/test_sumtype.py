@@ -8,6 +8,7 @@ def test_sumtypes():
     Loading = sumtype.constructor('progress')
     Error = sumtype.constructor('message')
 
+    @sumtype.constructor
     class Ok(sumtype.record):
       __fields__ = ['filename', 'load']
 
@@ -61,3 +62,14 @@ def test_sumtypes():
   ok = MoreResult.Ok('/tmp/test.txt', lambda: 'Hello')
   assert hasattr(ok, 'say_ok')
   assert ok.say_ok() == 'Ok! Hello'
+
+
+def test_sumtype_default():
+
+  class MySumtype(sumtype):
+    A = sumtype.constructor('a')
+    B = sumtype.constructor('b')
+    __default__ = A
+
+  assert type(MySumtype(42)) is MySumtype.A
+  assert MySumtype(42).a == 42

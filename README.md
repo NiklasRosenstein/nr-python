@@ -308,10 +308,11 @@ from nr.types import record, sumtype
 class Filter(sumtype):
   # Three ways to define constructors.
   # 1)
-  Date = record.create_record('Date', 'min,max')
+  Date = sumtype.constructor(record.create_record('Date', 'min,max'))
   # 2)
   Keyword = sumtype.constructor('text')
   # 3)
+  @sumtype.constructor
   class Duration(sumtype.record):
     value = sumtype.field(int, default=3600)
     def to_hours(self):
