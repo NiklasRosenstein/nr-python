@@ -12,6 +12,8 @@
   a `@classmethod` on the interface itself.
 * Add `record` and `field` member to the `nr.types.sumtype` class, which act
   as aliases for `nr.types.record.Record` and `nr.types.record.Field`.
+* `nr.sumtype.member_of()` now accepts `CleanRecord` subclasses additionally
+  to `Constructor` instances.
 
 ### v2.5.0 (2019-07-19)
 

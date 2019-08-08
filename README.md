@@ -306,27 +306,41 @@ assert people['Barbara'] == Person('Barbara', 29, ['+44 1523/5325323'])
 from nr.types import record, sumtype
 
 class Filter(sumtype):
+  # Three ways to define constructors.
+  # 1)
   Date = record.create_record('Date', 'min,max')
+  # 2)
   Keyword = sumtype.constructor('text')
-  class Duration(record.Record):
-    value = record.Field(int, default=3600)
+  # 3)
+  class Duration(sumtype.record):
+    value = sumtype.field(int, default=3600)
     def to_hours(self):
       return self.value / 3600.0
+
+  # Enrich constructors with members.
+  @sumtype.member_of([Date, Keyword])
+  def only_on_date_or_keyword(self):
+    return 'The answer is 42'
 
 f = Filter.Keyword('building')
 assert isinstance(f, Filter)
 assert f.is_keyword()
 assert f.text == 'building'
+assert hasattr(f, 'only_on_date_or_keyword')
+assert f.only_on_date_or_keyword() == 'The answer is 42'
 
 f = Filter.Date(10, 42)
 assert isinstance(f, Filter)
 assert f.is_date()
 assert (f.min, f.max) == (10, 42)
+assert hasattr(f, 'only_on_date_or_keyword')
+assert f.only_on_date_or_keyword() == 'The answer is 42'
 
 f = Filter.Duration()
 assert isinstance(f, Filter)
 assert f.is_duration()
 assert f.value == 3600
+assert not hasattr(f, 'only_on_date_or_keyword')
 
 f = Filter.Duration(value=4759)
 assert f.value == 4759

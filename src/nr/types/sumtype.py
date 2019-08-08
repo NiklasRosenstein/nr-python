@@ -83,10 +83,22 @@ class member_of(object):
   """
 
   def __init__(self, constructors=None, value=None, name=None):
-    if isinstance(constructors, Constructor):
+    def accept(x):
+      return isinstance(x, Constructor) or (
+        isinstance(x, type) and issubclass(x, _record.CleanRecord))
+    def coerce(x):
+      if isinstance(x, Constructor):
+        return x
+      elif isinstance(x, type) and issubclass(x, _record.CleanRecord):
+        # NOTE(nrosenstein): This only works because
+        #   [[Constructor.add_member()]] actually adds the member to the
+        #   internal record type, which here is "x".
+        return Constructor(x)
+      else:
+        raise TypeError('expected Constructor or record type', x)
+    if accept(constructors):
       constructors = [constructors]
-    if any(not isinstance(x, Constructor) for x in constructors):
-      raise TypeError('expected only Constructor objects')
+    constructors = [coerce(x) for x in constructors]
     self.constructors = constructors
     self.value = value
     self.name = name
