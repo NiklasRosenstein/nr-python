@@ -1,6 +1,6 @@
 # Changelog
 
-### v2.5.1 @unreleased
+### v2.5.1 (2019-08-08)
 
 * Fixed unpacking `MethodType` in `Implementation.__metanew__()`
   * This error would surface when using a `@classmethod` in an interface
