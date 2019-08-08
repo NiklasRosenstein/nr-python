@@ -11,6 +11,9 @@ def test_sumtypes():
     class Ok(record.Record):
       __fields__ = ['filename', 'load']
 
+      def say_ok(self):
+        return 'Ok! ' + self.load()
+
     @sumtype.member_of([Loading])
     def alert(self):
       return 'Progress: ' + str(self.progress)
@@ -48,7 +51,13 @@ def test_sumtypes():
   assert x.alert() == 'Progress: 0.5'
   assert x.progress == 0.5
   assert isinstance(x, MoreResult)
+  assert not hasattr(x, 'say_ok')
 
   x = MoreResult.InvalidState()
   assert x.is_invalid_state()
   assert isinstance(x, MoreResult)
+  assert not hasattr(x, 'say_ok')
+
+  ok = MoreResult.Ok('/tmp/test.txt', lambda: 'Hello')
+  assert hasattr(ok, 'say_ok')
+  assert ok.say_ok() == 'Ok! Hello'
