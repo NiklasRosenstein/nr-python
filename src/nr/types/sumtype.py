@@ -31,12 +31,9 @@ import six
 class Constructor(object):
   """
   Represents a constructor for a sumtype. Constructors are declared using
-  record types (see the #record module) or by creating #Constructor objects
-  from scratch (with the same interface as the #recor.create_record()
-  function).
-
-  This class is only used temporarily during the declaration of a sumtype
-  and is then replaced by a #BoundConstructor.
+  record types (see the [[record]] module) or by creating [[Constructor]]
+  objects from scratch (with the same interface as the
+  [[record.create_record()]] function).
   """
 
   def __init__(self, record_or_fields=(), *mixins):
@@ -45,7 +42,7 @@ class Constructor(object):
 
     # Arguments (1)
 
-    record (type): A #record.CleanRecord subclass.
+    record (type): A [[record.CleanRecord]] subclass.
 
     # Arguments (2)
 
@@ -65,6 +62,11 @@ class Constructor(object):
     setattr(self.record, name, value)
 
   def bind(self, name, sumtype):
+    """
+    Binds the [[Constructor]] to the [[Sumtype]] class. It basically just
+    rebuilds the [[#record]] class to be a subclass of the *sumtype*.
+    """
+
     name = sumtype.__name__ + '.' + name
     attrs = {'__skip_sumtype_meta__': True}
     typ = type(name, (sumtype, self.record), attrs)
@@ -76,8 +78,8 @@ class member_of(object):
   """
   A decorator for functions or values that are supposed to be members of
   only a specific sumtype's constructor (or multiple constructors). Instances
-  of this class will be automatically unpacked by the :class:`_SumtypeMeta`
-  constructor and moved into the :attr:`Constructor.members` dictionary.
+  of this class will be automatically unpacked by the [[_SumtypeMeta]]
+  constructor and moved into the [[Constructor.members]] dictionary.
   """
 
   def __init__(self, constructors=None, value=None, name=None):
