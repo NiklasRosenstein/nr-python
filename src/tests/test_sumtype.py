@@ -1,5 +1,5 @@
 
-from nr.types import record, sumtype
+from nr.types import sumtype
 
 
 def test_sumtypes():
@@ -8,7 +8,7 @@ def test_sumtypes():
     Loading = sumtype.constructor('progress')
     Error = sumtype.constructor('message')
 
-    class Ok(record.Record):
+    class Ok(sumtype.record):
       __fields__ = ['filename', 'load']
 
       def say_ok(self):

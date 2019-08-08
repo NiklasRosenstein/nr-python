@@ -165,6 +165,8 @@ def add_is_methods(sumtype):
 
 
 Sumtype.constructor = Constructor
+Sumtype.record = _record.Record
+Sumtype.field = _record.Field
 Sumtype.member_of = member_of
 Sumtype.add_is_methods = add_is_methods
 Sumtype.__addins__.append(add_is_methods)

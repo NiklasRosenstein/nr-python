@@ -10,6 +10,8 @@
 * Allow using `@staticattr` to decorate methods, which will then be kept
   as an actual member on the interface. A common use case will be to define
   a `@classmethod` on the interface itself.
+* Add `record` and `field` member to the `nr.types.sumtype` class, which act
+  as aliases for `nr.types.record.Record` and `nr.types.record.Field`.
 
 ### v2.5.0 (2019-07-19)
 
