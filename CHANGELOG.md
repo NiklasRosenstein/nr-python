@@ -1,5 +1,9 @@
 # Changelog
 
+### v2.5.3 (2019-08-08)
+
+* Hotfix for Python 2 and `sumtype.constructor(mixins)` keyword argument
+
 ### v2.5.2 (2019-08-08)
 
 * `sumtype.constructor()` now accepts multiple field names as arguments

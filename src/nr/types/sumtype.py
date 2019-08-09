@@ -36,7 +36,7 @@ class Constructor(object):
   [[record.create_record()]] function).
   """
 
-  def __init__(self, *record_or_fields, mixins=()):
+  def __init__(self, *record_or_fields, **kwargs):
     """
     Creates a new constructor object.
 
@@ -49,6 +49,10 @@ class Constructor(object):
     fields (list, dict, str): Fields for the new record class.
     mixins (tuple of type): Mixins for the record subclass.
     """
+
+    mixins = kwargs.pop('mixins', ())
+    for key in kwargs:
+      raise TypeError('unexpected keyword argument {!r}'.format(key))
 
     if len(record_or_fields) == 1 and isinstance(record_or_fields[0], type):
       if not issubclass(record_or_fields[0], _record.CleanRecord):
