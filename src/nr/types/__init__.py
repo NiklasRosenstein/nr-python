@@ -1,6 +1,6 @@
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '2.5.2'
+__version__ = '2.5.3'
 
 
 class NotSetType(object):
