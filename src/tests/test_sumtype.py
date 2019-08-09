@@ -68,8 +68,12 @@ def test_sumtype_default():
 
   class MySumtype(sumtype):
     A = sumtype.constructor('a')
-    B = sumtype.constructor('b')
+    B = sumtype.constructor('b', 'c')
     __default__ = A
 
   assert type(MySumtype(42)) is MySumtype.A
   assert MySumtype(42).a == 42
+
+  assert type(MySumtype.B(1, 2)) is MySumtype.B
+  assert MySumtype.B(1, 2) == MySumtype.B(1, 2)
+  assert MySumtype.B(1, 2).c == 2

@@ -1,5 +1,11 @@
 # Changelog
 
+### v2.6.0 (2019-08-08)
+
+* `sumtype.constructor()` now accepts multiple field names as arguments
+* `sumtype` now supports a `__default__` constructor (can be set to a string
+  or a `Constructor` instance)
+
 ### v2.5.1 (2019-08-08)
 
 * Fixed unpacking `MethodType` in `Implementation.__metanew__()`

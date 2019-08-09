@@ -36,7 +36,7 @@ class Constructor(object):
   [[record.create_record()]] function).
   """
 
-  def __init__(self, record_or_fields=(), *mixins):
+  def __init__(self, *record_or_fields, mixins=()):
     """
     Creates a new constructor object.
 
@@ -50,10 +50,10 @@ class Constructor(object):
     mixins (tuple of type): Mixins for the record subclass.
     """
 
-    if isinstance(record_or_fields, type):
-      if not issubclass(record_or_fields, _record.CleanRecord):
+    if len(record_or_fields) == 1 and isinstance(record_or_fields[0], type):
+      if not issubclass(record_or_fields[0], _record.CleanRecord):
         raise TypeError('expected record.CleanRecord subclass')
-      record = record_or_fields
+      record = record_or_fields[0]
     else:
       record = _record.create('_Temporary', record_or_fields, *mixins)
     self.record = record
@@ -149,6 +149,9 @@ class Sumtype(InlineMetaclassBase):
     if default_constructor:
       assert default_constructor.name
       subtype.__default__ = default_constructor.name
+    if hasattr(subtype, '__default__') and not isinstance(subtype.__default__, str):
+      raise TypeError('{}.__default__ must be a str, got value {}'
+                      .format(subtype.__name__, subtype.__default__))
 
     # Invoke addons.
     for addin in getattr(subtype, '__addins__', []):
