@@ -280,6 +280,16 @@ class FieldSpec(object):
       fields.append((name, value))
     return cls(fields)
 
+  @classmethod
+  def merge(cls, field_a, fields_b):
+    """
+    Merge the fields of two [[FieldSpec]] objects into a single spec.
+    """
+
+    fields = field_a.all().copy()
+    fields.update(fields_b.all())
+    return cls(fields)
+
   def __init__(self, fields=()):
     if hasattr(fields, 'items') or hasattr(fields, 'iteritems'):
       fields = list(six.iteritems(fields))
@@ -330,12 +340,18 @@ class _ObjectMeta(type):
   """
 
   def __init__(self, name, bases, attrs):
+    # Collect inherited fields.
+    parent_fields = FieldSpec()
+    for base in bases:
+      if hasattr(base, '__fields__') and isinstance(base.__fields__, FieldSpec):
+        parent_fields = FieldSpec.merge(parent_fields, base.__fields__)
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level [[Field]] objects.
     if hasattr(self, '__annotations__'):
       fields = FieldSpec.from_annotations(self)
     else:
       fields = FieldSpec.from_class_members(self)
+    fields = FieldSpec.merge(parent_fields, fields)
     for key in fields:
       setattr(self, key, fields[key])
     self.__fields__ = fields

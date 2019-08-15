@@ -241,6 +241,21 @@ def test_object():
   assert extract(payload, List[Person]) == expected
 
 
+def test_object_subclassing():
+
+  class Person(Object):
+    name = Field(str)
+
+  class Student(Person):
+    student_id = Field(str)
+
+  assert len(Student.__fields__) == 2
+  assert list(Student.__fields__) == ['name', 'student_id']
+  assert Student.name is Person.name
+  assert Student('John Wick', '4341115409').name == 'John Wick'
+  assert Student('John Wick', '4341115409').student_id == '4341115409'
+
+
 def _test_forward_decl_node(Node):
   payload = {
     'id': 'root',

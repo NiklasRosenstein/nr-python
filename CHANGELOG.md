@@ -1,5 +1,10 @@
 # Changelog
 
+### v2.5.4 (2019-08-15)
+
+* Subclasses of other `structured.Object` subclasses now properly inherit
+  the parent object's fields
+
 ### v2.5.3 (2019-08-08)
 
 * Hotfix for Python 2 and `sumtype.constructor(mixins)` keyword argument
