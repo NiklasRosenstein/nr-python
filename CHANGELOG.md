@@ -1,5 +1,13 @@
 # Changelog
 
+### v2.5.5 (unreleased)
+
+* `nr.types.interface`
+  * (#7) Updated `ImplementationError.__str__()` to render `{}` inset of `set()`
+    when the implementation does not meet the requierments of "no interfaces"
+    (ie. when specifying `@override` for an implementation of no interfaces).
+  * (#8) Implemented interfaces are now inherited by implementation subclasses.
+
 ### v2.5.4 (2019-08-15)
 
 * Subclasses of other `structured.Object` subclasses now properly inherit
