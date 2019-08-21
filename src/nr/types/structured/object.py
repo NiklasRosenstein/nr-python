@@ -473,7 +473,10 @@ class _ObjectMeta(type):
       self.Meta = Meta
 
   def __dir__(self):
-    result = super(_ObjectMeta, self).__dir__()
+    if six.PY2:
+      result = vars(self).keys()
+    else:
+      result = super(_ObjectMeta, self).__dir__()
     result.extend(self.__fields__.keys())
     return result
 
