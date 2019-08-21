@@ -308,10 +308,10 @@ def test_metadata_field():
 
   # Test read function that doesn't add to handled_keys.
 
-  def read(locator, handled_keys):
-    return locator.value().get('_metadata', {}).get('meta', NotSet)
+  def metadata_getter(locator, handled_keys):
+    return locator.value().get('_metadata', {})
 
-  Test.meta.read = read
+  Test.meta.metadata_getter = metadata_getter
   data = {'_metadata': {'meta': 'bar'}, 'value': 42}
   with pytest.raises(ExtractValueError) as excinfo:
     extract(data, Test)
@@ -323,11 +323,11 @@ def test_metadata_field():
 
   # Test read function that _does_ add to handled_keys.
 
-  def read(locator, handled_keys):
+  def metadata_getter(locator, handled_keys):
     handled_keys.add('_metadata')  # allow even in _strict mode
-    return locator.value().get('_metadata', {}).get('meta', NotSet)
+    return locator.value().get('_metadata', {})
 
-  Test.meta.read = read
+  Test.meta.metadata_getter = metadata_getter
   Test.Meta.strict = True
   data = {'_metadata': {'meta': 'bar'}, 'value': 42}
   assert extract(data, Test).meta == 'bar'

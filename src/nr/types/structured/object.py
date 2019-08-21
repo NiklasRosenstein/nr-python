@@ -235,87 +235,57 @@ class MetadataField(Field):
   Represents a field which, on extract, is read from metadata that is
   present on the object from which the field is being extract.
 
-  By default, metadata is read from the mapping that during extraction
-  by using its `__metadata__` attributem (if it exists). Alternatively,
-  the `metadata_getter` can be specified when using the [[extract()]]
-  function to specify the method of how to retrieve metadata for a certain
-  mapping.
+  There are two things that can be configured to how the metadata is read:
 
-  A metadata field is always optional and considered as "derived" field
-  by (meaning that it will not be serialized).
+  * The `metadata_getter` to get the metadata container (defined as a
+    parameter to the field, or otherwise retrieved from the options passed
+    to [[extract()]]). The [[default_metadata_getter()]] is used if neither
+    is defined.
+  * The `getter` to get the field value (defined as a parameter to the field,
+    or otherwise constructed automtically from the field name or the specified
+    *key* argument).
 
-  If *read* is specified, it must be a function that accepts the
-  [[Locator]], a [[set]] of the handled object keys and the metadata getter
-  function that woudl normally be used if the *read* function was not
-  specified. The function is supposed to return the value for the metadata
-  field, or [[NotSet]] if the default shall be used.
+  The `metadata_getter` must be a function with the signature
+  `(locator: Locator, handled_keys: Set[str]) -> Optional[Any]`.
 
-  Example `read()` function:
-
-  ```py
-  def read(locator, handled_keys, metadata_getter):
-    # allow additional _metadata key even in strict mode
-    handled_keys.add('_metadata')
-    metadata = locator.value().get('_metadata')
-    if metadata is not None and 'my_key' in metadata:
-      return metadata['my_key']
-    return NotSet
-  ```
-
-  Note that the same behavior could be achieved just with specifying
-  a `metadata_getter`:
-
-  ```py
-  def metadata_getter(data, handled_keys):
-    handled_keys.add('_metadata')  # again, for strict Objects
-    return data.get('_metadata', None)
-
-  class MyObject(Object):
-    my_key = MetadataField(str)
-    value = Field(int)
-    class Meta:
-      strict = True
-
-  data = {'_metadata': {'my_key': 'Wicked'}, 'value': 42}
-  obj = extract(object_data, MyObject, metadata_getter=metadata_getter)
-  assert obj.my_key == 'Wicked'
-  assert obj.value == 42
-  ```
+  The `getter` must be a function with the signature
+  `(metadata: Any) -> Union[Any, NotSet]`.
   """
 
   def __init__(self, datatype, default=None, name=None, key=None,
-               read=None):
+               metadata_getter=None, getter=None):
     super(MetadataField, self).__init__(
       datatype=datatype, nullable=True, required=False,
       default=default, name=name)
     self.derived = True
     self.key = key
-    self.read = None
+    self.metadata_getter = metadata_getter
+    self.getter = getter
 
   @override
   def extract_kwargs(self, object_cls, locator, kwargs, handled_keys):
     assert self.name not in kwargs, (self, object_cls, locator)
-    options = locator.options
-    metadata_getter = options.get('metadata_getter', None)
+
+    metadata_getter = self.metadata_getter
     if metadata_getter is None:
-      metadata_getter = MetadataField.default_metadata_getter
-    if self.read is not None:
-      value = self.read(locator, handled_keys)
-    else:
-      metadata = metadata_getter(locator.value(), handled_keys)
-      key = self.key or self.name
-      if metadata is not None and key in metadata:
-        value = metadata[key]
-      else:
-        value = NotSet
-    if value is not NotSet:
-      # NOTE(nrosenstein): It's intentional we don't add to handled_keys
-      #   as we didn't actually read from the value's keys.
-      kwargs[self.name] = value
+      metadata_getter = locator.options.get('metadata_getter', None)
+    if metadata_getter is None:
+      metadata_getter = self.default_metadata_getter
+
+    getter = self.getter
+    if getter is None:
+      def getter(metadata):
+        return metadata.get(self.key or self.name, NotSet)
+
+    metadata = metadata_getter(locator, handled_keys)
+    if metadata is not None:
+      value = getter(metadata)
+      if value is not NotSet:
+        kwargs[self.name] = value
 
   @staticmethod
-  def default_metadata_getter(obj, handled_keys):
-    value = getattr(obj, '__metadata__', None)
+  def default_metadata_getter(locator, handled_keys):
+    value = getattr(locator.value(), '__metadata__', None)
     if not isinstance(value, Mapping):
       value = None
     return value
