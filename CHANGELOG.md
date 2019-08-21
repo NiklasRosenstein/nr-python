@@ -10,6 +10,9 @@
 * `nr.types.structured`
   * (#6) Add `FieldSpec.update()` function in order to allow updating the
     fields of an `Object` class (useful for decorators)
+  * `Object` metaclass now overrides `__dir__()` and `__getattr__()` to return
+    items from its `__fields__` attribute, allowing updates to the `FieldSpec`
+    to automatically propagate as class members.
 
 ### v2.5.4 (2019-08-15)
 

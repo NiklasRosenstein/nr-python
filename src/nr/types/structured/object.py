@@ -370,13 +370,24 @@ class _ObjectMeta(type):
       fields = FieldSpec.from_class_members(self)
     fields = FieldSpec.merge(parent_fields, fields)
     for key in fields:
-      setattr(self, key, fields[key])
+      if key in vars(self):
+        delattr(self, key)
     self.__fields__ = fields
 
     if not hasattr(self, 'Meta'):
       class Meta:
         pass
       self.Meta = Meta
+
+  def __dir__(self):
+    result = super(_ObjectMeta, self).__dir__()
+    result.extend(self.__fields__.keys())
+    return result
+
+  def __getattr__(self, name):
+    if name in self.__fields__:
+      return self.__fields__[name]
+    return super(_ObjectMeta, self).__getattr__(self, name)
 
 
 @six.add_metaclass(_ObjectMeta)

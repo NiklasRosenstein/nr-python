@@ -263,11 +263,18 @@ def test_fieldspec_update():
     foo = Field(str)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo']
+  assert hasattr(TestObject, 'test')
+  assert hasattr(TestObject, 'foo')
 
   fields = [('test', Field(str)), ('bar', Field(object))]
   TestObject.__fields__.update(fields)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
+  assert hasattr(TestObject, 'test')
+  assert hasattr(TestObject, 'foo')
+  assert hasattr(TestObject, 'bar')
+
+  assert set(dir(TestObject)).issuperset(set(['test', 'foo', 'bar']))
 
 
 def _test_forward_decl_node(Node):
