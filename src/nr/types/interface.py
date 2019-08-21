@@ -453,7 +453,7 @@ class ImplementationError(RuntimeError):
         self.impl.__name__,
         '' if len(self.interfaces) == 1 else 's',
         self.interfaces[0].__name__ if len(self.interfaces) == 1 else
-          set(x.__name__ for x in self.interfaces),
+          ('{' + ', '.join(repr(x.__name__) for x in self.interfaces) + '}'),
       )
     )
     lines += ['  - {}'.format(x) for x in self.errors]
