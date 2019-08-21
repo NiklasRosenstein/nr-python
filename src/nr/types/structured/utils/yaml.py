@@ -27,6 +27,7 @@ dicts with a `__metadata__` attribute which in turn contains a "filename" and
 Note that using this module requires PyYaml installed.
 """
 
+from __future__ import absolute_import
 import io
 import types
 import yaml
