@@ -267,6 +267,7 @@ def test_fieldspec_update():
   assert hasattr(TestObject, 'test')
   assert hasattr(TestObject, 'foo')
   assert set(dir(TestObject)).issuperset(set(['test', 'foo']))
+  assert TestObject.foo.name == 'foo'
 
   fields = [('test', Field(str)), ('bar', Field(object))]
   TestObject.__fields__.update(fields)
@@ -276,6 +277,7 @@ def test_fieldspec_update():
   assert hasattr(TestObject, 'foo')
   assert hasattr(TestObject, 'bar')
   assert set(dir(TestObject)).issuperset(set(['test', 'foo', 'bar']))
+  assert TestObject.bar.name == 'bar'
 
 
 def test_metadata_field():

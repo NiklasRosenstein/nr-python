@@ -404,6 +404,7 @@ class FieldSpec(object):
     spec = FieldSpec(fields)
     for key, value in spec.__all.items():
       self.__all[key] = value
+      value.bind(key)
     for key, value in spec.__by_priority.items():
       self.__by_priority[key] = value
     for key, value in spec.__underived.items():
