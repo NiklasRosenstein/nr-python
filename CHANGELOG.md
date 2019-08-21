@@ -14,6 +14,10 @@
     items from its `__fields__` attribute, allowing updates to the `FieldSpec`
     to automatically propagate as class members.
   * (#5) Add `MetadataField` class
+  * Add `nr.types.structured.utils` module with `add_origin_metadata_field()` decorator
+  * Add `nr.types.structured.utils.yaml` module which allows to load Yaml data
+    while keepin track of filename and line number.
+
 
 ### v2.5.4 (2019-08-15)
 

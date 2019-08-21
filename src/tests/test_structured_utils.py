@@ -19,34 +19,33 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .errors import *
-from .locator import *
-from .types import *
-from .object import *
-from . import utils
+from nr.types.structured import *
+from nr.types.structured.utils.yaml import load as load_yaml_with_metadata
 
 
-def extract(value, py_type_def, locator=None, **options):
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.Root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
-  return locator.extract()
+def test_add_origin_metadata_field():
 
+  @utils.add_origin_metadata_field()
+  class Item(Object):
+    name = Field(str)
 
-def store(value, py_type_def=None, locator=None, **options):
-  if py_type_def is None and isinstance(value, Object):
-    py_type_def = type(value)
+  class Config(Object):
+    items = Field([Item])
 
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.Root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
+  yaml_data = '''
+    items:
+      - name: foo
+      - name: bar
+      - name: baz
+  '''
 
-  return locator.store()
+  data = load_yaml_with_metadata(yaml_data, filename='foobar.yaml')
+  obj = extract(data, Config)
 
+  assert obj.items[0].origin.filename == 'foobar.yaml'
+  assert obj.items[1].origin.filename == 'foobar.yaml'
+  assert obj.items[2].origin.filename == 'foobar.yaml'
 
-__all__ = errors.__all__ + locator.__all__ + types.__all__ + object.__all__
-__all__ += ['utils', 'extract', 'store']
+  assert obj.items[0].origin.lineno == 3
+  assert obj.items[1].origin.lineno == 4
+  assert obj.items[2].origin.lineno == 5

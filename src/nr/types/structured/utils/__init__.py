@@ -19,34 +19,35 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .errors import *
-from .locator import *
-from .types import *
-from .object import *
-from . import utils
+"""
+Some common utility functions for working with the [[nr.types.structured]]
+module.
+"""
+
+from ..object import Field, MetadataField, Object
 
 
-def extract(value, py_type_def, locator=None, **options):
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.Root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
-  return locator.extract()
+class OriginInfo(Object):
+  filename = Field(str)
+  lineno = Field(int)
 
 
-def store(value, py_type_def=None, locator=None, **options):
-  if py_type_def is None and isinstance(value, Object):
-    py_type_def = type(value)
+def add_origin_metadata_field(field_name='origin'):
+  """
+  A decorator for [[Object]] subclasses that adds an "origin" metadata field
+  that extracts a "filename" and "lineno" key from the metadata (if present).
+  """
 
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.Root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
+  def getter(metadata):
+    return OriginInfo(metadata.get('filename'), metadata.get('lineno'))
 
-  return locator.store()
+  def decorator(object_cls):
+    object_cls.__fields__.update([
+      (field_name, MetadataField(OriginInfo, getter=getter))
+    ])
+    return object_cls
+
+  return decorator
 
 
-__all__ = errors.__all__ + locator.__all__ + types.__all__ + object.__all__
-__all__ += ['utils', 'extract', 'store']
+__all__ = ['add_origin_metadata_field']
