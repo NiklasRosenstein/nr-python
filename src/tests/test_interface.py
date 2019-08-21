@@ -141,6 +141,27 @@ def test_interface_constructor():
   assert Foo(42).y['value'] == 84
 
 
+def test_implementation_subclassing():
+
+  class I(Interface):
+    def a(self): pass
+
+  @implements(I)
+  class A(object):
+    @override
+    def a(self): return 42
+
+  assert A.__implements__ == [I]
+  assert A().a() == 42
+
+  class B(A):
+    @override
+    def a(self): return 99
+
+  assert B.__implements__ == [I]
+  assert B().a() == 99
+
+
 def test_default():
 
   class IFoo(Interface):

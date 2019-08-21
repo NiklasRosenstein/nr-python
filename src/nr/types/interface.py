@@ -466,9 +466,21 @@ class Implementation(InlineMetaclassBase):
   """
 
   def __metanew__(cls, name, bases, attrs):
-    implements = attrs.setdefault('__implements__', [])
+    implements = []
+    if bases != (InlineMetaclassBase,):  # Subclass of Implementation
+      for base in bases:
+        if issubclass(base, Implementation):
+          for interface in base.__implements__:
+            if interface not in implements:
+              implements.append(interface)
+
+    for interface in attrs.get('__implements__', []):
+      if interface not in implements:
+        implements.append(interface)
+
     implements = reduce_interfaces(implements)
     check_conflicting_interfaces(implements)
+    attrs['__implements__'] = implements
 
     # Assign default implementations and static attributes.
     for interface in implements:
