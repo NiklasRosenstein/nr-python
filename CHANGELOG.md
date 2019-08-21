@@ -13,6 +13,7 @@
   * `Object` metaclass now overrides `__dir__()` and `__getattr__()` to return
     items from its `__fields__` attribute, allowing updates to the `FieldSpec`
     to automatically propagate as class members.
+  * (#5) Add `MetadataField` class
 
 ### v2.5.4 (2019-08-15)
 

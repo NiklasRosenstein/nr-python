@@ -23,6 +23,7 @@ import pytest
 import six
 import sys
 import textwrap
+from nr.types import NotSet
 from nr.types.structured import *
 
 
@@ -265,6 +266,7 @@ def test_fieldspec_update():
   assert list(TestObject.__fields__.keys()) == ['test', 'foo']
   assert hasattr(TestObject, 'test')
   assert hasattr(TestObject, 'foo')
+  assert set(dir(TestObject)).issuperset(set(['test', 'foo']))
 
   fields = [('test', Field(str)), ('bar', Field(object))]
   TestObject.__fields__.update(fields)
@@ -273,8 +275,63 @@ def test_fieldspec_update():
   assert hasattr(TestObject, 'test')
   assert hasattr(TestObject, 'foo')
   assert hasattr(TestObject, 'bar')
-
   assert set(dir(TestObject)).issuperset(set(['test', 'foo', 'bar']))
+
+
+def test_metadata_field():
+
+  class Test(Object):
+    meta = MetadataField(str)
+    value = Field(int)
+
+    class Meta:
+      strict = True
+
+  assert Test('foo', 42).meta == 'foo'
+  assert Test('foo', 42).value == 42
+
+  data = {'meta': 'foo', 'value': 42}
+  with pytest.raises(ExtractValueError) as excinfo:
+    extract(data, Test)
+  assert 'does not allow additional keys on extract' in str(excinfo.value)
+
+  data = {'value': 42}
+  assert extract(data, Test).meta is None
+  assert extract(data, Test).value == 42
+
+  class Map(dict):
+    pass
+  data = Map({'value': 42})
+  data.__metadata__ = {'meta': 'foo'}
+  assert extract(data, Test).meta == 'foo'
+  assert extract(data, Test).value == 42
+
+  # Test read function that doesn't add to handled_keys.
+
+  def read(locator, handled_keys):
+    return locator.value().get('_metadata', {}).get('meta', NotSet)
+
+  Test.meta.read = read
+  data = {'_metadata': {'meta': 'bar'}, 'value': 42}
+  with pytest.raises(ExtractValueError) as excinfo:
+    extract(data, Test)
+  assert 'does not allow additional keys on extract' in str(excinfo.value)
+
+  Test.Meta.strict = False
+  assert extract(data, Test).meta == 'bar'
+  assert extract(data, Test).value == 42
+
+  # Test read function that _does_ add to handled_keys.
+
+  def read(locator, handled_keys):
+    handled_keys.add('_metadata')  # allow even in _strict mode
+    return locator.value().get('_metadata', {}).get('meta', NotSet)
+
+  Test.meta.read = read
+  Test.Meta.strict = True
+  data = {'_metadata': {'meta': 'bar'}, 'value': 42}
+  assert extract(data, Test).meta == 'bar'
+  assert extract(data, Test).value == 42
 
 
 def _test_forward_decl_node(Node):
