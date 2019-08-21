@@ -23,6 +23,8 @@
 Provides a [[YamlLineNumberLoaderMixin]] that augements Yaml sets, lists and
 dicts with a `__metadata__` attribute which in turn contains a "filename" and
 "lineno" key.
+
+Note that using this module requires PyYaml installed.
 """
 
 import io
