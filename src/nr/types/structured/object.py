@@ -329,6 +329,23 @@ class FieldSpec(object):
   def underived(self):
     return self.__underived
 
+  def update(self, fields):
+    # type: (Union[dict, list, FieldSpec]) -> None
+    """
+    Updates the field spec with the specified with the other *fields*. If
+    a field is overwritten, it's position in the [[by_priority()]] order
+    will stay constant, even if the overwritten field's priority would
+    actually put it into a different position.
+    """
+
+    spec = FieldSpec(fields)
+    for key, value in spec.__all.items():
+      self.__all[key] = value
+    for key, value in spec.__by_priority.items():
+      self.__by_priority[key] = value
+    for key, value in spec.__underived.items():
+      self.__underived[key] = value
+
 
 class _ObjectMeta(type):
   """

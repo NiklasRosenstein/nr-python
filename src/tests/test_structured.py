@@ -256,6 +256,20 @@ def test_object_subclassing():
   assert Student('John Wick', '4341115409').student_id == '4341115409'
 
 
+def test_fieldspec_update():
+
+  class TestObject(Object):
+    test = Field(int)
+    foo = Field(str)
+
+  assert list(TestObject.__fields__.keys()) == ['test', 'foo']
+
+  fields = [('test', Field(str)), ('bar', Field(object))]
+  TestObject.__fields__.update(fields)
+
+  assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
+
+
 def _test_forward_decl_node(Node):
   payload = {
     'id': 'root',

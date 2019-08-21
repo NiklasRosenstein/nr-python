@@ -7,6 +7,9 @@
     when the implementation does not meet the requierments of "no interfaces"
     (ie. when specifying `@override` for an implementation of no interfaces).
   * (#8) Implemented interfaces are now inherited by implementation subclasses.
+* `nr.types.structured`
+  * (#6) Add `FieldSpec.update()` function in order to allow updating the
+    fields of an `Object` class (useful for decorators)
 
 ### v2.5.4 (2019-08-15)
 
