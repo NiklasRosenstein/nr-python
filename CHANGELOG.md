@@ -1,6 +1,6 @@
 # Changelog
 
-### v2.5.5 (unreleased)
+### v2.5.5 (2019-08-22)
 
 * `nr.types.interface`
   * (#7) Updated `ImplementationError.__str__()` to render `{}` inset of `set()`
