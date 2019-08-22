@@ -45,8 +45,14 @@ class _dualmethod(object):
   def __get__(self, instance, owner):
     assert owner is not None
     if instance is not None:
-      return functools.partial(self.func, owner, instance)
-    return functools.partial(self.func, owner)
+      @functools.wraps(self)
+      def function(*args, **kwargs):
+        return self.func(owner, instance, *args, **kwargs)
+    else:
+      @functools.wraps(self)
+      def function(*args, **kwargs):
+        return self.func(owner, *args, **kwargs)
+    return function
 
 
 class stream(object):

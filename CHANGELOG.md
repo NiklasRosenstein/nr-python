@@ -17,6 +17,10 @@
   * Add `nr.types.structured.utils` module with `add_origin_metadata_field()` decorator
   * Add `nr.types.structured.utils.yaml` module which allows to load Yaml data
     while keepin track of filename and line number.
+* `nr.types.stream`
+  * Methods on the `stream` class wrapped by the `@_dualmethod` decorator are
+    now proper function objects, inheriting the wrapped functions' docstrings
+    (useful for `$ pydoc nr.types.stream`).
 
 
 ### v2.5.4 (2019-08-15)
