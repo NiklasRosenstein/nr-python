@@ -141,7 +141,7 @@ class stream(object):
   @_dualmethod
   def concat(cls, iterables):
     """
-    Similar to #itertools.chain.from_iterable().
+    Concatenate all iterables in *iterables* into a single stream of values.
     """
 
     def generator():
@@ -153,14 +153,10 @@ class stream(object):
   @_dualmethod
   def chain(cls, *iterables):
     """
-    Similar to #itertools.chain.from_iterable().
+    Chain all of the specified iterables into a single iterable.
     """
 
-    def generator():
-      for it in iterables:
-        for element in it:
-          yield element
-    return cls(generator())
+    return cls.concat(iterables)
 
   @_dualmethod
   def attr(cls, iterable, attr_name):
