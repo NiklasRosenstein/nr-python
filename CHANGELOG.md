@@ -1,5 +1,9 @@
 # Changelog
 
+### v2.6.0 (unreleased)
+
+* Moved `nr.types._impl.ordereddict` to `nr.types.maps.ordereddict`
+
 ### v2.5.5 (2019-08-22)
 
 * `nr.types.interface`

@@ -24,12 +24,12 @@ __all__ = ['OrderedDict', 'ObjectAsDict', 'ObjectFromDict', 'ChainDict',
 
 import six
 
-from . import abc, generic
+from .. import abc, generic
 
 try:
   from collections import OrderedDict
 except ImportError:
-  from ._impl.ordereddict import OrderedDict
+  from .ordereddict import OrderedDict
 
 if six.PY2:
   _can_iteritems = lambda x: hasattr(x, 'iteritems')
