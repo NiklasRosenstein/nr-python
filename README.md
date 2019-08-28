@@ -36,14 +36,14 @@ and function objects.
 <details doctest name='functools.example'><summary>Example:</summary>
 
 ```python
-import nr.types.functools as ft
+from nr.types.utils.function import copy_function
 def test(value):
   def x():
     return value
   return x
 x = test(42)
 assert x() == 42
-y = ft.copy_function(x, closure={'value': 99})
+y = copy_function(x, closure={'value': 99})
 assert y() == 99
 ```
 </details>
@@ -163,11 +163,11 @@ callable.
 <details doctest name="proxy"><summary>Example for `proxy` class:</summary>
 
 ```python
-from nr.types import proxy
+from nr.types.proxy import proxy_decorator
 
 count = 0
 
-@proxy
+@proxy_decorator()
 def auto_increment():
   global count
   count += 1
@@ -182,11 +182,11 @@ assert auto_increment + 10 == 13
 <details doctest name="proxy.lazy"><summary>Example for `proxy` class:</summary>
 
 ```python
-from nr.types.proxy import lazy_proxy
+from nr.types.proxy import proxy_decorator
 
 count = 0
 
-@lazy_proxy
+@proxy_decorator(lazy=True)
 def not_incrementing():
   global count
   count += 1

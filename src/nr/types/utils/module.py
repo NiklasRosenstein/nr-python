@@ -19,10 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+"""
+Provides some fancy tools to augment module objects.
+"""
+
 import sys
 import types
-
-from .  import NotSet
+from nr.types.notset import NotSet
 
 
 class _InheritableModuleTypeClass(type):

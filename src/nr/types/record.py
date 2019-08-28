@@ -396,5 +396,5 @@ def clone_record(record_cls, name=None, module=None):
 create = create_record
 
 
-from . import moduletools as _moduletools
-_moduletools.make_inheritable(__name__, Record)
+from nr.types.utils.module import make_inheritable
+make_inheritable(__name__, Record)

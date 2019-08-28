@@ -20,13 +20,32 @@
 # IN THE SOFTWARE.
 
 """
-An alias for [[collections]] (Py2) or [[collections.abc]] (Py3).
+Provides the [[NotSet]] singleton, which is used in places where [[None]] is
+an acceptable value with different behavior than if the value is "not set".
 """
 
-try:
-  import collections.abc as _abc
-except ImportError:
-  import collections as _abc
 
-import sys
-sys.modules[__name__] = _abc
+class NotSetType(object):  # doc: ignore
+
+  def __new__(self):
+    global NotSet
+    if NotSet is not None:
+      return NotSet
+    NotSet = object.__new__(self)
+    return NotSet
+
+  def __repr__(self):
+    return 'NotSet'
+
+  def __bool__(self):
+    return False
+
+  def __nonzero__(self):
+    return False
+
+
+NotSet = None
+NotSet = NotSetType()
+
+
+__all__ = ['NotSet']

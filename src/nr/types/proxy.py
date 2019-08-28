@@ -19,32 +19,38 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import copy
+"""
+Provides the [[Proxy]] type which can imitate a Python object that is resolved
+on-demand.
+"""
 
+import copy
 from six import PY2, iteritems
 
 
-class proxy(object):
+class Proxy(object):
     """
     Wraps an object returned by a callable. Every time the proxy is accessed,
     the callable is invoked and the access is redirected to the proxied object.
 
-    > Note: that for some use cases, using a proxy can lead to problems. For
-    > example if you pass a proxy to a function that accepts an iterable or
-    > whatever other object you actually intend to pass. The instancecheck
-    > with #collections.abc.Iterable will always return #True as the #Proxy
-    > class implements the `__iter__()` method. If you are stuck with this
-    > problem, use the #make_proxy_class() function to create a new class
-    > excluding the `__iter__()` method.
+    .. note::
+
+        For some use cases, using a proxy can lead to problems when
+        `isinstance()` or checks are used. For example if you pass a proxy to
+        a function that accepts an iterable, the instancecheck with
+        [[collections.abc.Iterable]] will always return `True` as the [[Proxy]]
+        class implements the `__iter__()` method. If you are stuck with this
+        problem, use the [[make_proxy_class()]] function to create a new class
+        excluding the `__iter__()` method.
     """
 
     __slots__ = ("__local", "__dict__", "__name__", "__wrapped__")
     __is_proxy__ = True
 
     def __init__(self, local, name=None, lazy=False):
-        object.__setattr__(self, "_proxy__local", local)
-        object.__setattr__(self, "_proxy__lazy", lazy)
-        object.__setattr__(self, "_proxy__cache", None)
+        object.__setattr__(self, "_Proxy__local", local)
+        object.__setattr__(self, "_Proxy__lazy", lazy)
+        object.__setattr__(self, "_Proxy__cache", None)
         object.__setattr__(self, "__name__", name)
         if callable(local) and not hasattr(local, "__release_local__"):
             # "local" is a callable that is not an instance of Local or
@@ -54,7 +60,7 @@ class proxy(object):
     def _get_current_object(self):
         if self.__lazy:
             if self.__cache is None:
-                object.__setattr__(self, "_proxy__cache", self.__local())
+                object.__setattr__(self, "_Proxy__cache", self.__local())
             return self.__cache
         else:
             return self.__local()
@@ -175,32 +181,31 @@ class proxy(object):
     __class__ = property(lambda x: type(x._get_current_object()))
 
 
-class lazy_proxy(proxy):
+def proxy_decorator(proxy_cls=None, name=None, lazy=False):
+    """
+    Decorator for converting function declarations into [[Proxy]] objects.
+    """
 
-    def _get_current_object(self):
-        attr = '_lazy_proxy__value'
-        try:
-            return object.__getattribute__(self, attr)
-        except AttributeError:
-            # NOTE Using proxy._get_current_object() is not only incorrect
-            #      here (because it returns a bound function), but it also
-            #      crashes Python 2.7.16 on macOS (untested on other platfomrs).
-            value = proxy.__dict__['_get_current_object'](self)
-            object.__setattr__(self, attr, value)
-            return value
+    if proxy_cls is None:
+        proxy_cls = Proxy
+
+    def decorator(func):
+        return proxy_cls(func, name or func.__name__, lazy)
+
+    return decorator
 
 
 def make_proxy_class(name, base=None, include=None, exclude=None):
     """
-    Produces a new class that is the same as :class:`proxy` but does not
-    inherit from it. Members can be specifically included with the *include*
-    argument or excluded with *exclude*.
+    Produces a new class that is the same as [[Proxy]] but does not inherit
+    from it. Members can be specifically included and excluded with the
+    *include*/*exclude* arguments.
 
-    If *base* is not specified, it defaults to the *proxy* class.
+    If *base* is not specified, it defaults to the [[Proxy]] class.
     """
 
     if base is None:
-        base = proxy
+        base = Proxy
 
     members = {}
     for cls in reversed(base.__mro__):
@@ -222,7 +227,3 @@ def make_proxy_class(name, base=None, include=None, exclude=None):
             filtered_members[key] = value
 
     return type(name, (object,), filtered_members)
-
-
-from . import moduletools as _moduletools
-_moduletools.make_callable(__name__, proxy)
