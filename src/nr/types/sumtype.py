@@ -25,7 +25,7 @@ functional programming languages.
 """
 
 from nr.types.meta import InlineMetaclassBase
-from nr.types.structured import Object, Field, FieldSpec, create_object_class
+from nr.types.structured import Object, Field, FieldSpec, IFieldDescriptor, create_object_class
 from .meta import InlineMetaclassBase
 from six import iteritems
 from six.moves import zip
@@ -75,7 +75,15 @@ class Constructor(object):
         raise TypeError('unexpected keyword argument {!r}'.format(key))
 
     def build_fields(field_names):
-      return {name: Field(object) for name in field_names}
+      fields = {}
+      for item in field_names:
+        if isinstance(item, str):
+          fields[item] = Field(object)
+        elif IFieldDescriptor.provided_by(item):
+          if not item.name:
+            raise ValueError('found unnamed field: {!r}'.format(item))
+          fields[item.name] = item
+      return fields
 
     if len(args) == 1 and isinstance(args[0], type):  # NOTE: constructor 1
       raise_kwargs()

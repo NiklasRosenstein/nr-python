@@ -251,7 +251,9 @@ class Filter(Sumtype):
   # 1)
   Date = Constructor('min,max')
   # 2)
-  Keyword = Constructor('text')
+  Keyword = Constructor([
+    Field(str, name='text')
+  ])
   # 3)
   @Constructor
   class Duration(Object):
