@@ -4,6 +4,7 @@ This test file extracts all Python snippets from the README file and runs
 them as test cases.
 """
 
+import ast
 import bs4
 import logging
 import os
@@ -11,6 +12,8 @@ import pytest
 import re
 import six
 import sys
+
+from _pytest.assertion.rewrite import rewrite_asserts
 
 
 def create_test(filename, line_offset, name, snippet, pymin):
@@ -25,8 +28,9 @@ def create_test(filename, line_offset, name, snippet, pymin):
     raise RuntimeError('{!r} already exists'.format(name))
 
   def test_func():
-    code = compile('\n' * line_offset + snippet, filename, 'exec')
-    six.exec_(code, {})
+    code = ast.parse('\n' * line_offset + snippet, filename, 'exec')
+    rewrite_asserts(code, None)
+    six.exec_(compile(code, filename, 'exec'), {})
 
   if pymin is not None:
     parts = tuple(map(int, pymin.split('.')))
