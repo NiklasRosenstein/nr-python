@@ -23,6 +23,8 @@
 An alias for [[collections]] (Py2) or [[collections.abc]] (Py3).
 """
 
+from __future__ import absolute_import
+
 try:
   import collections.abc as _abc
 except ImportError:
