@@ -1,16 +1,42 @@
+# -*- coding: utf8 -*-
+# Copyright (c) 2019 Niklas Rosenstein
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
+"""
+Some mixins for [[Object]] subclasses.
+"""
+
+import six
+from nr.types import abc
 
 
 class ToJSON(object):
   """
-  A mixin for the #CleanRecord class that adds a #to_json() method.
-  Different from the #as_dict() method in the #AsDict mixin, #to_json()
-  is called recursively on any of the attributes if they have a #to_json()
-  method.
+  Adds the [[#to_json()]] method. This is different from the [[AsDict]] mixin
+  in that it is called recursively on any of the attributes if they have a
+  `to_json()` method.
   """
 
   def to_json(self):
     """
-    Converts the record to a representation that can be dumped into JSON
+    Converts the object to a representation that can be dumped into JSON
     format. For any member, it will check if that member has a `to_json()`
     method and call it. Mappings and sequences are converted recursively.
 
@@ -19,25 +45,25 @@ class ToJSON(object):
     be overwritten.
     """
 
-    def coerce(value):
+    def convert(value):
       if hasattr(value, 'to_json'):
         return value.to_json()
       elif isinstance(value, abc.Mapping):
         return dict((k, value[k]) for k in value)
       elif isinstance(value, abc.Sequence) and not isinstance(value, (six.string_types, six.binary_type, bytearray)):
-        return [coerce(x) for x in value]
+        return [convert(x) for x in value]
       else:
         return value
 
     result = {}
     for key in self.__fields__:
-      result[key] = coerce(getattr(self, key))
+      result[key] = convert(getattr(self, key))
     return result
 
 
 class AsDict(object):
   """
-  A mixin for the #CleanRecord class that adds an #as_dict() method.
+  Adds an [[#as_dict()]] method.
   """
 
   def as_dict(self):
@@ -46,8 +72,7 @@ class AsDict(object):
 
 class Sequence(object):
   """
-  A mixin for the #CleanRecord class that implements the mutable sequence
-  interface.
+  Adds the mutable sequence interface to an object.
   """
 
   def __iter__(self):
@@ -59,7 +84,7 @@ class Sequence(object):
 
   def __getitem__(self, index):
     if hasattr(index, '__index__'):
-      return getattr(self, self.__fields__[index.__index__()].name)
+      return getattr(self, self.__fields__.get_index(index.__index__()).name)
     elif isinstance(index, str):
       return getattr(self, str)
     else:
@@ -74,3 +99,6 @@ class Sequence(object):
     else:
       raise TypeError('cannot index with {} object'
         .format(type(index).__name__))
+
+
+__all__ = ['ToJSON', 'AsDict', 'Sequence']

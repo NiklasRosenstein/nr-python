@@ -229,7 +229,7 @@ class ObjectType(object):
 
     kwargs = {}
     handled_keys = set()
-    for name, field in six.iteritems(fields.by_priority()):
+    for name, field in fields.items().sortby(lambda x: x[1].priority):
       assert name == field.name, "woops: {}".format((name, field))
       field.extract_kwargs(self.object_cls, locator, kwargs, handled_keys)
 

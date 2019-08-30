@@ -269,7 +269,7 @@ def test_fieldspec_update():
   assert set(dir(TestObject)).issuperset(set(['test', 'foo']))
   assert TestObject.foo.name == 'foo'
 
-  fields = [('test', Field(str)), ('bar', Field(object))]
+  fields = [Field(str, name='test'), Field(object, name='bar')]
   TestObject.__fields__.update(fields)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
@@ -393,3 +393,33 @@ def test_extract_custom_locator():
   with pytest.raises(ExtractTypeError):
     extract(locator.resolve(data), StringType(), locator)
   assert extract(locator.resolve(data), StringType(strict=False), locator) == '42'
+
+
+def test_to_json():
+  class Container(Object, ToJSON):
+    data = Field(object)
+  assert Container('abc').to_json() == {'data': 'abc'}
+  assert Container([Container('abc')]).to_json() == {'data': [{'data': 'abc'}]}
+  assert Container(b'42').to_json() == {'data': b'42'}
+  assert Container(bytearray(b'42')).to_json() == {'data': bytearray(b'42')}
+
+
+def test_as_dict():
+  class Container(Object, AsDict):
+    data = Field(object)
+  assert Container('abc').as_dict() == {'data': 'abc'}
+  assert Container([Container('abc')]).as_dict() == {'data': [Container('abc')]}
+  assert Container(b'42').as_dict() == {'data': b'42'}
+  assert Container(bytearray(b'42')).as_dict() == {'data': bytearray(b'42')}
+
+
+def test_sequence():
+  class Container(Object, Sequence):
+    a = Field(object)
+    b = Field(object)
+  obj = Container(42, 'foo')
+  assert obj.a == 42
+  assert len(obj) == 2
+  assert tuple(obj) == (42, 'foo')
+  assert obj[0] == 42
+  assert obj[1] == 'foo'

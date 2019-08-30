@@ -23,10 +23,11 @@ import six
 import sys
 import typing
 
-from nr.types import NotSet
 from nr.types.abc import Mapping
 from nr.types.interface import Interface, attr, default, implements, override
 from nr.types.maps import OrderedDict
+from nr.types.notset import NotSet
+from nr.types.stream import Stream
 from nr.types.utils.typing import extract_optional
 from .errors import ExtractTypeError, InvalidTypeDefinitionError
 from .locator import Locator
@@ -291,11 +292,10 @@ class MetadataField(Field):
     return value
 
 
-class FieldSpec(object):
+class FieldSpec(OrderedDict):
   """
-  Represents the fields of an [[Object]] with [[Field]] objects. Can be
-  constructed from class member annotations or class members that have been
-  assigned instances of the [[IFieldDescriptor]] class.
+  A container for [[IFieldDescriptor]]s which is used to contain all the
+  fields for an [[Object]] subclass.
   """
 
   @classmethod
@@ -321,7 +321,7 @@ class FieldSpec(object):
         nullable=nullable,
         default=default,
         name=name)
-      fields.append((name, field))
+      fields.append(field)
     return cls(fields)
 
   @classmethod
@@ -340,75 +340,69 @@ class FieldSpec(object):
       elif value.name != name:
         raise RuntimeError('mismatched field name {!r} != {!r}'
                            .format(value.name, name))
-      fields.append((name, value))
+      fields.append(value)
     return cls(fields)
 
-  @classmethod
-  def merge(cls, field_a, fields_b):
+  def __init__(self, fields=None):
     """
-    Merge the fields of two [[FieldSpec]] objects into a single spec.
+    Creates a new [[FieldSpec]] object from a list of [[IFieldDescriptor]]
+    objects. Note that all fields must have a name, otherwise a [[ValueError]]
+    is raised.
     """
 
-    fields = field_a.all().copy()
-    fields.update(fields_b.all())
-    return cls(fields)
+    fields = sorted(fields or [], key=lambda x: x.instance_index)
+    for field in fields:
+      if not field.name:
+        raise ValueError('found unnamed field: {!r}'.format(field))
 
-  def __init__(self, fields=()):
-    if hasattr(fields, 'items') or hasattr(fields, 'iteritems'):
-      fields = list(six.iteritems(fields))
-    if not isinstance(fields, list):
-      fields = list(fields)
-
-    fields.sort(key=lambda x: x[1].instance_index)
-    self.__all = OrderedDict(fields)
-
-    fields.sort(key=lambda x: x[1].priority)  # relies on previous sort
-    self.__by_priority = OrderedDict(fields)
-
-    fields = [x for x in fields if not x[1].derived]
-    self.__underived = OrderedDict(fields)
+    self.__fields = OrderedDict((x.name, x) for x in fields)
+    self.__fields_indexable = fields
 
   def __getitem__(self, name):
-    return self.__all[name]
+    return self.__fields[name]
+
+  def __contains__(self, name):
+    return name in self.__fields
 
   def __iter__(self):
-    return iter(self.__all)
+    return six.iterkeys(self.__fields)
 
   def __len__(self):
-    return len(self.__all)
+    return len(self.__fields)
 
   def __repr__(self):
-    return 'FieldSpec({!r})'.format(self.__all)
+    return 'FieldSpec({!r})'.format(list(self.__fields.values()))
 
-  def __getattr__(self, name):
-    return getattr(self.__all, name)
+  def keys(self):
+    return Stream(six.iterkeys(self.__fields))
 
-  def all(self):
-    return self.__all
+  def values(self):
+    return Stream(six.itervalues(self.__fields))
 
-  def by_priority(self):
-    return self.__by_priority
-
-  def underived(self):
-    return self.__underived
+  def items(self):
+    return Stream(six.iteritems(self.__fields))
 
   def update(self, fields):
-    # type: (Union[dict, list, FieldSpec]) -> None
+    # type: (FieldSpec) -> FieldSpec
     """
-    Updates the field spec with the specified with the other *fields*. If
-    a field is overwritten, it's position in the [[by_priority()]] order
-    will stay constant, even if the overwritten field's priority would
-    actually put it into a different position.
+    Updates this [[FieldSpec]] with the files from another spec and returns
+    *self*.
+
+    This operation maintains the order of existing fields in the spec.
     """
 
-    spec = FieldSpec(fields)
-    for key, value in spec.__all.items():
-      self.__all[key] = value
-      value.bind(key)
-    for key, value in spec.__by_priority.items():
-      self.__by_priority[key] = value
-    for key, value in spec.__underived.items():
-      self.__underived[key] = value
+    if not isinstance(fields, FieldSpec):
+      fields = FieldSpec(fields)
+
+    for key, value in fields.__fields.items():
+      self.__fields[key] = value
+    self.__fields_indexable = list(self.__fields.values())
+
+    return self
+
+  def get_index(self, index):
+    # type: (int) -> IFieldDescriptor
+    return self.__fields_indexable[index]
 
 
 class _ObjectMeta(type):
@@ -425,14 +419,27 @@ class _ObjectMeta(type):
     parent_fields = FieldSpec()
     for base in bases:
       if hasattr(base, '__fields__') and isinstance(base.__fields__, FieldSpec):
-        parent_fields = FieldSpec.merge(parent_fields, base.__fields__)
+        parent_fields.update(base.__fields__)
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level [[Field]] objects.
-    if hasattr(self, '__annotations__'):
+    if hasattr(self, '__fields__') and not isinstance(self.__fields__, FieldSpec):
+      fields = []
+      for item in self.__fields__:
+        if isinstance(item, str):
+          fields.append(Field(object, name=item))
+        elif isinstance(item, Field):
+          if not item.name:
+            raise ValueError('unbound field in __fields__ list')
+          fields.append(item)
+        else:
+          raise TypeError('expected str or Field in __fields__, got {!r}'
+            .format(type(item).__name__))
+      fields = FieldSpec(fields)
+    elif hasattr(self, '__annotations__'):
       fields = FieldSpec.from_annotations(self)
     else:
       fields = FieldSpec.from_class_members(self)
-    fields = FieldSpec.merge(parent_fields, fields)
+    fields = parent_fields.update(fields)
     for key in fields:
       if key in vars(self):
         delattr(self, key)
@@ -454,7 +461,7 @@ class _ObjectMeta(type):
   def __getattr__(self, name):
     if name in self.__fields__:
       return self.__fields__[name]
-    return super(_ObjectMeta, self).__getattr__(self, name)
+    raise AttributeError(name)
 
 
 @six.add_metaclass(_ObjectMeta)
@@ -521,7 +528,7 @@ class Object(object):
 
     # Extract all fields.
     handled_keys = set()
-    for field in self.__fields__.by_priority().values():
+    for field in self.__fields__.values().sortby('priority'):
       if field.name not in kwargs:
         if field.required:
           raise TypeError('missing required argument "{}"'.format(field.name))
@@ -556,6 +563,23 @@ class Object(object):
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
 
+def create_object_class(name, fields, base=None, mixins=()):
+  """
+  Creates a new [[Object]] subclass with the specified fields. The fields must
+  be a dictionary of bound [[Field]] objects or a dictionary of unbound ones.
+  """
+
+  if not isinstance(fields, Mapping):
+    assert all(field.name is not None for field in fields), fields
+    fields = {field.name: field for field in fields}
+
+  if base is None:
+    base = Object
+
+  print(name, base, mixins, fields)
+  return type(name, (base,) + mixins, fields)
+
+
 __all__ = [
   'IFieldDescriptor',
   'ObjectKeyField',
@@ -563,5 +587,6 @@ __all__ = [
   'Field',
   'MetadataField',
   'FieldSpec',
-  'Object'
+  'Object',
+  'create_object_class'
 ]

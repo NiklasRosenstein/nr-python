@@ -21,6 +21,7 @@
 
 from .errors import *
 from .locator import *
+from .mixins import *
 from .types import *
 from .object import *
 from . import utils
@@ -48,5 +49,11 @@ def store(value, py_type_def=None, locator=None, **options):
   return locator.store()
 
 
-__all__ = errors.__all__ + locator.__all__ + types.__all__ + object.__all__
-__all__ += ['utils', 'extract', 'store']
+__all__ = (
+  errors.__all__ +
+  locator.__all__ +
+  mixins.__all__ +
+  types.__all__ +
+  object.__all__ +
+  ['utils', 'extract', 'store']
+)
