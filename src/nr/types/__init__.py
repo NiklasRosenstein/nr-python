@@ -1,8 +1,3 @@
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '3.0.0.dev0'
-
-
-
-# backwards compat
-from .notset import NotSet

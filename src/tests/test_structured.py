@@ -23,7 +23,7 @@ import pytest
 import six
 import sys
 import textwrap
-from nr.types import NotSet
+from nr.types.notset import NotSet
 from nr.types.structured import *
 
 

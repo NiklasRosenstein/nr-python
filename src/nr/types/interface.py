@@ -29,8 +29,8 @@ import six
 import sys
 import types
 
-from . import NotSet
-from .meta import InlineMetaclassBase
+from nr.types.notset import NotSet
+from nr.types.meta import InlineMetaclassBase
 
 
 class _Member(object):
