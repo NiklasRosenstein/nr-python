@@ -458,3 +458,40 @@ def test_property_wrong_decoration():
       raise AError
 
   assert 'foo' not in IFoo
+
+
+def test_instancecheck():
+
+  class IFoo(Interface):
+    def foo(self):
+      pass
+
+  @implements(IFoo)
+  class Bar(object):
+    def foo(self):
+      return 42
+
+  assert Bar().foo() == 42
+  assert IFoo.implemented_by(Bar)
+  assert IFoo.provided_by(Bar())
+  assert isinstance(Bar(), IFoo)
+
+  class ISpam(IFoo):
+    def spam(self):
+      pass
+
+  @implements(ISpam)
+  class Eggs(object):
+    def foo(self):
+      return 99
+    def spam(self):
+      return 42
+
+  assert Eggs().foo() == 99
+  assert Eggs().spam() == 42
+  assert IFoo.implemented_by(Eggs)
+  assert IFoo.provided_by(Eggs())
+  assert ISpam.implemented_by(Eggs)
+  assert ISpam.provided_by(Eggs())
+  assert isinstance(Eggs(), IFoo)
+  assert isinstance(Eggs(), ISpam)

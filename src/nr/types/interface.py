@@ -292,6 +292,11 @@ class InterfaceClass(type):
   def __iter__(self):
     return iter(self.__members)
 
+  def __instancecheck__(self, instance):
+    if issubclass(type(instance), self):
+      return True
+    return self.provided_by(instance)
+
   def get(self, key, default=None):
     return self.__members.get(key, default)
 
