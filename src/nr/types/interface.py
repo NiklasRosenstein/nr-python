@@ -294,38 +294,43 @@ class InterfaceClass(type):
   """
 
   def __new__(cls, name, bases, attrs):
-    self = type.__new__(cls, name, bases, attrs)
-    self.__implementations = set()
-    self.__members = {}
+    implementations = set()
+    members = {}
 
     for base in bases:
       if isinstance(base, InterfaceClass):
-        self.__members.update(base.__members)
+        members.update(base.__members)
 
     # Convert function declarations in the class to Method objects and
     # bind Attribute objects to the new interface class.
     for key, value in six.iteritems(attrs):
       member = None
       if isinstance(value, _Member) and not value.is_bound:
-        value.interface = self
         value.name = key
         member = value
       if member is None:
-        member = Method.wrap_candidate(self, key, value)
+        member = Method.wrap_candidate(None, key, value)
       if member is None:
-        member = Property.wrap_candidate(self, key, value)
+        member = Property.wrap_candidate(None, key, value)
       if member is not None:
-        self.__members[key] = member
+        members[key] = member
         continue
       if isinstance(value, Decoration) and value.skip:
-        setattr(self, key, value.func)
+        attrs[key] = value.func
 
-    for key, attr in six.iteritems(self.__members):
+    for key, attr in six.iteritems(members):
       if key in attrs:
-        delattr(self, key)
+        del attrs[key]
       if isinstance(attr, Attribute) and attr.static and \
           not any(hasattr(x, key) for x in bases):
-        setattr(self, key, attr.default)
+        attrs[key] = attr.default
+
+    self = type.__new__(cls, name, bases, attrs)
+    self.__implementations = set()
+    self.__members = members
+
+    for key, value in six.iteritems(members):
+      value.interface = self
 
     return self
 
