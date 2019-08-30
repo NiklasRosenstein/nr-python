@@ -33,6 +33,51 @@ from nr.types.singletons import NotSet
 from nr.types.meta import InlineMetaclassBase
 
 
+class Decoration(object):
+  """
+  A wrapper for functions decorated with one of the decorators of this module.
+  Using this wrapper class has two main advantages:
+  - Trying to decorate staticmethod/classmethod in the "wrong order" results
+    in an error (they won't accept an instance of this class)
+  - Decorating staticmethod/classmethod works in Python 2 due to this wrapper
+    class
+  """
+
+  def __init__(self, func):
+    self.func = func
+    self.is_default = False
+    self.is_final = False
+    self.is_override = False
+    self.skip = False
+
+  @classmethod
+  def wraps(cls, **set_members):
+    def decorator(func):
+      return cls.wrap(func, **set_members)
+    return decorator
+
+  @classmethod
+  def wrap(cls, func, **set_members):
+    if not isinstance(func, cls):
+      func = cls(func)
+    for key, value in six.iteritems(set_members):
+      if not hasattr(func, key):
+        raise AttributeError('{}.{}'.format(cls.__name__, key))
+      setattr(func, key, value)
+    return func
+
+  @classmethod
+  def unwrap(cls, func):
+    if isinstance(func, cls):
+      return func.func
+    return func
+
+  @classmethod
+  def split(cls, func):
+    decoration = cls.wrap(func)
+    return decoration, decoration.func
+
+
 class _Member(object):
 
   def __init__(self, interface, name, hidden=False):
@@ -321,51 +366,6 @@ class InterfaceClass(type):
 
   def implementations(self):
     return iter(self.__implementations)
-
-
-class Decoration(object):
-  """
-  A wrapper for functions decorated with one of the decorators of this module.
-  Using this wrapper class has two main advantages:
-  - Trying to decorate staticmethod/classmethod in the "wrong order" results
-    in an error (they won't accept an instance of this class)
-  - Decorating staticmethod/classmethod works in Python 2 due to this wrapper
-    class
-  """
-
-  def __init__(self, func):
-    self.func = func
-    self.is_default = False
-    self.is_final = False
-    self.is_override = False
-    self.skip = False
-
-  @classmethod
-  def wraps(cls, **set_members):
-    def decorator(func):
-      return cls.wrap(func, **set_members)
-    return decorator
-
-  @classmethod
-  def wrap(cls, func, **set_members):
-    if not isinstance(func, cls):
-      func = cls(func)
-    for key, value in six.iteritems(set_members):
-      if not hasattr(func, key):
-        raise AttributeError('{}.{}'.format(cls.__name__, key))
-      setattr(func, key, value)
-    return func
-
-  @classmethod
-  def unwrap(cls, func):
-    if isinstance(func, cls):
-      return func.func
-    return func
-
-  @classmethod
-  def split(cls, func):
-    decoration = cls.wrap(func)
-    return decoration, decoration.func
 
 
 class Interface(six.with_metaclass(InterfaceClass)):
