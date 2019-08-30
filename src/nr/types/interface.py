@@ -294,7 +294,6 @@ class InterfaceClass(type):
   """
 
   def __new__(cls, name, bases, attrs):
-    implementations = set()
     members = {}
 
     for base in bases:
