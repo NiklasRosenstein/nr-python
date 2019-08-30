@@ -33,7 +33,7 @@ from nr.types import abc, generic
 try:
   from collections import OrderedDict
 except ImportError:
-  from ._impl.ordereddict import OrderedDict
+  from ._ordereddict import OrderedDict
 
 if six.PY2:
   _can_iteritems = lambda x: hasattr(x, 'iteritems')
