@@ -1,25 +1,26 @@
 
-from nr.types import sumtype
+from nr.types.sumtype import Constructor, Sumtype, member_of
+from nr.types.structured import Field, Object
 
 
 def test_sumtypes():
 
-  class Result(sumtype):
-    Loading = sumtype.constructor('progress')
-    Error = sumtype.constructor('message')
+  class Result(Sumtype):
+    Loading = Constructor('progress')
+    Error = Constructor('message')
 
-    @sumtype.constructor
-    class Ok(sumtype.record):
+    @Constructor
+    class Ok(Object):
       __fields__ = ['filename', 'load']
 
       def say_ok(self):
         return 'Ok! ' + self.load()
 
-    @sumtype.member_of([Loading])
+    @member_of([Loading])
     def alert(self):
       return 'Progress: ' + str(self.progress)
 
-    static_error_member = sumtype.member_of([Error], 'This is a member on Error!')
+    static_error_member = member_of([Error], 'This is a member on Error!')
 
   #assert not hasattr(Result, 'constructor')
   assert not hasattr(Result, 'alert')
@@ -36,7 +37,7 @@ def test_sumtypes():
   assert x.progress == 0.5
 
   class MoreResult(Result):
-    InvalidState = sumtype.constructor()
+    InvalidState = Constructor()
 
   assert MoreResult.Loading is not Result.Loading
   assert MoreResult.Error is not Result.Error
@@ -66,9 +67,9 @@ def test_sumtypes():
 
 def test_sumtype_default():
 
-  class MySumtype(sumtype):
-    A = sumtype.constructor('a')
-    B = sumtype.constructor('b', 'c')
+  class MySumtype(Sumtype):
+    A = Constructor('a')
+    B = Constructor('b', 'c')
     __default__ = A
 
   assert type(MySumtype(42)) is MySumtype.A
