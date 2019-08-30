@@ -19,6 +19,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+"""
+This module is used to design data models that can then be serialized and
+deserialized into/from JSON or YAML.
+"""
+
 from .errors import *
 from .locator import *
 from .mixins import *
@@ -30,7 +35,7 @@ from . import utils
 def extract(value, py_type_def, locator=None, **options):
   datatype = translate_field_type(py_type_def)
   if locator is None:
-    locator = Locator.Root(value, datatype, options)
+    locator = Locator.root(value, datatype, options)
   else:
     locator = locator.emplace(value, datatype, options)
   return locator.extract()
@@ -42,7 +47,7 @@ def store(value, py_type_def=None, locator=None, **options):
 
   datatype = translate_field_type(py_type_def)
   if locator is None:
-    locator = Locator.Root(value, datatype, options)
+    locator = Locator.root(value, datatype, options)
   else:
     locator = locator.emplace(value, datatype, options)
 

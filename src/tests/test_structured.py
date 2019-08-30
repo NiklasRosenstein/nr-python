@@ -28,44 +28,44 @@ from nr.types.structured import *
 
 
 def test_locator_str_empty():
-  assert str(Locator.Proxy([])) == '$'
+  assert str(Locator.proxy([])) == '$'
 
 
 def test_locator_str_simple():
-  assert str(Locator.Proxy(['foobar'])) == '$.foobar'
-  assert str(Locator.Proxy(['spam', 'baz'])) == '$.spam.baz'
-  assert str(Locator.Proxy([0, 1, 5])) == '$[0][1][5]'
+  assert str(Locator.proxy(['foobar'])) == '$.foobar'
+  assert str(Locator.proxy(['spam', 'baz'])) == '$.spam.baz'
+  assert str(Locator.proxy([0, 1, 5])) == '$[0][1][5]'
 
 
 def test_locator_str_mixed():
-  assert str(Locator.Proxy(['foobar', 3, 'type'])) == '$.foobar[3].type'
+  assert str(Locator.proxy(['foobar', 3, 'type'])) == '$.foobar[3].type'
 
 
 def test_locator_str_escape():
-  assert str(Locator.Proxy(['root', 1, 'needs:escaping'])) == '$.root[1]."needs:escaping"'
-  assert str(Locator.Proxy(['"also needs escaping'])) == '$."\\"also needs escaping"'
-  assert str(Locator.Proxy(['no-escaping'])) == '$.no-escaping'
+  assert str(Locator.proxy(['root', 1, 'needs:escaping'])) == '$.root[1]."needs:escaping"'
+  assert str(Locator.proxy(['"also needs escaping'])) == '$."\\"also needs escaping"'
+  assert str(Locator.proxy(['no-escaping'])) == '$.no-escaping'
 
 
 def test_locator_resolve():
   data = {'2.4.0': {'foo': {'bar': {'spam-egg': []}}}}
 
-  locator = Locator.Proxy(['2.4.0', 'foo', 'bar', 'spam-egg'])
+  locator = Locator.proxy(['2.4.0', 'foo', 'bar', 'spam-egg'])
   assert locator.resolve(data) == []
 
-  locator = Locator.Proxy(['2.4.0', 'foo', 'bar', 'spam-eggzzz'])
+  locator = Locator.proxy(['2.4.0', 'foo', 'bar', 'spam-eggzzz'])
   with pytest.raises(KeyError) as excinfo:
     locator.resolve(data)
   assert str(excinfo.value) == repr(str(locator))
 
-  locator = Locator.Proxy(['2.4.0', 'foo', 'bar', 'spam-egg', 1])
+  locator = Locator.proxy(['2.4.0', 'foo', 'bar', 'spam-egg', 1])
   with pytest.raises(IndexError) as excinfo:
     locator.resolve(data)
   assert str(excinfo.value) == 'list index out of range at $."2.4.0".foo.bar.spam-egg[1]'
 
 
 def test_locator_resolve_and_emplace():
-  proxy = Locator.Proxy(['foo', 1, 'bar'])
+  proxy = Locator.proxy(['foo', 1, 'bar'])
   assert str(proxy) == '$.foo[1].bar'
 
   data = {'foo': [{'bar': 11}]}
@@ -80,46 +80,46 @@ def test_locator_resolve_and_emplace():
 
 
 def test_string_type():
-  locator = Locator.Proxy(['a', 'b', 'c'], "foobar", StringType())
+  locator = Locator.proxy(['a', 'b', 'c'], "foobar", StringType())
   assert locator.extract() == "foobar"
 
-  locator = Locator.Proxy(['a', 'b', 'c'], 42, StringType())
+  locator = Locator.proxy(['a', 'b', 'c'], 42, StringType())
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.a.b.c'
 
-  locator = Locator.Proxy(['a', 'b', 'c'], 42, StringType(strict=False))
+  locator = Locator.proxy(['a', 'b', 'c'], 42, StringType(strict=False))
   assert locator.extract() == "42"
 
 
 def test_array_type():
-  locator = Locator.Proxy(['a', 'b'], ["foo", "bar", "baz"], ArrayType(StringType()))
+  locator = Locator.proxy(['a', 'b'], ["foo", "bar", "baz"], ArrayType(StringType()))
   assert locator.extract() == ["foo", "bar", "baz"]
 
-  locator = Locator.Proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType()))
+  locator = Locator.proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType()))
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.a.b[1]'
 
-  locator = Locator.Proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType(strict=False)))
+  locator = Locator.proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType(strict=False)))
   assert locator.extract() == ["foo", "42", "baz"]
 
 
 def test_dict_type():
-  locator = Locator.Proxy(['foo'], "Hello World!", DictType(StringType()))
+  locator = Locator.proxy(['foo'], "Hello World!", DictType(StringType()))
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.foo'
 
-  locator = Locator.Proxy(['foo'], {"msg": "Hello World!"}, DictType(StringType()))
+  locator = Locator.proxy(['foo'], {"msg": "Hello World!"}, DictType(StringType()))
   assert locator.extract() == {"msg": "Hello World!"}
 
   typedef = ArrayType(DictType(StringType()))
-  locator = Locator.Proxy(['root'], [{"a": "b"}, {"c": "d", "e": "f"}], typedef)
+  locator = Locator.proxy(['root'], [{"a": "b"}, {"c": "d", "e": "f"}], typedef)
   assert locator.extract() == [{"a": "b"}, {"c": "d", "e": "f"}]
 
   typedef = ArrayType(DictType(StringType()))
-  locator = Locator.Proxy(['root'], [{"a": "b"}, {"c": 0.2, "e": "f"}], typedef)
+  locator = Locator.proxy(['root'], [{"a": "b"}, {"c": 0.2, "e": "f"}], typedef)
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.root[1].c'
@@ -388,7 +388,7 @@ def test_forward_decl_inline():
 
 def test_extract_custom_locator():
   data = {'a': {'b': 42}}
-  locator = Locator.Proxy(['a', 'b'])
+  locator = Locator.proxy(['a', 'b'])
   assert extract(locator.resolve(data), IntegerType(), locator) == 42
   with pytest.raises(ExtractTypeError):
     extract(locator.resolve(data), StringType(), locator)

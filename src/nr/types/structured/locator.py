@@ -44,17 +44,17 @@ def format_location_path(path):
 class Locator(object):
   """
   Represents a location in a nested structure with the current value and
-  datatype. Usually this is started from a [[Locator.Root()]] element.
+  datatype. Usually this is started from a [[Locator.root()]] element.
   [[IDataType.extract()]] and [[IDataType.store()]] will use
   [[Locator.advance()]] when entering extraction/storing recursively.
 
   A locator can also point to the middle of a nested structure without
-  prior traversing of the parent elements using the [[Locator.Proxy()]]
+  prior traversing of the parent elements using the [[Locator.proxy()]]
   method. A common use case for this is when a structured object should
   only be retrieved starting from a specific location. Example:
 
   ```py
-  locator = Locator.Proxy(['config', 'starts', 'here'])
+  locator = Locator.proxy(['config', 'starts', 'here'])
   locator = locator.emplace(locator.resolve(input_data), ObjectType(ConfigObject))
   config = locator.extract()
   ```
@@ -62,7 +62,7 @@ class Locator(object):
   Note that the [[extract()]] function makes this a little shorter:
 
   ```py
-  locator = Locator.Proxy(['config', 'starts', 'here'])
+  locator = Locator.proxy(['config', 'starts', 'here'])
   config = extract(locator.resolve(input_data), ConfigObject, locator)
   ```
   """
@@ -71,12 +71,12 @@ class Locator(object):
   ALLOWED_KEY_CHARS = string.ascii_letters + string.digits + '_-'
 
   @classmethod
-  def Root(cls, value, datatype, options=None):  # type: (Any, Optional[IDataType]) -> Locator
+  def root(cls, value, datatype, options=None):  # type: (Any, Optional[IDataType]) -> Locator
     return cls(None, None, value, datatype, options or {})
 
   @classmethod
-  def Proxy(cls, path, end_value=None, end_datatype=None):  # type: List[Union[str, int]] -> Locator
-    locator = Locator.Root(None, AnyType())
+  def proxy(cls, path, end_value=None, end_datatype=None):  # type: List[Union[str, int]] -> Locator
+    locator = Locator.root(None, AnyType())
     for key in path:
       locator = locator.advance(key, None, AnyType())
     locator.__value = end_value
@@ -140,7 +140,15 @@ class Locator(object):
     """
     Returns the value that this location represents given another root
     structure. This is only really useful in combination with a locator
-    created with the [[Locator.Proxy()]] function.
+    created with the [[Locator.proxy()]] function.
+
+    Example:
+
+    ```py
+    locator = Locator.proxy(['a', 1, 'foo'])
+    data = {'a': [{'foo': 1}, {'foo': 2}]}
+    assert locator.resolve(data) == 2
+    ```
     """
 
     for locator in self.path_of_locators[1:]:
@@ -156,7 +164,8 @@ class Locator(object):
     """
     Creates a new Locator at the same location with a different value and
     datatype. This is usually useful if the locator was created with the
-    [[Locator.Proxy()]] function.
+    [[Locator.proxy()]] function if not initial value and datatype was
+    specified.
     """
 
     if options is None:
