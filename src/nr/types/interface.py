@@ -244,7 +244,8 @@ class Property(_Member):
 
 class InterfaceClass(type):
   """
-  The class for interfaces. Interfaces behave similar to dictionaries.
+  The class for interfaces. Interfaces allow mapping-like access to their
+  members.
   """
 
   def __new__(cls, name, bases, attrs):
