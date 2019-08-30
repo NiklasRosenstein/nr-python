@@ -55,7 +55,7 @@ class _dualmethod(object):
     return function
 
 
-class stream(object):
+class Stream(object):
   """
   A wrapper for iterables that provides the stream processor functions of
   this module in an object-oriented interface.
@@ -216,7 +216,7 @@ class stream(object):
   if six.PY2:
     @_dualmethod
     def next(cls, iterable):
-      if isinstance(iterable, stream):
+      if isinstance(iterable, Stream):
         return iterable.__next__()
       else:
         return _next(iter(iterable))
@@ -297,6 +297,4 @@ class stream(object):
     return cls(generate_batches())
 
 
-import sys
-_module = sys.modules[__name__]
-sys.modules[__name__] = stream
+__all__ = ['Stream']
