@@ -24,8 +24,8 @@ import sys
 import typing
 
 from nr.types.abc import Mapping
+from nr.types.collections import OrderedDict
 from nr.types.interface import Interface, attr, default, implements, override
-from nr.types.maps import OrderedDict
 from nr.types.notset import NotSet
 from nr.types.stream import Stream
 from nr.types.utils.typing import extract_optional

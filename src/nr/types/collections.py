@@ -19,12 +19,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__all__ = ['OrderedDict', 'ObjectAsDict', 'ObjectFromDict', 'ChainDict',
-           'HashDict', 'ValueIterableDict']
+"""
+Additional useful collections.
+"""
 
+from __future__ import absolute_import
+
+import collections
 import six
 
-from . import abc, generic
+from nr.types import abc, generic
 
 try:
   from collections import OrderedDict
@@ -94,6 +98,64 @@ class ObjectAsDict(abc.MutableMapping):
     except AttributeError:
       setattr(self.__obj, key, value)
       return value
+
+
+class OrderedSet(abc.MutableSet):
+
+  def __init__(self, iterable=None):
+    self._index_map = {}
+    self._content = collections.deque()
+    if iterable is not None:
+      self |= iterable
+
+  def __repr__(self):
+    if not self._content:
+      return '%s()' % (type(self).__name__,)
+    return '%s(%r)' % (type(self).__name__, list(self))
+
+  def __eq__(self, other):
+    if isinstance(other, OrderedSet):
+      return len(self) == len(other) and list(self) == list(other)
+    return set(self) == set(other)
+
+  def __contains__(self, key):
+    return key in self._index_map
+
+  def __len__(self):
+    return len(self._content)
+
+  def __getitem__(self, index):
+    return self._content[index]
+
+  def __iter__(self):
+    return iter(self._content)
+
+  def __reversed__(self):
+    return reversed(self._content)
+
+  def add(self, key):
+    if key not in self._index_map:
+      self._index_map[key] = len(self._content)
+      self._content.append(key)
+
+  def copy(self):
+    return type(self)(self)
+
+  def discard(self, key):
+    if key in self._index_map:
+      index = self._index_map.pop(key)
+      del self._content[index]
+
+  def pop(self, last=True):
+    if not self._content:
+      raise KeyError('set is empty')
+    key = self._content.pop() if last else self._content.popleft()
+    self._index_map.pop(key)
+    return key
+
+  def update(self, iterable):
+    for x in iterable:
+      self.add(x)
 
 
 class ObjectFromDict(object):
@@ -413,3 +475,13 @@ class ValueIterableDict(abc.MutableMapping):
 
   def __getattr__(self, attr):
     return getattr(self._map, attr)
+
+__all__ = [
+  'OrderedDict',
+  'OrderedSet',
+  'ObjectAsDict',
+  'ObjectFromDict',
+  'ChainDict',
+  'HashDict',
+  'ValueIterableDict',
+]

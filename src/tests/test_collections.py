@@ -1,5 +1,5 @@
 
-from nr.types.maps import ChainDict, ObjectFromDict
+from nr.types.collections import ChainDict, ObjectFromDict
 
 
 def test_ChainDict():
