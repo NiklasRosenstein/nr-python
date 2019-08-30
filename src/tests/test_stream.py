@@ -119,7 +119,13 @@ def test_slice():
 def test_next():
   values = [4, 2, 1]
   assert Stream.next(values) == 4
-  assert Stream(values).next() == 4
+
+  stream = Stream(values)
+  assert stream.next() == 4
+  assert stream.next() == 2
+  assert stream.next() == 1
+  with pytest.raises(StopIteration):
+    stream.next()
 
 
 def test_length():
@@ -143,6 +149,14 @@ def test_collect():
   assert Stream(values).map(lambda x: x-2).collect(set) == set([0, 2, 5, 6])
 
 
+def test_collect_immediate_return():
+  values = [1, 2, 3]
+  assert Stream(values).collect() is values
+  assert Stream(iter(values)).collect() == values
+  assert Stream(values).collect(list) is not values
+  assert Stream(values).collect(list) == values
+
+
 def test_batch():
   batches = list(Stream.batch(range(27), 10))
   assert batches[0] == list(range(10))
@@ -155,3 +169,21 @@ def test_batch():
   assert list(next(batches)) == list(range(20, 27))
   with pytest.raises(StopIteration):
     next(batches)
+
+
+def test_sortby():
+  class test_class(object):
+    a = 99
+  values = [{'a': 42}, {'a': 7}, test_class()]
+  def get(item):
+    if hasattr(item, 'get'):
+      return item.get('a')
+    else:
+      return item.a
+  assert Stream(values).sortby('a').map(get).collect() == [7, 42, 99]
+
+
+def test_sort():
+  values = [3, 2, 7]
+  assert list(Stream(values).sort()) == [2, 3, 7]
+  assert Stream(values).sort().collect() == [2, 3, 7]

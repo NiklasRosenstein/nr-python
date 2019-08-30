@@ -25,10 +25,12 @@ import functools
 import itertools
 import six
 
-from . import NotSet
+from nr.types.abc import Mapping
+from nr.types.notset import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
 _next = next
+_next_attr = 'next' if six.PY2 else '__next__'
 
 
 class _dualmethod(object):
@@ -62,12 +64,14 @@ class Stream(object):
   """
 
   def __init__(self, iterable):
-    self.iterable = iter(iterable)
+    self.iterable = iterable
 
   def __iter__(self):
-    return iter(self.iterable)
+    return self
 
   def __next__(self):
+    if not hasattr(self.iterable, _next_attr):
+      self.iterable = iter(self.iterable)
     return _next(self.iterable)
 
   def __getitem__(self, val):
@@ -259,7 +263,20 @@ class Stream(object):
 
   @_dualmethod
   def collect(cls, iterable, collect_cls=None, *args, **kwargs):
-    return (collect_cls or list)(iterable, *args, **kwargs)
+    """
+    Collects the stream into a collection.
+
+    If *collect_cls* is not explicitly specified and the stream is currently
+    wrapping a non-iterator, the wrapped object will be returned immediately.
+    Otherwise, *collect_cls* defaults to [[list]].
+    """
+
+    return_wrapped = isinstance(iterable, Stream) and \
+      not hasattr(iterable.iterable, _next_attr)
+    if collect_cls is None and return_wrapped:
+      return iterable.iterable
+    else:
+      return (collect_cls or list)(iterable, *args, **kwargs)
 
   @_dualmethod
   def batch(cls, iterable, n, collect_cls=None):
@@ -295,6 +312,31 @@ class Stream(object):
         yield collect_cls(take(first))
 
     return cls(generate_batches())
+
+  @_dualmethod
+  def sortby(cls, iterable, by, reverse=False):
+    """
+    Orders the stream and returns a new [[Stream]] object that wraps the
+    ordered element list. The internal list can be retrieved efficiently
+    with the [[#collect()]] method.
+
+    If *by* is a string, it will be used to look up an attribute or key.
+    Otherwise, a callable is expected which is used as the sorting key.
+    """
+
+    if isinstance(by, str):
+      lookup_attr = by
+      def by(item):
+        if isinstance(item, Mapping):
+          return item[lookup_attr]
+        else:
+          return getattr(item, lookup_attr)
+
+    return cls(sorted(iterable, key=by, reverse=reverse))
+
+  @_dualmethod
+  def sort(cls, iterable, reverse=False):
+    return cls.sortby(iterable, lambda x: x, reverse)
 
 
 __all__ = ['Stream']
