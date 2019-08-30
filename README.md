@@ -199,66 +199,6 @@ assert not_incrementing == 1
 </details>
 
 
-#### `nr.types.record`
-
-Similar to `namedtuple` but mutable, with support for keyword arguments,
-type declarations and default values. Supports multiple forms of declaring
-a record, eg. via Python 3.6+ class-level annotations, specifying a class-level
-`__fields__` member or declaring attributes by creating `record.Field()`
-objects.
-
-<details doctest pymin="3.6" name="record.example"><summary>Example:</summary>
-
-```python
-import random
-from nr.types import record
-
-class Person(record.Record):
-  name: str
-  mail: str = None
-  age: int = lambda: random.randint(10, 50)
-
-p = Person('John Smith')
-assert p.name == 'John Smith'
-assert p.mail is None
-assert 10 <= p.age <= 50
-```
-</details>
-
-<details doctest name="record.alternatives"><summary>Alternatives:</summary>
-
-```python
-import random
-from nr.types import record
-
-class Person(record.Record):
-  name = record.Field(str)
-  mail = record.Field(str, None)
-  age = record.Field(str, lambda: random.randint(10, 50))
-
-class Person(record.Record):
-  __fields__ = [
-    ('name', str),
-    ('mail', str, None),
-    ('age', str, lambda: random.randint(10, 50)),
-  ]
-
-Person = record.create_record('Person', [
-  ('name', str),
-  record.Field.with_name('mail', str, None),
-  ('age', str, lambda: random.randint(10, 50))
-])
-
-Person = record.create_record('Person', {
-  'name': record.Field(str),
-  'mail': record.Field(str, None),
-  'age': record.Field(str, lambda: random.randint(10, 50))
-})
-
-assert list(Person.__fields__.keys()) == ['name', 'mail', 'age']
-```
-</details>
-
 #### `nr.types.sets`
 
 Currently only provides an `OrderedSet` implementation.
@@ -268,9 +208,9 @@ Currently only provides an `OrderedSet` implementation.
 <details doctest name='stream.example'><summary>Example:</summary>
 
 ```python
-from nr.types import stream
-stream(range(10)).map(lambda x: x*2)
-stream.map(range(10), lambda x: x*2)
+from nr.types.stream import Stream
+Stream(range(10)).map(lambda x: x*2)
+Stream.map(range(10), lambda x: x*2)
 ```
 </details>
 
@@ -303,23 +243,24 @@ assert people['Barbara'] == Person('Barbara', 29, ['+44 1523/5325323'])
 <details doctest name='sumtype.example'><summary>Example:</summary>
 
 ```python
-from nr.types import record, sumtype
+from nr.types.sumtype import Constructor, Sumtype, member_of
+from nr.types.structured import Field, Object
 
-class Filter(sumtype):
+class Filter(Sumtype):
   # Three ways to define constructors.
   # 1)
-  Date = sumtype.constructor(record.create_record('Date', 'min,max'))
+  Date = Constructor('min,max')
   # 2)
-  Keyword = sumtype.constructor('text')
+  Keyword = Constructor('text')
   # 3)
-  @sumtype.constructor
-  class Duration(sumtype.record):
-    value = sumtype.field(int, default=3600)
+  @Constructor
+  class Duration(Object):
+    value = Field(int, default=3600)
     def to_hours(self):
       return self.value / 3600.0
 
   # Enrich constructors with members.
-  @sumtype.member_of([Date, Keyword])
+  @member_of([Date, Keyword])
   def only_on_date_or_keyword(self):
     return 'The answer is 42'
 
