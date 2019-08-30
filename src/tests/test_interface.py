@@ -24,6 +24,15 @@ def test_constructed():
     Foo()
 
 
+def test_interface_cannot_be_constructed():
+  class IFoo(Interface):
+    def bar(self):
+      pass
+  with pytest.raises(RuntimeError) as excinfo:
+    IFoo()
+  assert str(excinfo.value) == 'interface IFoo cannot be instantiated'
+
+
 def test_value():
 
   class IFoo(Interface):

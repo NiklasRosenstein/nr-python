@@ -270,6 +270,9 @@ class InterfaceClass(type):
         member = Property.wrap_candidate(self, key, value)
       if member is not None:
         self.__members[key] = member
+        continue
+      if isinstance(value, Decoration) and value.skip:
+        setattr(self, key, value.func)
 
     for key, attr in six.iteritems(self.__members):
       if key in attrs:
@@ -359,7 +362,7 @@ class Interface(six.with_metaclass(InterfaceClass)):
   """
 
   def __new__(cls):
-    msg = 'interface {} can not be instantiated'.format(cls.__name__)
+    msg = 'interface {} cannot be instantiated'.format(cls.__name__)
     raise RuntimeError(msg)
 
   __new__ = Decoration.wraps(__new__, skip=True)
