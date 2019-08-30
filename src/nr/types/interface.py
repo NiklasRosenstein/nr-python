@@ -29,7 +29,7 @@ import six
 import sys
 import types
 
-from nr.types.notset import NotSet
+from nr.types.singletons import NotSet
 from nr.types.meta import InlineMetaclassBase
 
 

@@ -26,7 +26,7 @@ import itertools
 import six
 
 from nr.types.abc import Mapping
-from nr.types.notset import NotSet
+from nr.types.singletons import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
 _next = next
