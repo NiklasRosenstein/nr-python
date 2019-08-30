@@ -98,6 +98,9 @@ class IFieldDescriptor(Interface):
     if self.name is not None:
       raise RuntimeError('cannot set field name to {!r}, name is already '
                          'set to {!r}'.format(name, self.name))
+    if not isinstance(name, str):
+      raise TypeError('IFieldDescriptor.name must be a string, got {}'
+        .format(type(name).__name__))
     self.name = name
 
   def get_default_value(self):  # type: () -> Any
@@ -198,11 +201,12 @@ class Field(object):
     self.nullable = nullable
     self.required = required
     self.default = default
+    assert name is None or isinstance(name, str), repr(name)
     self.name = name
 
   def __repr__(self):
-    return 'Field(datatype={!r}, nullable={!r}, default={!r})'.format(
-      self.datatype, self.nullable, self.default)
+    return 'Field(datatype={!r}, nullable={!r}, default={!r}, name={!r})'\
+      .format(self.datatype, self.nullable, self.default, self.name)
 
   @override
   def get_default_value(self):
@@ -350,10 +354,16 @@ class FieldSpec(OrderedDict):
     is raised.
     """
 
-    fields = sorted(fields or [], key=lambda x: x.instance_index)
+    fields = list(fields or [])
     for field in fields:
+      if not IFieldDescriptor.provided_by(field):
+        raise TypeError('expected IFieldDescriptor, got {!r}'
+          .format(type(field).__name__))
       if not field.name:
         raise ValueError('found unnamed field: {!r}'.format(field))
+      assert isinstance(field.name, str), field
+
+    fields.sort(key=lambda x: x.instance_index)
 
     self.__fields = OrderedDict((x.name, x) for x in fields)
     self.__fields_indexable = fields
@@ -576,7 +586,11 @@ def create_object_class(name, fields, base=None, mixins=()):
   if base is None:
     base = Object
 
-  print(name, base, mixins, fields)
+  for key, value in six.iteritems(fields):
+    if not isinstance(key, str):
+      raise TypeError('class member name must be str, got {}'
+        .format(type(key).__name__))
+
   return type(name, (base,) + mixins, fields)
 
 
