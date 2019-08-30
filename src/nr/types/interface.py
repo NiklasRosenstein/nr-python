@@ -215,18 +215,18 @@ class Property(_Member):
   @classmethod
   def from_python_property(cls, interface, name, value):
     assert isinstance(value, property), type(value)
-    if Decoration.wraps(value.fget).is_default:
-      getter = Decoration.unwraps(value.fget)
+    if Decoration.wrap(value.fget).is_default:
+      getter = Decoration.unwrap(value.fget)
     else:
       getter = None
-    if Decoration.wraps(value.fset).is_default:
-      setter = Decoration.unwraps(value.fset)
+    if Decoration.wrap(value.fset).is_default:
+      setter = Decoration.unwrap(value.fset)
     elif value.fset:
       setter = None
     else:
       setter = NotImplemented
-    if Decoration.wraps(value.fdel).is_default:
-      deleter = Decoration.unwraps(value.fdel)
+    if Decoration.wrap(value.fdel).is_default:
+      deleter = Decoration.unwrap(value.fdel)
     elif value.fdel:
       deleter = None
     else:
@@ -237,9 +237,9 @@ class Property(_Member):
       getter,
       setter,
       deleter,
-      Decoration.wraps(value.fget).is_final,
-      Decoration.wraps(value.fset).is_final,
-      Decoration.wraps(value.fdel).is_final)
+      Decoration.wrap(value.fget).is_final,
+      Decoration.wrap(value.fset).is_final,
+      Decoration.wrap(value.fdel).is_final)
 
 
 class InterfaceClass(type):
@@ -335,7 +335,13 @@ class Decoration(object):
     self.skip = False
 
   @classmethod
-  def wraps(cls, func, **set_members):
+  def wraps(cls, **set_members):
+    def decorator(func):
+      return cls.wrap(func, **set_members)
+    return decorator
+
+  @classmethod
+  def wrap(cls, func, **set_members):
     if not isinstance(func, cls):
       func = cls(func)
     for key, value in six.iteritems(set_members):
@@ -345,14 +351,14 @@ class Decoration(object):
     return func
 
   @classmethod
-  def unwraps(cls, func):
+  def unwrap(cls, func):
     if isinstance(func, cls):
       return func.func
     return func
 
   @classmethod
   def split(cls, func):
-    decoration = cls.wraps(func)
+    decoration = cls.wrap(func)
     return decoration, decoration.func
 
 
@@ -361,11 +367,10 @@ class Interface(six.with_metaclass(InterfaceClass)):
   Base class for interfaces. Interfaces can not be instantiated.
   """
 
+  @Decoration.wraps(skip=True)
   def __new__(cls):
     msg = 'interface {} cannot be instantiated'.format(cls.__name__)
     raise RuntimeError(msg)
-
-  __new__ = Decoration.wraps(__new__, skip=True)
 
 
 def is_interface(obj):
@@ -640,7 +645,7 @@ def default(func):
   Decorator for interface methods to mark them as a default implementation.
   """
 
-  return Decoration.wraps(func, is_default=True)
+  return Decoration.wrap(func, is_default=True)
 
 
 def final(func):
@@ -649,7 +654,7 @@ def final(func):
   default implementation and that it may not actually be implemented.
   """
 
-  return Decoration.wraps(func, is_default=True, is_final=True)
+  return Decoration.wrap(func, is_default=True, is_final=True)
 
 
 def override(func):
@@ -661,7 +666,7 @@ def override(func):
   Using #override() implies #default().
   """
 
-  return Decoration.wraps(func, is_override=True)
+  return Decoration.wrap(func, is_override=True)
 
 
 def overrides(interface):
