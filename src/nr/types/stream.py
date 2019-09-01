@@ -31,6 +31,7 @@ from nr.types.abc import Mapping
 from nr.types.singletons import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
+_slice = slice
 _next = next
 _next_attr = 'next' if six.PY2 else '__next__'
 
@@ -61,8 +62,9 @@ class _dualmethod(object):
 
 class Stream(object):
   """
-  A wrapper for iterables that provides the stream processor functions of
-  this module in an object-oriented interface.
+  A wrapper for iterables that provides stream processing functions. All of
+  this classes methods can be accessed in a static or non-static context.
+  Additionally, all of the methods are exposed in the parent module.
   """
 
   def __init__(self, iterable):
@@ -77,7 +79,7 @@ class Stream(object):
     return _next(self.iterable)
 
   def __getitem__(self, val):
-    if isinstance(val, slice):
+    if isinstance(val, _slice):
       return self.slice(val.start, val.stop, val.step)
     else:
       raise TypeError('{} object is only subscriptable with slices'.format(type(self).__name__))
@@ -341,4 +343,11 @@ class Stream(object):
     return cls.sortby(iterable, lambda x: x, reverse)
 
 
-__all__ = ['Stream']
+def _expose_members():
+  for key in dir(Stream):
+    if key in vars(Stream) and isinstance(vars(Stream)[key], _dualmethod):
+      globals()[key] = getattr(Stream, key)
+      yield key
+
+
+__all__ = ['Stream'] + list(_expose_members())

@@ -3,7 +3,12 @@ import pytest
 import types
 
 from numbers import Number
+from nr.types import stream
 from nr.types.stream import Stream
+
+
+def test_stream_module_members():
+  assert stream.flatmap([1, 2, 3], lambda x: [x, x+1]).collect() == [1, 2, 2, 3, 3, 4]
 
 
 def test_getitem():
