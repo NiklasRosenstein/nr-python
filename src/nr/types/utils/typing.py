@@ -80,6 +80,6 @@ def extract_optional(x):  # type: (Any, Any) -> Optional[Type]
   """
 
   if getattr(x, '__origin__', None) is typing.Union:
-  if len(x.__args__) == 2 and x.__args__[1] is type(None):
-    return x.__args__[0]
+    if len(x.__args__) == 2 and x.__args__[1] is type(None):
+      return x.__args__[0]
   return None
