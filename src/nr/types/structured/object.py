@@ -100,7 +100,7 @@ class IFieldDescriptor(Interface):
                          'set to {!r}'.format(name, self.name))
     if not isinstance(name, str):
       raise TypeError('IFieldDescriptor.name must be a string, got {}'
-        .format(type(name).__name__))
+                      .format(type(name).__name__))
     self.name = name
 
   def get_default_value(self):  # type: () -> Any
@@ -358,7 +358,7 @@ class FieldSpec(OrderedDict):
     for field in fields:
       if not IFieldDescriptor.provided_by(field):
         raise TypeError('expected IFieldDescriptor, got {!r}'
-          .format(type(field).__name__))
+                        .format(type(field).__name__))
       if not field.name:
         raise ValueError('found unnamed field: {!r}'.format(field))
       assert isinstance(field.name, str), field
@@ -443,7 +443,7 @@ class _ObjectMeta(type):
           fields.append(item)
         else:
           raise TypeError('expected str or Field in __fields__, got {!r}'
-            .format(type(item).__name__))
+                          .format(type(item).__name__))
       fields = FieldSpec(fields)
     elif hasattr(self, '__annotations__'):
       fields = FieldSpec.from_annotations(self)
@@ -528,7 +528,7 @@ class Object(object):
     if argcount > len(self.__fields__):
       # TODO(nrosenstein): Include min number of args.
       raise TypeError('expected at max {} arguments, got {}'
-                       .format(len(self.__fields__), argcount))
+                      .format(len(self.__fields__), argcount))
 
     # Add all arguments to the kwargs for extraction.
     for field, arg in zip(self.__fields__.values(), args):
@@ -589,7 +589,7 @@ def create_object_class(name, fields, base=None, mixins=()):
   for key, value in six.iteritems(fields):
     if not isinstance(key, str):
       raise TypeError('class member name must be str, got {}'
-        .format(type(key).__name__))
+                      .format(type(key).__name__))
 
   return type(name, (base,) + mixins, fields)
 

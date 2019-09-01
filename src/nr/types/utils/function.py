@@ -84,8 +84,8 @@ def copy_function(
   """
 
   if not isinstance(function, types.FunctionType):
-    raise TypeError('expected FunctionType, got {}'.format(
-                      type(function).__name__))
+    raise TypeError('expected FunctionType, got {}'
+                    .format(type(function).__name__))
 
   if code is None:
     code = function.__code__
@@ -109,9 +109,10 @@ def copy_function(
     closure = new_closure(closure)
     if len(closure) != len(function.__code__.co_freevars):
       raise ValueError('function requires {} free closure, only '
-                      '{} values are specified'.format(
-                        len(function.__code__.co_freevars),
-                        len(closure)))
+                       '{} values are specified'.format(
+                         len(function.__code__.co_freevars),
+                         len(closure)
+                       ))
 
   new_func = types.FunctionType(code, globals, name, argdefs, closure)
   functools.update_wrapper(new_func, function)

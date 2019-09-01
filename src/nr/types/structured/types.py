@@ -40,7 +40,8 @@ from nr.types.interface import (
 from nr.types.utils.typing import is_generic, get_generic_args
 from six import string_types, PY2
 
-getargspec = getattr(__import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
+getargspec = getattr(__import__('inspect'),
+                     'getargspec' if PY2 else 'getfullargspec')
 
 
 class IDataType(Interface):
@@ -284,7 +285,6 @@ class UnionType(object):
       return self[self.type]
 
   def __init__(self, mapping, strict=True, type_key='type'):  # type: (Dict[str, IDataType], str, bool) -> None
-    from .object import translate_field_type
     self.mapping = {k: translate_field_type(v) for k, v in mapping.items()}
     self.strict = strict
     self.type_key = type_key

@@ -1,0 +1,17 @@
+[MASTER]
+jobs=4
+persistent=yes
+
+[MESSAGES CONTROL]
+disable=cyclic-import,
+        missing-docstring,
+        useless-object-inheritance,
+        wrong-import-order
+
+[REPORTS]
+reports=yes
+
+[FORMAT]
+indent-string='  '
+indent-after-paren=2
+max-line-length=80

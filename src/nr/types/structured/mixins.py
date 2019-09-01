@@ -89,7 +89,7 @@ class Sequence(object):
       return getattr(self, str)
     else:
       raise TypeError('cannot index with {} object'
-        .format(type(index).__name__))
+                      .format(type(index).__name__))
 
   def __setitem__(self, index, value):
     if hasattr(index, '__index__'):
@@ -98,7 +98,7 @@ class Sequence(object):
       setattr(self, index, value)
     else:
       raise TypeError('cannot index with {} object'
-        .format(type(index).__name__))
+                      .format(type(index).__name__))
 
 
 __all__ = ['ToJSON', 'AsDict', 'Sequence']

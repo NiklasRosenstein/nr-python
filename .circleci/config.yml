@@ -42,6 +42,13 @@ jobs:
             pytest --cov=./src/nr
             coverage html
 
+      - run:
+          name: pylint
+          command: |
+            . venv/bin/activate
+            pip install pylint
+            pylint --rcfile=.pylintrc nr.types || true
+
       - store_artifacts:
           path: .coverage
 

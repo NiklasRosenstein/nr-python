@@ -471,7 +471,7 @@ class ImplementationError(RuntimeError):
         self.impl.__name__,
         '' if len(self.interfaces) == 1 else 's',
         self.interfaces[0].__name__ if len(self.interfaces) == 1 else
-          ('{' + ', '.join(repr(x.__name__) for x in self.interfaces) + '}'),
+          ('{' + ', '.join(repr(x.__name__) for x in self.interfaces) + '}'),  # pylint: disable=C0330
       )
     )
     lines += ['  - {}'.format(x) for x in self.errors]
@@ -521,7 +521,7 @@ class Implementation(InlineMetaclassBase):
           break
       else:
         impl_error.add(None, "'{}' does not override a method of any of "
-          "the implemented interfaces.".format(key))
+                             "the implemented interfaces.".format(key))
       setattr(self, key, value.func)  # unpack the Decoration
 
     # Ensure all interface members are satisfied.

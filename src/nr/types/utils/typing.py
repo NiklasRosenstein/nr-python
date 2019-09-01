@@ -29,47 +29,47 @@ import typing
 
 
 def is_generic(
-    x,                  # type: Any
-    generic_types=None  # type: Union[None, typing._GenericAlias, Tuple[typing._GenericAlias]]
-    ):
-    # type: (...) -> bool
-    """
-    Checks if *x* is a specialized version of the specified *generic_types*.
+  x,                    # type: Any
+  generic_types=None    # type: Union[None, typing._GenericAlias, Tuple[typing._GenericAlias]]
+):
+  # type: (...) -> bool
+  """
+  Checks if *x* is a specialized version of the specified *generic_types*.
 
-    Examples:
+  Examples:
 
-    ```py
-    assert is_generic(List[str])
-    assert not is_generic(str)
-    assert is_generic(List[str], List)
-    assert is_generic(List[str], (Dict, List))
-    assert is_generic(List, List)
-    assert not is_generic(List, Dict)
-    assert not is_generic(List[str], Dict)
-    ```
-    """
+  ```py
+  assert is_generic(List[str])
+  assert not is_generic(str)
+  assert is_generic(List[str], List)
+  assert is_generic(List[str], (Dict, List))
+  assert is_generic(List, List)
+  assert not is_generic(List, Dict)
+  assert not is_generic(List[str], Dict)
+  ```
+  """
 
-    if not hasattr(x, '__origin__') or not hasattr(x, '__args__'):
-        return False
-    if generic_types is None:
-        return True
-    if not isinstance(generic_types, (list, tuple)):
-        generic_types = (generic_types,)
-    for gtype in generic_types:
-        if x == gtype or x.__origin__ == gtype:
-            return True
-        if gtype.__origin__ is not None and x.__origin__ == gtype.__origin__:
-            return True
+  if not hasattr(x, '__origin__') or not hasattr(x, '__args__'):
     return False
+  if generic_types is None:
+    return True
+  if not isinstance(generic_types, (list, tuple)):
+    generic_types = (generic_types,)
+  for gtype in generic_types:
+    if x == gtype or x.__origin__ == gtype:
+      return True
+    if gtype.__origin__ is not None and x.__origin__ == gtype.__origin__:
+      return True
+  return False
 
 
 def get_generic_args(x):  # type: Any -> Tuple[Any]
-    """
-    Returns the arguments to a generic. If the generic is not specialized,
-    the typevars are returned instead.
-    """
+  """
+  Returns the arguments to a generic. If the generic is not specialized,
+  the typevars are returned instead.
+  """
 
-    return x.__args__ or x.__parameters__
+  return x.__args__ or x.__parameters__
 
 
 
@@ -80,6 +80,6 @@ def extract_optional(x):  # type: (Any, Any) -> Optional[Type]
   """
 
   if getattr(x, '__origin__', None) is typing.Union:
-    if len(x.__args__) == 2 and x.__args__[1] is type(None):
-      return x.__args__[0]
+  if len(x.__args__) == 2 and x.__args__[1] is type(None):
+    return x.__args__[0]
   return None

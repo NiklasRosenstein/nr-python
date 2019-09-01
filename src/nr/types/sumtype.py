@@ -26,9 +26,9 @@ functional programming languages.
 
 from nr.types.meta import InlineMetaclassBase
 from nr.types.structured import Object, Field, FieldSpec, IFieldDescriptor, create_object_class
-from .meta import InlineMetaclassBase
 from six import iteritems
 from six.moves import zip
+from .meta import InlineMetaclassBase
 
 import types
 import six
