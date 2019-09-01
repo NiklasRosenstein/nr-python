@@ -43,63 +43,6 @@ else:
   _can_iterkeys = lambda x: hasattr(x, 'keys')
 
 
-class ObjectAsDict(abc.MutableMapping):
-  """
-  This class wraps an object and exposes its members as mapping.
-  """
-
-  def __new__(cls, obj):
-    if isinstance(obj, ObjectFromDict):
-      return obj._ObjectFromDict__mapping
-    return super(ObjectAsDict, cls).__new__(cls)
-
-  def __init__(self, obj):
-    self.__obj = obj
-
-  def __repr__(self):
-    return 'ObjectAsDict({!r})'.format(self.__obj)
-
-  def __iter__(self):
-    return self.keys()
-
-  def __len__(self):
-    return len(dir(self.__obj))
-
-  def __contains__(self, key):
-    return hasattr(self.__obj, key)
-
-  def __getitem__(self, key):
-    try:
-      return getattr(self.__obj, key)
-    except AttributeError:
-      raise KeyError(key)
-
-  def __setitem__(self, key, value):
-    setattr(self.__obj, key, value)
-
-  def __delitem__(self, key):
-    delattr(self.__obj, key)
-
-  def keys(self):
-    return iter(dir(self.__obj))
-
-  def values(self):
-    return (getattr(self.__obj, k) for k in dir(self.__obj))
-
-  def items(self):
-    return ((k, getattr(self.__obj, k)) for k in dir(self.__obj))
-
-  def get(self, key, default=None):
-    return getattr(self.__obj, key, default)
-
-  def setdefault(self, key, value):
-    try:
-      return getattr(self.__obj, key)
-    except AttributeError:
-      setattr(self.__obj, key, value)
-      return value
-
-
 class OrderedSet(abc.MutableSet):
 
   def __init__(self, iterable=None):
@@ -156,6 +99,63 @@ class OrderedSet(abc.MutableSet):
   def update(self, iterable):
     for x in iterable:
       self.add(x)
+
+
+class ObjectAsDict(abc.MutableMapping):
+  """
+  This class wraps an object and exposes its members as mapping.
+  """
+
+  def __new__(cls, obj):
+    if isinstance(obj, ObjectFromDict):
+      return obj._ObjectFromDict__mapping
+    return super(ObjectAsDict, cls).__new__(cls)
+
+  def __init__(self, obj):
+    self.__obj = obj
+
+  def __repr__(self):
+    return 'ObjectAsDict({!r})'.format(self.__obj)
+
+  def __iter__(self):
+    return self.keys()
+
+  def __len__(self):
+    return len(dir(self.__obj))
+
+  def __contains__(self, key):
+    return hasattr(self.__obj, key)
+
+  def __getitem__(self, key):
+    try:
+      return getattr(self.__obj, key)
+    except AttributeError:
+      raise KeyError(key)
+
+  def __setitem__(self, key, value):
+    setattr(self.__obj, key, value)
+
+  def __delitem__(self, key):
+    delattr(self.__obj, key)
+
+  def keys(self):
+    return iter(dir(self.__obj))
+
+  def values(self):
+    return (getattr(self.__obj, k) for k in dir(self.__obj))
+
+  def items(self):
+    return ((k, getattr(self.__obj, k)) for k in dir(self.__obj))
+
+  def get(self, key, default=None):
+    return getattr(self.__obj, key, default)
+
+  def setdefault(self, key, value):
+    try:
+      return getattr(self.__obj, key)
+    except AttributeError:
+      setattr(self.__obj, key, value)
+      return value
 
 
 class ObjectFromDict(object):
@@ -475,6 +475,7 @@ class ValueIterableDict(abc.MutableMapping):
 
   def __getattr__(self, attr):
     return getattr(self._map, attr)
+
 
 __all__ = [
   'OrderedDict',
