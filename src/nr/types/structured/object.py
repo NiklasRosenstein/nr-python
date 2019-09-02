@@ -32,7 +32,13 @@ from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional
 from .errors import ExtractTypeError, InvalidTypeDefinitionError
 from .locator import Locator
-from .types import IDataType, translate_field_type, DictType, StringType, ObjectType
+from .types import (
+  MSG_PROPAGATE_FIELDNAME,
+  IDataType,
+  DictType,
+  StringType,
+  ObjectType,
+  translate_field_type)
 
 
 class META:
@@ -476,6 +482,13 @@ class _ObjectMeta(type):
       fields = FieldSpec.from_annotations(self)
     else:
       fields = FieldSpec.from_class_members(self)
+
+    # Give new fields (non-inherited ones) a chance to propagate their
+    # name (eg. to datatypes, this is mainly used to automatically generate
+    # a proper class name for inline-declared objects).
+    for field in fields.values():
+      field.datatype.message(MSG_PROPAGATE_FIELDNAME, self.__name__ + '.' + field.name)
+
     fields = parent_fields.update(fields)
     for key in fields:
       if key in vars(self):

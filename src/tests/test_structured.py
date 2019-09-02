@@ -440,6 +440,7 @@ def test_inline_object_def_constructible():
     })
 
   assert issubclass(MyObject.myfield, Object)
+  assert MyObject.myfield.__name__ == 'MyObject.myfield'
 
   obj = extract({'myfield': {'a': 0, 'b': 'foo'}}, MyObject)
   assert isinstance(obj.myfield, MyObject.myfield)
@@ -447,6 +448,7 @@ def test_inline_object_def_constructible():
   assert obj.myfield.b == 'foo'
   assert obj.myfield == MyObject.myfield(0, 'foo')
   assert obj == MyObject(obj.myfield)
+  assert str(obj.myfield) == "MyObject.myfield(a=0, b='foo')"
 
 
 def test_collection():
