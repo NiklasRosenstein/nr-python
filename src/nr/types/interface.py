@@ -29,6 +29,7 @@ import six
 import sys
 import types
 
+from nr.types.collections import OrderedSet
 from nr.types.singletons import NotSet
 from nr.types.meta import InlineMetaclassBase
 
@@ -325,7 +326,7 @@ class InterfaceClass(type):
         attrs[key] = attr.default
 
     self = type.__new__(cls, name, bases, attrs)
-    self.__implementations = set()
+    self.__implementations = OrderedSet()
     self.__members = members
 
     for key, value in six.iteritems(members):

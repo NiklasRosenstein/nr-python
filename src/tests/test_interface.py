@@ -497,6 +497,20 @@ def test_instancecheck():
   assert isinstance(Eggs(), ISpam)
 
 
+def test_implementation_order():
+  class IFoo(Interface):
+    pass
+
+  impls = []
+  for i in range(200):
+    @implements(IFoo)
+    class Bar(object):
+      pass
+    impls.append(Bar)
+
+  assert list(IFoo.implementations()) == impls
+
+
 def test_readme_compound():
 
   class IFoo(Interface):
