@@ -586,7 +586,7 @@ class Object(object):
     return True
 
   def __repr__(self):
-    repr_fields = getattr(self.Meta, META.REPR_FIELDS, six.iterkeys(self.__fields__))
+    repr_fields = getattr(self.Meta, META.REPR_FIELDS, self.__fields__)
     attrs = ['{}={!r}'.format(k, getattr(self, k)) for k in repr_fields]
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
