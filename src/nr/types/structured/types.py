@@ -494,17 +494,13 @@ class _ArrayTranslator(object):
 
 
 @implements(IFieldTypeTranslator)
-class _ObjectTranslator(object):
+class _CollectionTranslator(object):
 
   @override
   @staticmethod
   def translate(py_type_def):
     if isinstance(py_type_def, dict) and len(py_type_def) == 0:
       return DictType(AnyType())
-    elif isinstance(py_type_def, dict) and len(py_type_def) == 1:
-      key, value = next(iter(py_type_def.items()))
-      if isinstance(key, six.string_types):
-        return DictType(translate_field_type(value))
     # We're accepting a set as this allows the nice {value_type} syntax.
     elif isinstance(py_type_def, set) and len(py_type_def) == 1:
       return DictType(translate_field_type(next(iter(py_type_def))))
@@ -537,6 +533,32 @@ class _ObjectTranslator(object):
   def translate(py_type_def):
     if isinstance(py_type_def, type) and issubclass(py_type_def, Object):
       return ObjectType(py_type_def)
+    raise InvalidTypeDefinitionError(py_type_def)
+
+
+@implements(IFieldTypeTranslator)
+class _InlineObjectTranslator(object):
+  """
+  Implements the translation of inline object definitons in dictionary form.
+  Example:
+
+  ```py
+  datatype = translate_field_type({
+    'a': Field(int),
+    'b': Field(str),
+  })
+  assert type(datatype) == ObjectType
+  assert sorted(datatype.object_cls.__fields__.keys()) == ['a', 'b']
+  ```
+  """
+
+  GENERATED_TYPE_NAME = '_InlineObjectTranslator_generated'
+
+  @override
+  @classmethod
+  def translate(cls, py_type_def):
+    if isinstance(py_type_def, dict):
+      return ObjectType(type(cls.GENERATED_TYPE_NAME, (Object,), py_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
 

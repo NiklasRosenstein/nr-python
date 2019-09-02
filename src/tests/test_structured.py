@@ -157,8 +157,6 @@ def test_translate_field_type():
   assert isinstance(translate_field_type([]).item_type, AnyType)
   assert isinstance(translate_field_type({str}), DictType)
   assert isinstance(translate_field_type({str}).value_type, StringType)
-  assert isinstance(translate_field_type({"key": str}), DictType)
-  assert isinstance(translate_field_type({"key": str}).value_type, StringType)
 
   with pytest.raises(InvalidTypeDefinitionError):
     translate_field_type([str, str])
@@ -170,6 +168,14 @@ def test_translate_field_type():
 
   typedef = ArrayType(StringType())
   assert translate_field_type(typedef) is typedef
+
+  # Test _InlineObjectTranslator
+  datatype = translate_field_type({
+    'a': Field(int),
+    'b': Field(str),
+  })
+  assert type(datatype) == ObjectType
+  assert sorted(datatype.object_cls.__fields__.keys()) == ['a', 'b']
 
 
 def test_translate_field_type_typing():
