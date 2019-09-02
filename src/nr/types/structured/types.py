@@ -46,7 +46,6 @@ getargspec = getattr(
   __import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
 
 
-
 class IDataType(Interface):
   """
   Interface that describes a datatype.
@@ -531,7 +530,7 @@ class _ForwardDeclTranslator(object):
 
 
 @implements(IFieldTypeTranslator)
-class _ObjectDefTranslator(object):
+class _ObjectTranslator(object):
 
   @override
   @staticmethod
