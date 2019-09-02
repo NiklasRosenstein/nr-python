@@ -107,6 +107,23 @@ class IFieldDescriptor(Interface):
                       .format(type(name).__name__))
     self.name = name
 
+  @default
+  def get_class_member_value(self, object_cls):  # type: (Type[Object]) -> Any
+    """
+    This method is called when the field is accessed via
+    [[Object.__getattr__()]] and can be used to expose a class-level property
+    on the [[Object]] class.
+
+    Return [[NotSet]] if no property is to be exposed.
+
+    The default implementation checks if the [[.datatype]] is an instance of
+    [[ObjectType]] and returns the wrapped [[Object]] subclass in that case.
+    """
+
+    if isinstance(self.datatype, ObjectType):
+      return self.datatype.object_cls
+    return NotSet
+
   def get_default_value(self):  # type: () -> Any
     # raises: NotImplementedError
     pass
@@ -121,18 +138,6 @@ class IFieldDescriptor(Interface):
     treated in this method to prevent an error for an extract key if
     [[META.EXTRACT_STRICT]] is set.
     """
-
-  @default
-  def __call__(self, *args, **kwargs):
-    """
-    Fields are callable when the underlying datatype is an [[ObjectType]],
-    in which case they serve as delegators for the object constructor.
-    Otherwise, a [[TypeError]] is raised when calling a field.
-    """
-
-    if type(self.datatype) is ObjectType:
-      return self.datatype.object_cls(*args, **kwargs)
-    raise TypeError('Field {!r} is not callable'.format(self.name))
 
 
 @implements(IFieldDescriptor)
@@ -480,6 +485,14 @@ class _ObjectMeta(type):
       class Meta:
         pass
       self.Meta = Meta
+
+  def __getattr__(self, name):
+    field = self.__fields__.get(name)
+    if field is not None:
+      value = field.get_class_member_value(self)
+      if value is not NotSet:
+        return value
+    raise AttributeError(name)
 
 
 @six.add_metaclass(_ObjectMeta)
