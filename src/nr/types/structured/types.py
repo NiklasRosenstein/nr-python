@@ -45,6 +45,11 @@ from six import string_types, PY2
 getargspec = getattr(
   __import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
 
+#: A message sent to [[IDataType]] instances when the datatype is attached to
+#: a field, which in turn is attached to an [[Object]]. The message data is
+#: a dictionary of the object and field name.
+MSG_PROPAGATE_FIELDNAME = 'MSG_PROPAGATE_FIELDNAME'
+
 
 class IDataType(Interface):
   """
@@ -348,6 +353,13 @@ class ObjectType(object):
       value = getattr(locator.value(), name)
       result[field.name] = locator.advance(name, value, field.datatype).store()
     return result
+
+  @override
+  def message(self, message_type, data):
+    if message_type == MSG_PROPAGATE_FIELDNAME:
+      if self.object_cls.__name__ == _InlineObjectTranslator.GENERATED_TYPE_NAME:
+        self.object_cls.__name__ = data
+    return IDataType['message'](self, message_type, data)
 
 
 @implements(IDataType)
