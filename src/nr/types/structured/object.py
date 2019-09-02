@@ -300,7 +300,7 @@ class MetadataField(Field):
     return value
 
 
-class FieldSpec(OrderedDict):
+class FieldSpec(object):
   """
   A container for [[IFieldDescriptor]]s which is used to contain all the
   fields for an [[Object]] subclass.
