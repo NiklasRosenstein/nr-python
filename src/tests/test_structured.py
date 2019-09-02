@@ -447,6 +447,20 @@ def test_inline_object_def_constructible():
   assert obj == MyObject(obj.myfield)
 
 
+def test_collection():
+  class Items(Collection, list):
+    item_type = str
+
+    def do_stuff(self):
+      return ''.join(self)
+
+  assert Items.datatype == ArrayType(StringType(), Items)
+
+  items = extract(['a', 'b', 'c'], Items)
+  assert items.do_stuff() == 'abc'
+  assert store(items) == ['a', 'b', 'c']
+
+
 # Mixins
 
 def test_to_json():

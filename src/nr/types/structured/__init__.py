@@ -29,6 +29,7 @@ from .locator import *
 from .mixins import *
 from .types import *
 from .object import *
+from .collection import *
 from . import utils
 
 
@@ -42,7 +43,7 @@ def extract(value, py_type_def, locator=None, **options):
 
 
 def store(value, py_type_def=None, locator=None, **options):
-  if py_type_def is None and isinstance(value, Object):
+  if py_type_def is None and isinstance(value, (Object, Collection)):
     py_type_def = type(value)
 
   datatype = translate_field_type(py_type_def)
@@ -60,5 +61,6 @@ __all__ = (
   mixins.__all__ +
   types.__all__ +
   object.__all__ +
+  collection.__all__ +
   ['utils', 'extract', 'store']
 )

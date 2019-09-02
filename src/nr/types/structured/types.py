@@ -526,13 +526,15 @@ class _ForwardDeclTranslator(object):
 
 
 @implements(IFieldTypeTranslator)
-class _ObjectTranslator(object):
+class _ObjectAndCollectionTranslator(object):
 
   @override
   @staticmethod
   def translate(py_type_def):
     if isinstance(py_type_def, type) and issubclass(py_type_def, Object):
       return ObjectType(py_type_def)
+    elif isinstance(py_type_def, type) and issubclass(py_type_def, Collection):
+      return py_type_def.datatype
     raise InvalidTypeDefinitionError(py_type_def)
 
 
@@ -586,6 +588,7 @@ def translate_field_type(py_type_def):  # type: (Any) -> IDataType
 
 from .locator import Locator
 from .object import Object, META
+from .collection import Collection
 
 
 __all__ = [
