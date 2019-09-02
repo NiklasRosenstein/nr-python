@@ -9,10 +9,8 @@ def test_sumtypes():
     Loading = Constructor('progress')
     Error = Constructor('message')
 
-    @Constructor
-    class Ok(Object):
+    class Ok(Constructor):
       __fields__ = ['filename', 'load']
-
       def say_ok(self):
         return 'Ok! ' + self.load()
 
@@ -78,6 +76,53 @@ def test_sumtype_default():
   assert type(MySumtype.B(1, 2)) is MySumtype.B
   assert MySumtype.B(1, 2) == MySumtype.B(1, 2)
   assert MySumtype.B(1, 2).c == 2
+
+
+def test_constructor_variants():
+
+  class MyObject(Object):
+    member1 = Field(int)
+    member2 = Field(float, default=0.0)
+
+  class TestSumtype(Sumtype):
+    Empty = Constructor()
+    SingleMember = Constructor('member')
+    SingleMemberWithField = Constructor(Field(object, name='member'))
+    MultipleMemberArgs = Constructor('member1', 'member2')
+    MultipleMemberSingleStringComma = Constructor('member1, member2')
+    MultipleMemberSingleStringSpace = Constructor('member1  member2')
+    MultipleMemberFieldArgs = Constructor(
+      Field(object, name='member1'),
+      Field(object, name='member2'),
+    )
+    MultipleMemberDict = Constructor({
+      'member1': Field(object),
+      'member2': Field(object),
+    })
+    MultipleMemberMixedFieldStringList = Constructor([
+      Field(object, name='member1'),
+      'member2',
+    ])
+    ObjectArg = Constructor(MyObject)
+    class Subclass(Constructor):
+      member1 = Field(object)
+      member2 = Field(object)
+
+  empty = FieldSpec()
+  single_member = FieldSpec([Field(object, name='member')])
+  two_member = FieldSpec([Field(object, name='member1'), Field(object, name='member2')])
+
+  assert TestSumtype.Empty.__fields__ == empty
+  assert TestSumtype.SingleMember.__fields__ == single_member
+  assert TestSumtype.SingleMemberWithField.__fields__ == single_member
+  assert TestSumtype.MultipleMemberArgs.__fields__ == two_member
+  assert TestSumtype.MultipleMemberSingleStringComma.__fields__ == two_member
+  assert TestSumtype.MultipleMemberSingleStringSpace.__fields__ == two_member
+  assert TestSumtype.MultipleMemberFieldArgs.__fields__ == two_member
+  assert TestSumtype.MultipleMemberDict.__fields__ == two_member
+  assert TestSumtype.ObjectArg.__fields__ == MyObject.__fields__
+  assert TestSumtype.ObjectArg is not MyObject
+  assert TestSumtype.Subclass.__fields__ == two_member
 
 
 def test_readme_example():

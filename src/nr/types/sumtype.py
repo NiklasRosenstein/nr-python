@@ -22,6 +22,91 @@
 """
 Offers the ability to implement sumtypes in Python, a concept borrowed from
 functional programming languages.
+
+Sumtypes are declared as classes. Their constructors as defined as
+class-members, either by creating a [[Constructor]] object or by inheriting
+from it.
+
+Constructors behave like objects from the [[nr.types.structured]] module.
+They can be declared as such, but don't need to be.
+
+```py
+from nr.types.structured import Constructor, Sumtype
+
+class Progress(Sumtype):
+  Pending = Constructor()
+  Loading = Constructor('percent')
+  Error = Constructor('message', 'traceback')
+  Done = Constructor()
+```
+
+Here a sumtype is created with four constructors. Two of the constructors
+accept arguments. Instances of the sumtype can be created by calling one of
+the constructors.
+
+```py
+print(Progress.Loading(0.34))
+```
+
+However, sumtypes cannot be instantiated directly unless they have a
+`__default__` constructor.
+
+```py
+print(Progress())  # TypeError: cannot construct sumtype 'Progress', use any of its constructors instead: {Pending, Loading, Error, Done}
+
+class Progress(Sumtype):
+  # ...
+  __default__ = Pending
+
+print(Progress())  # Progress.Pending()
+```
+
+Constructors can be defined in one of many ways. The [[Constructor]] class
+accepts
+
+* a single string, with member names separated by whitespace or comma
+* multiple string arguments, each representing a member name
+* multiple arguments of [[Field]] instances
+* a dictionary, mapping each member name of a [[Field]] object
+* a list of [[Field]] or string members
+* a single [[Object]] subclass
+
+Last but not least, a [[Constructor]] can be subclassed, in which case you
+declare the members of the constructor the same way you do for [[Object]]s in
+the [[nr.types.structured]] module.
+
+```py
+from nr.types.structured import Field, Object
+from nr.types.sumtype import Constructor, Sumtype
+
+class MyObject(Object):
+  member1 = Field(int)
+  member2 = Field(float, default=0.0)
+
+class TestSumtype(Sumtype):
+  Empty = Constructor()
+  SingleMember = Constructor('member')
+  SingleMemberWithField = Constructor(Field(object, name='member'))
+  MultipleMemberArgs = Constructor('member1', 'member2')
+  MultipleMemberSingleStringComma = Constructor('member1, member2')
+  MultipleMemberSingleStringSpace = Constructor('member1  member2')
+  MultipleMemberFieldArgs = Constructor(
+    Field(object, name='member1'),
+    Field(object, name='member2'),
+  )
+  MultipleMemberDict = Constructor({
+    'member1': Field(object),
+    'member2': Field(object),
+  })
+  MultipleMemberMixedFieldStringList = Constructor([
+    Field(object, name='member1'),
+    'member2',
+  ])
+  ObjectArg = Constructor(MyObject)
+  class Subclass(Constructor):
+    member1 = Field(object)
+    member2 = Field(object)
+```
 """
 
 from nr.types.meta import InlineMetaclassBase
@@ -34,7 +119,7 @@ import types
 import six
 
 
-class Constructor(object):
+class Constructor(Object):
   """
   Represents a constructor for a sumtype. Constructors basically wrap an
   [[Object]]. Constructors are declared as class-level members of a
@@ -70,6 +155,9 @@ class Constructor(object):
     mixins: The mixins for creating the Object class.
     """
 
+    if type(self) != Constructor:
+      return super(Constructor, self).__init__(*args, **kwargs)
+
     def raise_kwargs():
       for key in kwargs:
         raise TypeError('unexpected keyword argument {!r}'.format(key))
@@ -102,6 +190,8 @@ class Constructor(object):
           fields = build_fields(value.split())
       elif isinstance(value, list):
         fields = build_fields(value)
+      else:
+        fields = value
       object_cls = create_object_class('_Temporary', fields, mixins=mixins)
 
     else:  # NOTE: constructor 3
@@ -169,17 +259,26 @@ class _SumtypeMeta(type(Object)):
       return subtype
 
     subtype.__fields__ = FieldSpec([])
+    constructor_mapping = {}
 
     # Get all previous constructors and get all new ones.
     constructors = getattr(subtype, '__constructors__', {}).copy()
     default_constructor = None
     for key, value in iteritems(vars(subtype)):
-      if isinstance(value, Constructor):
-        if key == '__default__':
-          default_constructor = value
+      is_subclass =  isinstance(value, type) and issubclass(value, Constructor)
+      if isinstance(value, Constructor) or is_subclass:
+        if id(value) in constructor_mapping:
+          constructor = constructor_mapping[id(value)]
+        elif is_subclass:
+          constructor = Constructor(value)
         else:
-          value.name = key
-          constructors[key] = value
+          constructor = value
+        constructor_mapping[id(value)] = constructor
+        if key == '__default__':
+          default_constructor = constructor
+        else:
+          constructor.name = key
+          constructors[key] = constructor
 
     # Update constructors from member_of declarations.
     for key, value in list(iteritems(vars(subtype))):
