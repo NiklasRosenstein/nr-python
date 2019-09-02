@@ -1,6 +1,6 @@
 
 from nr.types.sumtype import Constructor, Sumtype, member_of
-from nr.types.structured import Field, Object
+from nr.types.structured import Field, FieldSpec, Object
 
 
 def test_sumtypes():

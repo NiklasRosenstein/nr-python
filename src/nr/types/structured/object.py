@@ -306,6 +306,8 @@ class FieldSpec(object):
   fields for an [[Object]] subclass.
   """
 
+  classdef.hashable_on('_FieldSpec__fields')
+
   @classmethod
   def from_annotations(cls, obj_class):
     """
