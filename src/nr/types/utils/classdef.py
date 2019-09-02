@@ -31,7 +31,8 @@ def hashable_on(key_properties, **kwargs):
   """
   Creates a `__hash__()`, `__eq__()` and `__ne__()` method in the callers
   frame. The functions will hash/compare based on the specified
-  *key_properties*.
+  *key_properties* (a whitespace/comma separate string or a list of attribute
+  names).
 
   Optionally, the callers stackframe depth can be passed with the
   *_stackdepth* keyword-only argument. The keyword-only argument *decorate*
@@ -41,6 +42,12 @@ def hashable_on(key_properties, **kwargs):
   _stackdepth = kwargs.pop('_stackdepth', None)
   decorate = kwargs.pop('decorate', lambda x: x)
   raise_kwargs(kwargs)
+
+  if isinstance(key_properties, str):
+    if ',' in key_properties:
+      key_properties = [x.strip() for x in key_properties.split(',')]
+    else:
+      key_properties = key_properties.split()
 
   def __hash__(self):
     return hash(tuple(getattr(self, k) for k in key_properties))
