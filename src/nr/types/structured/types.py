@@ -600,6 +600,7 @@ def translate_field_type(py_type_def):  # type: (Any) -> IDataType
     return py_type_def
   elif isinstance(py_type_def, type) and IDataType.implemented_by(py_type_def):
     return py_type_def()
+  # NOTE(@NiklasRosenstein): Potential perf improvement by caching sorted implementations.
   implementations = IFieldTypeTranslator.implementations()
   for impl in sorted(implementations, key=lambda x: x.priority):
     try:

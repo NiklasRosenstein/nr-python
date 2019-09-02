@@ -456,6 +456,7 @@ class _ObjectMeta(type):
     for base in bases:
       if hasattr(base, '__fields__') and isinstance(base.__fields__, FieldSpec):
         parent_fields.update(base.__fields__)
+
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level [[Field]] objects.
     if hasattr(self, '__fields__') and not isinstance(self.__fields__, FieldSpec):
