@@ -40,10 +40,9 @@ from nr.types.interface import (
   staticattr)
 from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
-from six import string_types, PY2
 
 getargspec = getattr(
-  __import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
+  __import__('inspect'), 'getargspec' if six.PY2 else 'getfullargspec')
 
 #: A message sent to [[IDataType]] instances when the datatype is attached to
 #: a field, which in turn is attached to an [[Object]]. The message data is
@@ -132,7 +131,7 @@ class StringType(object):
 
   @override
   def extract(self, locator):
-    if isinstance(locator.value(), string_types):
+    if isinstance(locator.value(), six.string_types):
       return locator.value()
     if self.strict:
       locator.type_error()
@@ -156,7 +155,7 @@ class IntegerType(object):
 
   @override
   def extract(self, locator):
-    if not self.strict and isinstance(locator.value(), string_types):
+    if not self.strict and isinstance(locator.value(), six.string_types):
       try:
         return int(locator.value())
       except ValueError as exc:
