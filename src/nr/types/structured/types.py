@@ -38,6 +38,7 @@ from nr.types.interface import (
   implements,
   override,
   staticattr)
+from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
 from six import string_types, PY2
 
@@ -49,6 +50,8 @@ class IDataType(Interface):
   """
   Interface that describes a datatype.
   """
+
+  classdef.hashable_on([])  # adds __hash__, __eq__, __ne__ to the interface
 
   @default
   def __repr__(self):
@@ -75,6 +78,8 @@ class IDataType(Interface):
 @implements(IDataType)
 class AnyType(object):
 
+  classdef.hashable_on([])
+
   @override
   def extract(self, locator):
     return locator.value()
@@ -86,6 +91,8 @@ class AnyType(object):
 
 @implements(IDataType)
 class BooleanType(object):
+
+  classdef.hashable_on([])
 
   @override
   def extract(self, locator):
@@ -101,6 +108,8 @@ class StringType(object):
   """
   Represents a string value.
   """
+
+  classdef.hashable_on(['strict'])
 
   def __init__(self, strict=True):
     self.strict = strict
@@ -123,6 +132,8 @@ class IntegerType(object):
   """
   Represents an integer value.
   """
+
+  classdef.hashable_on(['strict'])
 
   def __init__(self, strict=True):
     self.strict = strict
@@ -153,6 +164,8 @@ class DecimalType(object):
   If the selected type is `float`, it will only accept a string as input if
   *strict* is set to `False`.
   """
+
+  classdef.hashable_on(['python_type', 'decimal_context', 'strict'])
 
   def __init__(self, python_type, decimal_context=None, strict=True):
     if python_type not in (float, decimal.Decimal):
@@ -202,6 +215,8 @@ class ArrayType(object):
 
   BASIC_SEQUENCE_TYPES = (list, tuple, set)
 
+  classdef.hashable_on(['item_type', 'py_type', 'store_type'])
+
   def __init__(self, item_type, py_type=list, store_type=list):
     self.item_type = item_type
     self.py_type = py_type
@@ -238,6 +253,8 @@ class DictType(object):
 
   BASIC_DICTIONARY_TYPES = (dict,)
 
+  classdef.hashable_on(['value_type'])
+
   def __init__(self, value_type):
     self.value_type = value_type
 
@@ -265,6 +282,8 @@ class ObjectType(object):
   """
   Represents the datatype for an [[Object]] subclass.
   """
+
+  classdef.hashable_on(['object_cls'])
 
   def __init__(self, object_cls):
     assert isinstance(object_cls, type), object_cls
@@ -336,6 +355,8 @@ class UnionType(object):
     def __call__(self):
       return self[self.type]
 
+  classdef.hashable_on(['mapping', 'strict', 'type_key'])
+
   def __init__(self, mapping, strict=True, type_key='type'):  # type: (Dict[str, IDataType], str, bool) -> None
     self.mapping = {k: translate_field_type(v) for k, v in mapping.items()}
     self.strict = strict
@@ -388,6 +409,8 @@ class ForwardDecl(object):
     wheels: List[Wheel]
   ```
   """
+
+  classdef.hashable_on(['name', 'frame'])
 
   def __init__(self, name, frame=None):
     self.name = name
