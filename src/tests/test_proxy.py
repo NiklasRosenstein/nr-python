@@ -60,3 +60,31 @@ def test_proxy_iterable():
     assert not hasattr(NonIterableProxy, '__iter__')
     assert not isinstance(p, abc.Mapping)
     assert not isinstance(p, abc.Iterable), NonIterableProxy.__mro__
+
+
+def test_proxy_auto_increment():
+    count = [0]
+
+    @proxy_decorator()
+    def auto_increment():
+        count[0] += 1
+        return count[0]
+
+    assert auto_increment == 1
+    assert auto_increment == 2
+    assert auto_increment + 10 == 13
+    assert count[0] == 3
+
+
+def test_proxy_lazy_not_auto_increment():
+    count = [0]
+
+    @proxy_decorator(lazy=True)
+    def not_incrementing():
+        count[0] += 1
+        return count[0]
+
+    assert not_incrementing == 1
+    assert not_incrementing == 1
+    assert not_incrementing == 1
+    assert count[0] == 1

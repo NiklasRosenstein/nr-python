@@ -495,3 +495,35 @@ def test_instancecheck():
   assert ISpam.provided_by(Eggs())
   assert isinstance(Eggs(), IFoo)
   assert isinstance(Eggs(), ISpam)
+
+
+def test_readme_compound():
+
+  class IFoo(Interface):
+    """ The foo interface. """
+
+    x = attr("""Some attribute.""")
+
+    def bar(self, q, r=None):
+      """ The bar function. """
+
+  assert set(IFoo) == set(['x', 'bar'])
+  assert not hasattr(IFoo, 'x')
+  assert not hasattr(IFoo, 'bar')
+  assert IFoo['x'].name == 'x'
+  assert IFoo['bar'].name == 'bar'
+
+  @implements(IFoo)
+  class Foo(object):
+
+    def __init__(self, x=None):
+      self.x = x
+
+    def bar(self, q, r=None):
+      return q, r, self.x
+
+  assert issubclass(Foo, Implementation)
+  assert IFoo.implemented_by(Foo)
+  assert IFoo.provided_by(Foo())
+  assert list(IFoo.implementations()) == [Foo]
+  assert Foo(42).x == 42

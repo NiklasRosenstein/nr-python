@@ -78,3 +78,50 @@ def test_sumtype_default():
   assert type(MySumtype.B(1, 2)) is MySumtype.B
   assert MySumtype.B(1, 2) == MySumtype.B(1, 2)
   assert MySumtype.B(1, 2).c == 2
+
+
+def test_readme_example():
+
+  class Filter(Sumtype):
+    # Three ways to define constructors.
+    # 1)
+    Date = Constructor('min,max')
+    # 2)
+    Keyword = Constructor([
+      Field(str, name='text')
+    ])
+    # 3)
+    @Constructor
+    class Duration(Object):
+      value = Field(int, default=3600)
+      def to_hours(self):
+        return self.value / 3600.0
+
+    # Enrich constructors with members.
+    @member_of([Date, Keyword])
+    def only_on_date_or_keyword(self):
+      return 'The answer is 42'
+
+  f = Filter.Keyword('building')
+  assert isinstance(f, Filter)
+  assert f.is_keyword()
+  assert f.text == 'building'
+  assert hasattr(f, 'only_on_date_or_keyword')
+  assert f.only_on_date_or_keyword() == 'The answer is 42'
+
+  f = Filter.Date(10, 42)
+  assert isinstance(f, Filter)
+  assert f.is_date()
+  assert (f.min, f.max) == (10, 42)
+  assert hasattr(f, 'only_on_date_or_keyword')
+  assert f.only_on_date_or_keyword() == 'The answer is 42'
+
+  f = Filter.Duration()
+  assert isinstance(f, Filter)
+  assert f.is_duration()
+  assert f.value == 3600
+  assert not hasattr(f, 'only_on_date_or_keyword')
+
+  f = Filter.Duration(value=4759)
+  assert f.value == 4759
+  assert f.to_hours() == (4759 / 3600.0)

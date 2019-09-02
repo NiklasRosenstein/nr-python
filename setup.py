@@ -23,7 +23,7 @@ setuptools.setup(
   package_dir = {'': 'src'},
   install_requires = ['six', 'typing'],
   extras_require = {
-    'test': ['pytest', 'pytest-cov', 'BeautifulSoup4'],
+    'test': ['pytest', 'pytest-cov'],
     'full': ['PyYAML'],
   }
 )

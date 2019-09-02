@@ -25,10 +25,10 @@ from nr.types.utils.funcdef import raise_kwargs
 
 def test_raise_kwargs():
 
-  def function(**kwargs):
+  def my_function(**kwargs):
     raise_kwargs(kwargs)
 
   with pytest.raises(TypeError) as excinfo:
-    function(a=42)
+    my_function(a=42)
 
-  assert str(excinfo.value) == "'a' is an invalid keyword argument for function()"
+  assert str(excinfo.value) == "'a' is an invalid keyword argument for my_function()"

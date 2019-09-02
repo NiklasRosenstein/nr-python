@@ -273,6 +273,12 @@ def test_object_subclassing():
   assert Student('John Wick', '4341115409').student_id == '4341115409'
 
 
+def test_fieldspec_equality():
+  assert FieldSpec() == FieldSpec()
+  assert FieldSpec([Field(object, name='a')]) == FieldSpec([Field(object, name='a')])
+  assert FieldSpec([Field(object, name='a')]) != FieldSpec([Field(object, name='b')])
+
+
 def test_fieldspec_update():
 
   class TestObject(Object):
@@ -439,3 +445,20 @@ def test_sequence():
   assert tuple(obj) == (42, 'foo')
   assert obj[0] == 42
   assert obj[1] == 'foo'
+
+
+def test_readme_example():
+  Person = ForwardDecl('Person')
+  People = translate_field_type({Person})
+  class Person(Object):
+    name = ObjectKeyField()
+    age = Field(int)
+    numbers = Field([str])
+
+  data = {
+    'John': {'age': 52, 'numbers': ['+1 123 5423435']},
+    'Barbara': {'age': 29, 'numbers': ['+44 1523/5325323']}
+  }
+  people = extract(data, People)
+  assert people['John'] == Person('John', 52, ['+1 123 5423435'])
+  assert people['Barbara'] == Person('Barbara', 29, ['+44 1523/5325323'])
