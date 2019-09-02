@@ -28,6 +28,7 @@ from nr.types.collections import OrderedDict
 from nr.types.interface import Interface, attr, default, implements, override
 from nr.types.singletons import NotSet
 from nr.types.stream import Stream
+from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional
 from .errors import ExtractTypeError, InvalidTypeDefinitionError
 from .locator import Locator
@@ -85,6 +86,9 @@ class IFieldDescriptor(Interface):
   #: `True` if the field is required. This field has no default value and
   #: must be set by an implementation.
   required = attr(bool)
+
+  classdef.hashable_on('priority name datatype derived required',
+                       decorate=default)
 
   def __init__(self):
     self.instance_index = IFieldDescriptor.__INSTANCE_INDEX_COUNTER
