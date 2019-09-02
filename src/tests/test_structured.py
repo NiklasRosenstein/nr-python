@@ -19,6 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import decimal
 import pytest
 import six
 import sys
@@ -77,6 +78,21 @@ def test_locator_resolve_and_emplace():
 
   proxy = proxy.emplace(proxy.resolve(data), IntegerType())
   assert proxy.extract() == 42
+
+
+def test_decimal_type():
+  locator = Locator.proxy(['value'], '42.0', DecimalType(float, strict=False))
+  assert locator.extract() == pytest.approx(42.0)
+
+  locator = Locator.proxy(['value'], '42.0', DecimalType(float, strict=True))
+  with pytest.raises(ExtractTypeError):
+    locator.extract()
+
+  locator = Locator.proxy(['value'], '42.0', DecimalType(decimal.Decimal, strict=False))
+  assert locator.extract() == decimal.Decimal('42.0')
+
+  locator = Locator.proxy(['value'], '42.0', DecimalType(decimal.Decimal, strict=True))
+  assert locator.extract() == decimal.Decimal('42.0')
 
 
 def test_string_type():

@@ -24,6 +24,7 @@ Describes a strong typing system that can then be extracted from a structured
 object.
 """
 
+import decimal
 import inspect
 import six
 import sys
@@ -140,6 +141,57 @@ class IntegerType(object):
   @override
   def store(self, locator):
     return locator.value()
+
+
+@implements(IDataType)
+class DecimalType(object):
+  """
+  Represents a decimal value, which can be represented by a float or
+  [[decimal.Decimal]] object. If the selected Python type is Decimal, it
+  will always accept strings as input.
+
+  If the selected type is `float`, it will only accept a string as input if
+  *strict* is set to `False`.
+  """
+
+  def __init__(self, python_type, decimal_context=None, strict=True):
+    if python_type not in (float, decimal.Decimal):
+      raise ValueError('python_type must be float or decimal.Decimal, got {!r}'
+                       .format(python_type))
+    if python_type is not decimal.Decimal and decimal_context:
+      raise ValueError('decimal_context can only be used if python_type is '
+                       'decimal.Decimal, but got {!r}'.format(python_type))
+    self.python_type = python_type
+    self.decimal_context = decimal_context
+    self.strict = strict
+
+  def coerce(self, value):
+    if self.python_type is decimal.Decimal:
+      return decimal.Decimal(value, self.decimal_context)
+    elif self.python_type is float:
+      return float(value)
+    else:
+      raise RuntimeError('python_type is invalid: {!r}'
+                         .format(self.python_type))
+
+  def accepted_input_types(self):
+    types = (int, float, decimal.Decimal)
+    if not self.strict or self.python_type is decimal.Decimal:
+      types += (str,)
+    return types
+
+  @override
+  def extract(self, locator):
+    value = locator.value()
+    if isinstance(value, self.accepted_input_types()):
+      return self.coerce(value)
+    locator.type_error()
+
+  @override
+  def store(self, value):
+    # TODO(@NiklasRosenstein): Can we make it decidable by the user if the
+    #   serialization library supports [[decimal.Decimal]]?
+    return float(value)
 
 
 @implements(IDataType)
@@ -390,6 +442,8 @@ class _PlainTypeTranslator(object):
       return BooleanType()
     elif py_type_def is object:
       return AnyType()
+    elif py_type_def in (float, decimal.Decimal):
+      return DecimalType(py_type_def)
     raise InvalidTypeDefinitionError(py_type_def)
 
 
@@ -495,6 +549,7 @@ __all__ = [
   'BooleanType',
   'StringType',
   'IntegerType',
+  'DecimalType',
   'ArrayType',
   'DictType',
   'ObjectType',
