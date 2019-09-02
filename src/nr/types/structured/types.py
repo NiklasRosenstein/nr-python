@@ -68,6 +68,17 @@ class IDataType(Interface):
   def human_readable(self):
     return repr(self)
 
+  @default
+  def child_datatypes(self):  # type: () -> Iterable[IDataType]
+    return ()
+
+  @default
+  def message(self, message_type, data):  # type: () -> Optional[bool]
+    for child in self.child_datatypes():
+      result = child.message(message_type, data)
+      if result is False:
+        return False
+
   def extract(self, locator):  # type: (Locator) -> Any
     pass
 
@@ -223,6 +234,10 @@ class ArrayType(object):
     self.store_type = store_type
 
   @override
+  def child_datatypes(self):
+    yield self.item_type
+
+  @override
   def extract(self, locator):
     if not isinstance(locator.value(), self.BASIC_SEQUENCE_TYPES):
       locator.type_error()
@@ -257,6 +272,10 @@ class DictType(object):
 
   def __init__(self, value_type):
     self.value_type = value_type
+
+  @override
+  def child_datatypes(self):
+    yield self.value_type
 
   @override
   def extract(self, locator):
@@ -361,6 +380,10 @@ class UnionType(object):
     self.mapping = {k: translate_field_type(v) for k, v in mapping.items()}
     self.strict = strict
     self.type_key = type_key
+
+  @override
+  def child_datatypes(self):
+    return self.mapping.values()
 
   @override
   def extract(self, locator):
