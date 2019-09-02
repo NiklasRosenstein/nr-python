@@ -56,25 +56,42 @@ class OrderedSet(abc.MutableSet):
       return '%s()' % (type(self).__name__,)
     return '%s(%r)' % (type(self).__name__, list(self))
 
-  def __eq__(self, other):
-    if isinstance(other, OrderedSet):
-      return len(self) == len(other) and list(self) == list(other)
-    return set(self) == set(other)
-
-  def __contains__(self, key):
-    return key in self._index_map
-
-  def __len__(self):
-    return len(self._content)
-
-  def __getitem__(self, index):
-    return self._content[index]
-
   def __iter__(self):
     return iter(self._content)
 
   def __reversed__(self):
     return reversed(self._content)
+
+  def __eq__(self, other):
+    if type(other) is OrderedSet:
+      return len(self) == len(other) and list(self) == list(other)
+    return False
+
+  def __ne__(self, other):
+    if type(other) is OrderedSet:
+      return len(self) != len(other) or list(self) != list(other)
+    return False
+
+  def __len__(self):
+    return len(self._content)
+
+  def __contains__(self, key):
+    return key in self._index_map
+
+  def __getitem__(self, index):
+    return self._content[index]
+
+  def __le__(self, other):
+      return all(e in other for e in self)
+
+  def __lt__(self, other):
+      return self <= other and self != other
+
+  def __ge__(self, other):
+      return all(e in self for e in other)
+
+  def __gt__(self, other):
+      return self >= other and self != other
 
   def add(self, key):
     if key not in self._index_map:
