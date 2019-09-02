@@ -433,6 +433,22 @@ def test_extract_custom_locator():
   assert extract(locator.resolve(data), StringType(strict=False), locator) == '42'
 
 
+def test_inline_object_def_constructible():
+  class MyObject(Object):
+    myfield = Field({
+      'a': Field(int),
+      'b': Field(str)
+    })
+
+  obj = extract({'myfield': {'a': 0, 'b': 'foo'}}, MyObject)
+  assert obj.myfield.a == 0
+  assert obj.myfield.b == 'foo'
+  assert obj.myfield == MyObject.myfield(0, 'foo')
+  assert obj == MyObject(obj.myfield)
+
+
+# Mixins
+
 def test_to_json():
   class Container(Object, ToJSON):
     data = Field(object)

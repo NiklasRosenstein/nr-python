@@ -32,7 +32,7 @@ from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional
 from .errors import ExtractTypeError, InvalidTypeDefinitionError
 from .locator import Locator
-from .types import IDataType, translate_field_type, DictType, StringType
+from .types import IDataType, translate_field_type, DictType, StringType, ObjectType
 
 
 class META:
@@ -121,6 +121,18 @@ class IFieldDescriptor(Interface):
     treated in this method to prevent an error for an extract key if
     [[META.EXTRACT_STRICT]] is set.
     """
+
+  @default
+  def __call__(self, *args, **kwargs):
+    """
+    Fields are callable when the underlying datatype is an [[ObjectType]],
+    in which case they serve as delegators for the object constructor.
+    Otherwise, a [[TypeError]] is raised when calling a field.
+    """
+
+    if type(self.datatype) is ObjectType:
+      return self.datatype.object_cls(*args, **kwargs)
+    raise TypeError('Field {!r} is not callable'.format(self.name))
 
 
 @implements(IFieldDescriptor)
