@@ -42,8 +42,9 @@ from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
 from six import string_types, PY2
 
-getargspec = getattr(__import__('inspect'),
-                     'getargspec' if PY2 else 'getfullargspec')
+getargspec = getattr(
+  __import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
+
 
 
 class IDataType(Interface):
