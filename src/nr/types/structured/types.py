@@ -326,7 +326,7 @@ class ObjectType(object):
     if not isinstance(locator.value(), self.object_cls):
       locator.type_error()
     result = {}
-    for name, field in six.iteritems(self.object_cls.__fields__):
+    for name, field in self.object_cls.__fields__.items():
       value = getattr(locator.value(), name)
       result[field.name] = locator.advance(name, value, field.datatype).store()
     return result

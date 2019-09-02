@@ -389,13 +389,13 @@ class FieldSpec(object):
   def __repr__(self):
     return 'FieldSpec({!r})'.format(list(self.__fields.values()))
 
-  def keys(self):
+  def keys(self):  # type: () - >Stream[str]
     return Stream(six.iterkeys(self.__fields))
 
-  def values(self):
+  def values(self):  # type: () -> Stream[Field]
     return Stream(six.itervalues(self.__fields))
 
-  def items(self):
+  def items(self):  # type: () -> Stream[Tuple[str, Field]]
     return Stream(six.iteritems(self.__fields))
 
   def update(self, fields):
