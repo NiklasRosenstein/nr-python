@@ -478,19 +478,6 @@ class _ObjectMeta(type):
         pass
       self.Meta = Meta
 
-  def __dir__(self):
-    if six.PY2:
-      result = vars(self).keys()
-    else:
-      result = super(_ObjectMeta, self).__dir__()
-    result.extend(self.__fields__.keys())
-    return result
-
-  def __getattr__(self, name):
-    if name in self.__fields__:
-      return self.__fields__[name]
-    raise AttributeError(name)
-
 
 @six.add_metaclass(_ObjectMeta)
 class Object(object):

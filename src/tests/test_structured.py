@@ -197,15 +197,16 @@ def test_object():
   def _test_object_def(Person):
     assert hasattr(Person, '__fields__')
     assert list(Person.__fields__.keys()) == ['name', 'age', 'telephone_numbers']
+    fields = Person.__fields__
 
-    assert isinstance(Person.name.datatype, StringType)
-    assert isinstance(Person.age.datatype, IntegerType)
-    assert isinstance(Person.telephone_numbers.datatype, ArrayType)
-    assert isinstance(Person.telephone_numbers.datatype.item_type, StringType)
+    assert isinstance(fields['name'].datatype, StringType)
+    assert isinstance(fields['age'].datatype, IntegerType)
+    assert isinstance(fields['telephone_numbers'].datatype, ArrayType)
+    assert isinstance(fields['telephone_numbers'].datatype.item_type, StringType)
 
-    assert not Person.name.nullable
-    assert Person.age.nullable
-    assert Person.telephone_numbers.nullable
+    assert not fields['name'].nullable
+    assert fields['age'].nullable
+    assert fields['telephone_numbers'].nullable
 
   from typing import List, Optional
 
@@ -284,7 +285,7 @@ def test_object_subclassing():
 
   assert len(Student.__fields__) == 2
   assert list(Student.__fields__) == ['name', 'student_id']
-  assert Student.name is Person.name
+  assert Student.__fields__['name'] is Person.__fields__['name']
   assert Student('John Wick', '4341115409').name == 'John Wick'
   assert Student('John Wick', '4341115409').student_id == '4341115409'
 
@@ -302,20 +303,18 @@ def test_fieldspec_update():
     foo = Field(str)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo']
-  assert hasattr(TestObject, 'test')
-  assert hasattr(TestObject, 'foo')
-  assert set(dir(TestObject)).issuperset(set(['test', 'foo']))
-  assert TestObject.foo.name == 'foo'
+  assert not hasattr(TestObject, 'test')
+  assert not hasattr(TestObject, 'foo')
+  assert TestObject.__fields__['foo'].name == 'foo'
 
   fields = [Field(str, name='test'), Field(object, name='bar')]
   TestObject.__fields__.update(fields)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
-  assert hasattr(TestObject, 'test')
-  assert hasattr(TestObject, 'foo')
-  assert hasattr(TestObject, 'bar')
-  assert set(dir(TestObject)).issuperset(set(['test', 'foo', 'bar']))
-  assert TestObject.bar.name == 'bar'
+  assert not hasattr(TestObject, 'test')
+  assert not hasattr(TestObject, 'foo')
+  assert not hasattr(TestObject, 'bar')
+  assert TestObject.__fields__['bar'].name == 'bar'
 
 
 def test_metadata_field():
@@ -351,7 +350,7 @@ def test_metadata_field():
   def metadata_getter(locator, handled_keys):
     return locator.value().get('_metadata', {})
 
-  Test.meta.metadata_getter = metadata_getter
+  Test.__fields__['meta'].metadata_getter = metadata_getter
   data = {'_metadata': {'meta': 'bar'}, 'value': 42}
   with pytest.raises(ExtractValueError) as excinfo:
     extract(data, Test)
@@ -367,7 +366,7 @@ def test_metadata_field():
     handled_keys.add('_metadata')  # allow even in _strict mode
     return locator.value().get('_metadata', {})
 
-  Test.meta.metadata_getter = metadata_getter
+  Test.__fields__['meta'].metadata_getter = metadata_getter
   Test.Meta.strict = True
   data = {'_metadata': {'meta': 'bar'}, 'value': 42}
   assert extract(data, Test).meta == 'bar'
