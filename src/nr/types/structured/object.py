@@ -566,7 +566,7 @@ class Object(object):
     return True
 
   def __ne__(self, other):
-    if type(other) == type(self):
+    if type(other) != type(self):
       return True
     for key in self.__fields__:
       if getattr(self, key) == getattr(other, key):

@@ -264,6 +264,16 @@ def test_object():
   assert extract(payload, List[Person]) == expected
 
 
+def test_object_equality():
+  class Obj(Object):
+    a = Field(int)
+
+  assert Obj(1) == Obj(1)
+  assert not (Obj(1) == Obj(2))
+  assert Obj(1) != Obj(2)
+  assert not (Obj(1) != Obj(1))
+
+
 def test_object_subclassing():
 
   class Person(Object):
