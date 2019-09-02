@@ -428,6 +428,9 @@ class FieldSpec(object):
 
     return self
 
+  def get(self, key, default=None):
+    return self.__fields.get(key, default)
+
   def get_index(self, index):
     # type: (int) -> IFieldDescriptor
     return self.__fields_indexable[index]
