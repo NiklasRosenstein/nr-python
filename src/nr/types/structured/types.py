@@ -65,7 +65,7 @@ class IDataType(Interface):
     return '{}({})'.format(type(self).__name__, ', '.join(parts))
 
   @default
-  def readable(self):
+  def human_readable(self):
     return repr(self)
 
   def extract(self, locator):  # type: (Locator) -> Any
