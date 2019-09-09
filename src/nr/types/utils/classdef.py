@@ -24,10 +24,9 @@ Utils for class definition.
 """
 
 import sys
-from nr.types.utils.funcdef import raise_kwargs
 
 
-def hashable_on(key_properties, **kwargs):
+def hashable_on(key_properties, _stackdepth=0, decorate=None):
   """
   Creates a `__hash__()`, `__eq__()` and `__ne__()` method in the callers
   frame. The functions will hash/compare based on the specified
@@ -39,9 +38,9 @@ def hashable_on(key_properties, **kwargs):
   may be used to decorate the generated functions.
   """
 
-  _stackdepth = kwargs.pop('_stackdepth', None)
-  decorate = kwargs.pop('decorate', lambda x: x)
-  raise_kwargs(kwargs)
+  if decorate is None:
+    def decorate(x):
+      return x
 
   if isinstance(key_properties, str):
     if ',' in key_properties:
@@ -49,9 +48,11 @@ def hashable_on(key_properties, **kwargs):
     else:
       key_properties = key_properties.split()
 
+  @decorate
   def __hash__(self):
     return hash(tuple(getattr(self, k) for k in key_properties))
 
+  @decorate
   def __eq__(self, other):
     if type(self) != type(other):
       return False
@@ -60,6 +61,7 @@ def hashable_on(key_properties, **kwargs):
         return False
     return True
 
+  @decorate
   def __ne__(self, other):
     if type(self) != type(other):
       return True
@@ -68,7 +70,26 @@ def hashable_on(key_properties, **kwargs):
         return True
     return False
 
-  frame = sys._getframe(1)
-  frame.f_locals['__hash__'] = decorate(__hash__)
-  frame.f_locals['__eq__'] = decorate(__eq__)
-  frame.f_locals['__ne__'] = decorate(__ne__)
+  frame = sys._getframe(_stackdepth + 1)
+  frame.f_locals['__hash__'] = __hash__
+  frame.f_locals['__eq__'] = __eq__
+  frame.f_locals['__ne__'] = __ne__
+
+
+def def_repr(properties, _stackdepth=0, decorate=None):
+  """
+  Defines a `__repr__()` function in the callers frame that renders a
+  string of the format `ClassName(attr1="value1", ...)`.
+  """
+
+  if decorate is None:
+    def decorate(x):
+      return x
+
+  @decorate
+  def __repr__(self):
+    attrs = ', '.join('{}={!r}'.format(k, getattr(self, k)) for k in properties)
+    return '{}({})'.format(type(self).__name__, attrs)
+
+  frame = sys._getframe(_stackdepth + 1)
+  frame.f_locals['__repr__'] = __repr__
