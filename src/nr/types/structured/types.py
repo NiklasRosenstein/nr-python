@@ -361,6 +361,19 @@ class ObjectType(object):
     return IDataType['message'](self, message_type, data)
 
 
+class UnionWrap(object):
+  """
+  Wraps the value of a Union field.
+  """
+
+  classdef.hashable_on(['datatype', 'value'])
+  classdef.def_repr(['datatype', 'value'])
+
+  def __init__(self, datatype, value):
+    self.datatype = datatype
+    self.value = value
+
+
 @implements(IDataType)
 class UnionType(object):
   """
@@ -368,28 +381,10 @@ class UnionType(object):
   key that has the name of the specified type.
   """
 
-  class UnionInstance(dict):
-
-    def __init__(self, data, type_key):
-      super(UnionType.UnionInstance, self).__init__(data)
-      self._type_key = type_key
-
-    @property
-    def type(self):
-      return self[self._type_key]
-
-    @property
-    def value(self):
-      return self[self.type]
-
-    def __call__(self):
-      return self[self.type]
-
   classdef.hashable_on(['mapping', 'strict', 'type_key'])
 
   def __init__(self, mapping, strict=True, type_key='type'):  # type: (Dict[str, IDataType], str, bool) -> None
     self.mapping = {k: translate_field_type(v) for k, v in mapping.items()}
-    self.strict = strict
     self.type_key = type_key
 
   @override
@@ -411,10 +406,8 @@ class UnionType(object):
     if type_name not in self.mapping:
       locator.value_error('unexpected "{}": "{}"'.format(self.type_key, type_name))
     datatype = self.mapping[type_name]
-    return self.UnionInstance({
-      self.type_key: type_name,
-      type_name: locator.advance(type_name, locator.value()[type_name], datatype).extract()
-    }, self.type_key)
+    value = locator.advance(type_name, locator.value()[type_name], datatype).extract()
+    return UnionWrap(datatype, value)
 
   @override
   def store(self, locator):
@@ -637,6 +630,7 @@ __all__ = [
   'DictType',
   'ObjectType',
   'UnionType',
+  'UnionWrap',
   'ForwardDecl',
   'IFieldTypeTranslator',
   'translate_field_type',

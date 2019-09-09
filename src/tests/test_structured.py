@@ -143,10 +143,10 @@ def test_dict_type():
 
 def test_union_type():
   datatype = UnionType({'int': IntegerType(), 'string': StringType()})
-  assert extract({'type': 'int', 'int': 42}, datatype) == {'type': 'int', 'int': 42}
-  assert extract({'type': 'string', 'string': 'foo'}, datatype) == {'type': 'string', 'string': 'foo'}
+  assert extract({'type': 'int', 'int': 42}, datatype) == UnionWrap(IntegerType(), 42)
+  assert extract({'type': 'string', 'string': 'foo'}, datatype) == UnionWrap(StringType(), 'foo')
   with pytest.raises(ExtractValueError):
-    extract({'type': 'int', 'string': 'foo'}, datatype) == {'type': 'int', 'string': 'foo'}
+    extract({'type': 'int', 'string': 'foo'}, datatype)
 
 
 def test_translate_field_type():
