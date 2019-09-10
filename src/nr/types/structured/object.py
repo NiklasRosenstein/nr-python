@@ -607,6 +607,16 @@ class Object(object):
     attrs = ['{}={!r}'.format(k, getattr(self, k)) for k in repr_fields]
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
+  @classmethod
+  def extract(cls, value, locator=None, **options):
+    from nr.types.structured import extract
+    return extract(value, cls, locator, **options)
+
+  def store(self, locator=None, **options):
+    from nr.types.structured import store
+    return store(self, type(self), locator, **options)
+
+
 
 def create_object_class(name, fields, base=None, mixins=()):
   """
