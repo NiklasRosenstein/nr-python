@@ -17,7 +17,7 @@ requirements = {
   '*': [
     'distlib>=0.2.7',
     'nr.fs>=1.3.1',
-    'nr.types>=2.0.0',
+    'nr.types>=3.0.2',
   ],
   'win': [
     'appdirs>=1.4.3',
