@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.2.3 (2019-09-19)
+
+* Upgrade dependency on `nr.types` to `>=3.0.2`
+
 ### v1.2.2 (2019-06-24)
 
 * Add `nr/bundler/vendor/__init__.py` to fix normal installations of the

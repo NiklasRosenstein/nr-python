@@ -29,4 +29,4 @@ To access the `nr pybundle` command-line tool, install the nr.cli package.
 """
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '1.2.2'
+__version__ = '1.2.3'
