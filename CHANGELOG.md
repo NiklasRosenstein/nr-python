@@ -1,5 +1,12 @@
 # Changelog
 
+### v3.0.3 (2019-09-18)
+
+* `nr.types.structured`
+  * `FieldSpec.from_list_def()` now supports `str` and `Field` items
+  * `FieldSpec.from_list_def()` is now used if `__field__` is used when the
+    `Object` subclass is constructed
+
 ### v3.0.2 (2019-09-18)
 
 * `nr.types.structured`
