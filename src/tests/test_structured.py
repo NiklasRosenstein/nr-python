@@ -189,7 +189,7 @@ def test_translate_field_type_typing():
   assert isinstance(translate_field_type(Dict), DictType)
   assert isinstance(translate_field_type(Dict).value_type, AnyType)
   with pytest.raises(InvalidTypeDefinitionError):
-    translate_field_type(Dict[int, str])
+    print(translate_field_type(Dict[int, str]))
 
 
 def test_object():

@@ -465,6 +465,27 @@ class ForwardDecl(object):
     return self.resolve().store(locator)
 
 
+@implements(IDataType)
+class PythonType(object):
+  """
+  Represents a Python type. No serialize/deserialize capabilities.
+  """
+
+  classdef.hashable_on(['py_type'])
+
+  def __init__(self, py_type):
+    assert isinstance(py_type, type)
+    self.py_type = py_type
+
+  @override
+  def extract(self, locator):
+    raise RuntimeError('{!r} cannot be extracted')
+
+  @override
+  def store(self, locator):
+    raise RuntimeError('{!r} cannot be stored')
+
+
 class IFieldTypeTranslator(Interface):
   """
   Interface for type translators, taking arbitrary Python objects and
@@ -504,15 +525,25 @@ class _ArrayTranslator(object):
   @override
   @staticmethod
   def translate(py_type_def):
+    # []
     if isinstance(py_type_def, list) and len(py_type_def) == 0:
       return ArrayType(AnyType())
+    # [<type>]
     elif isinstance(py_type_def, list) and len(py_type_def) == 1:
       return ArrayType(translate_field_type(py_type_def[0]))
+    # list
+    elif py_type_def is list:
+      return ArrayType(AnyType())
+    # set
+    elif py_type_def is set:
+      return ArrayType(AnyType(), py_type=set)
+    # typing.List
     elif is_generic(py_type_def, typing.List):
       item_type_def = get_generic_args(py_type_def)[0]
       if isinstance(item_type_def, typing.TypeVar):
         item_type_def = object
       return ArrayType(translate_field_type(item_type_def))
+    # typing.Set
     elif is_generic(py_type_def, typing.Set):
       item_type_def = get_generic_args(py_type_def)[0]
       if isinstance(item_type_def, typing.TypeVar):
@@ -527,11 +558,16 @@ class _CollectionTranslator(object):
   @override
   @staticmethod
   def translate(py_type_def):
+    # {}
     if isinstance(py_type_def, dict) and len(py_type_def) == 0:
       return DictType(AnyType())
-    # We're accepting a set as this allows the nice {value_type} syntax.
+    # {<type>}
     elif isinstance(py_type_def, set) and len(py_type_def) == 1:
       return DictType(translate_field_type(next(iter(py_type_def))))
+    # dict
+    elif py_type_def is dict:
+      return DictType(AnyType())
+    # typing.Dict
     elif is_generic(py_type_def, typing.Dict):
       key_type_def, value_type_def = get_generic_args(py_type_def)
       if not isinstance(key_type_def, typing.TypeVar) and key_type_def is not str:
@@ -589,6 +625,35 @@ class _InlineObjectTranslator(object):
   def translate(cls, py_type_def):
     if isinstance(py_type_def, dict):
       return ObjectType(type(cls.GENERATED_TYPE_NAME, (Object,), py_type_def))
+    raise InvalidTypeDefinitionError(py_type_def)
+
+
+@implements(IFieldTypeTranslator)
+class _ProxyTranslator(object):
+
+  @override
+  @classmethod
+  def translate(cls, py_type_def):
+    if isinstance(py_type_def, str):
+      return ForwardDecl(py_type_def, cls._find_reference_frame())
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  @staticmethod
+  def _find_reference_frame():
+    # TODO(@NiklasRosenstein)
+    pass
+
+
+@implements(IFieldTypeTranslator)
+class _PythonTypeTranslator(object):
+
+  priority = -1000
+
+  @override
+  @classmethod
+  def translate(cls, py_type_def):
+    if isinstance(py_type_def, type) and py_type_def.__module__ != 'typing':
+      return PythonType(py_type_def)
     raise InvalidTypeDefinitionError(py_type_def)
 
 

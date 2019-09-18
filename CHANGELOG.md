@@ -1,5 +1,12 @@
 # Changelog
 
+### v3.0.2 (2019-09-18)
+
+* `nr.types.structured`
+  * Add `PythonType` and a translator for it
+  * Add proxy translator for handling strings (turned into a `ForwardDecl`),
+    but the resolving part still needs to be implemented
+
 ### v3.0.1 (2019-09-18)
 
 * `nr.types.structured`

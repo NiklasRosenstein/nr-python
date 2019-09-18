@@ -376,6 +376,22 @@ class FieldSpec(object):
       fields.append(value)
     return cls(fields)
 
+  @classmethod
+  def from_list_def(cls, list_def):
+    """
+    Compiles a FieldSpec from a list of tuples. Every tuple must have at
+    least two elements, the first defining the name of the field, the second
+    the type. An optional third field in the tuple may be used to specify
+    the field default value.
+    """
+
+    fields = []
+    for item in list_def:
+      name, datatype = item[:2]
+      default = item[2] if len(item) > 2 else NotSet
+      fields.append(Field(datatype, default=default, name=name))
+    return cls(fields)
+
   def __init__(self, fields=None):
     """
     Creates a new [[FieldSpec]] object from a list of [[IFieldDescriptor]]
@@ -479,7 +495,10 @@ class _ObjectMeta(type):
                           .format(type(item).__name__))
       fields = FieldSpec(fields)
     elif hasattr(self, '__annotations__'):
-      fields = FieldSpec.from_annotations(self)
+      if isinstance(self.__annotations__, dict):
+        fields = FieldSpec.from_annotations(self)
+      else:
+        fields = FieldSpec.from_list_def(self.__annotations__)
     else:
       fields = FieldSpec.from_class_members(self)
 
