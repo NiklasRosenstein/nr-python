@@ -387,9 +387,21 @@ class FieldSpec(object):
 
     fields = []
     for item in list_def:
-      name, datatype = item[:2]
-      default = item[2] if len(item) > 2 else NotSet
-      fields.append(Field(datatype, default=default, name=name))
+      if isinstance(item, str):
+        field = Field(object, name=item)
+      elif isinstance(item, tuple):
+        name, datatype = item[:2]
+        default = item[2] if len(item) > 2 else NotSet
+        field = Field(datatype, default=default, name=name)
+        fields.append(field)
+      elif IFieldDescriptor.provided_by(item):
+        if not item.name:
+          raise ValueError('unbound field in __fields__ list')
+        field = item
+      else:
+        raise TypeError('expected {str, tuple, IFieldDescriptor}, got {!r}'
+                        .format(type(item).__name__))
+      fields.append(field)
     return cls(fields)
 
   def __init__(self, fields=None):
@@ -482,18 +494,7 @@ class _ObjectMeta(type):
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level [[Field]] objects.
     if hasattr(self, '__fields__') and not isinstance(self.__fields__, FieldSpec):
-      fields = []
-      for item in self.__fields__:
-        if isinstance(item, str):
-          fields.append(Field(object, name=item))
-        elif isinstance(item, Field):
-          if not item.name:
-            raise ValueError('unbound field in __fields__ list')
-          fields.append(item)
-        else:
-          raise TypeError('expected str or Field in __fields__, got {!r}'
-                          .format(type(item).__name__))
-      fields = FieldSpec(fields)
+      fields = FieldSpec.from_list_def(self.__fields__)
     elif hasattr(self, '__annotations__'):
       if isinstance(self.__annotations__, dict):
         fields = FieldSpec.from_annotations(self)

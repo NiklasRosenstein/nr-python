@@ -290,6 +290,26 @@ def test_object_subclassing():
   assert Student('John Wick', '4341115409').student_id == '4341115409'
 
 
+def test_object_def():
+  class A(Object):
+    __fields__ = ['a', 'c', 'b']
+  assert isinstance(A.__fields__, FieldSpec)
+  assert list(A.__fields__.keys()) == ['a', 'c', 'b']
+  assert A.__fields__['a'].datatype == AnyType()
+  assert A.__fields__['c'].datatype == AnyType()
+  assert A.__fields__['b'].datatype == AnyType()
+
+  class B(Object):
+    __fields__ = [
+      ('a', int),
+      ('b', str, 'value')
+    ]
+  assert isinstance(B.__fields__, FieldSpec)
+  assert list(B.__fields__.keys()) == ['a', 'b']
+  assert B.__fields__['a'].datatype == IntegerType()
+  assert B.__fields__['b'].datatype == StringType()
+
+
 def test_fieldspec_equality():
   assert FieldSpec() == FieldSpec()
   assert FieldSpec([Field(object, name='a')]) == FieldSpec([Field(object, name='a')])
