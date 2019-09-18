@@ -182,7 +182,7 @@ class WildcardField(object):
     self.required = False
     self.derived = True
     self.value_type = translate_field_type(value_type)
-    self.datatype = DictType(value_type)
+    self.datatype = DictType(self.value_type)
     self.only_matching_types = only_matching_types
 
   @override

@@ -275,6 +275,7 @@ class DictType(object):
   classdef.hashable_on(['value_type'])
 
   def __init__(self, value_type):
+    assert IDataType.provided_by(value_type), value_type
     self.value_type = value_type
 
   @override
