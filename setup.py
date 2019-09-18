@@ -20,14 +20,28 @@
 # IN THE SOFTWARE.
 
 import io
+import os
 import re
 import setuptools
+import sys
+from setuptools.command.install import install
 
 with io.open('src/nr/types/__init__.py', encoding='utf8') as fp:
   version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 with io.open('README.md', encoding='utf8') as fp:
   readme = fp.read()
+
+
+class Verify(install):
+  description = 'Checks if the version number matches CIRCLE_TAG'
+
+  def run(self):
+    tag = os.getenv('CIRCLE_TAG')
+    if tag != 'v{}'.format(version):
+      info = "error: CIRCLE_TAG={!r} does not match 'v{}'".format(tag, version)
+      sys.exit(info)
+
 
 setuptools.setup(
   name = 'nr.types',
@@ -45,5 +59,8 @@ setuptools.setup(
   extras_require = {
     'test': ['pytest', 'pytest-cov'],
     'full': ['PyYAML'],
+  },
+  cmdclass = {
+    'version': Verify
   }
 )
