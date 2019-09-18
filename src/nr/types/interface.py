@@ -29,8 +29,54 @@ import six
 import sys
 import types
 
-from . import NotSet
-from .meta import InlineMetaclassBase
+from nr.types.collections import OrderedSet
+from nr.types.singletons import NotSet
+from nr.types.meta import InlineMetaclassBase
+
+
+class Decoration(object):
+  """
+  A wrapper for functions decorated with one of the decorators of this module.
+  Using this wrapper class has two main advantages:
+  - Trying to decorate staticmethod/classmethod in the "wrong order" results
+    in an error (they won't accept an instance of this class)
+  - Decorating staticmethod/classmethod works in Python 2 due to this wrapper
+    class
+  """
+
+  def __init__(self, func):
+    self.func = func
+    self.is_default = False
+    self.is_final = False
+    self.is_override = False
+    self.skip = False
+
+  @classmethod
+  def wraps(cls, **set_members):
+    def decorator(func):
+      return cls.wrap(func, **set_members)
+    return decorator
+
+  @classmethod
+  def wrap(cls, func, **set_members):
+    if not isinstance(func, cls):
+      func = cls(func)
+    for key, value in six.iteritems(set_members):
+      if not hasattr(func, key):
+        raise AttributeError('{}.{}'.format(cls.__name__, key))
+      setattr(func, key, value)
+    return func
+
+  @classmethod
+  def unwrap(cls, func):
+    if isinstance(func, cls):
+      return func.func
+    return func
+
+  @classmethod
+  def split(cls, func):
+    decoration = cls.wrap(func)
+    return decoration, decoration.func
 
 
 class _Member(object):
@@ -215,18 +261,18 @@ class Property(_Member):
   @classmethod
   def from_python_property(cls, interface, name, value):
     assert isinstance(value, property), type(value)
-    if Decoration.wraps(value.fget).is_default:
-      getter = Decoration.unwraps(value.fget)
+    if Decoration.wrap(value.fget).is_default:
+      getter = Decoration.unwrap(value.fget)
     else:
       getter = None
-    if Decoration.wraps(value.fset).is_default:
-      setter = Decoration.unwraps(value.fset)
+    if Decoration.wrap(value.fset).is_default:
+      setter = Decoration.unwrap(value.fset)
     elif value.fset:
       setter = None
     else:
       setter = NotImplemented
-    if Decoration.wraps(value.fdel).is_default:
-      deleter = Decoration.unwraps(value.fdel)
+    if Decoration.wrap(value.fdel).is_default:
+      deleter = Decoration.unwrap(value.fdel)
     elif value.fdel:
       deleter = None
     else:
@@ -237,46 +283,54 @@ class Property(_Member):
       getter,
       setter,
       deleter,
-      Decoration.wraps(value.fget).is_final,
-      Decoration.wraps(value.fset).is_final,
-      Decoration.wraps(value.fdel).is_final)
+      Decoration.wrap(value.fget).is_final,
+      Decoration.wrap(value.fset).is_final,
+      Decoration.wrap(value.fdel).is_final)
 
 
 class InterfaceClass(type):
   """
-  The class for interfaces. Interfaces behave similar to dictionaries.
+  The class for interfaces. Interfaces allow mapping-like access to their
+  members.
   """
 
   def __new__(cls, name, bases, attrs):
-    self = type.__new__(cls, name, bases, attrs)
-    self.__implementations = set()
-    self.__members = {}
+    members = {}
 
     for base in bases:
       if isinstance(base, InterfaceClass):
-        self.__members.update(base.__members)
+        members.update(base.__members)
 
     # Convert function declarations in the class to Method objects and
     # bind Attribute objects to the new interface class.
     for key, value in six.iteritems(attrs):
       member = None
       if isinstance(value, _Member) and not value.is_bound:
-        value.interface = self
         value.name = key
         member = value
       if member is None:
-        member = Method.wrap_candidate(self, key, value)
+        member = Method.wrap_candidate(None, key, value)
       if member is None:
-        member = Property.wrap_candidate(self, key, value)
+        member = Property.wrap_candidate(None, key, value)
       if member is not None:
-        self.__members[key] = member
+        members[key] = member
+        continue
+      if isinstance(value, Decoration) and value.skip:
+        attrs[key] = value.func
 
-    for key, attr in six.iteritems(self.__members):
+    for key, attr in six.iteritems(members):
       if key in attrs:
-        delattr(self, key)
+        del attrs[key]
       if isinstance(attr, Attribute) and attr.static and \
           not any(hasattr(x, key) for x in bases):
-        setattr(self, key, attr.default)
+        attrs[key] = attr.default
+
+    self = type.__new__(cls, name, bases, attrs)
+    self.__implementations = OrderedSet()
+    self.__members = members
+
+    for key, value in six.iteritems(members):
+      value.interface = self
 
     return self
 
@@ -288,6 +342,11 @@ class InterfaceClass(type):
 
   def __iter__(self):
     return iter(self.__members)
+
+  def __instancecheck__(self, instance):
+    if issubclass(type(instance), self):
+      return True
+    return self.provided_by(instance)
 
   def get(self, key, default=None):
     return self.__members.get(key, default)
@@ -314,55 +373,15 @@ class InterfaceClass(type):
     return iter(self.__implementations)
 
 
-class Decoration(object):
-  """
-  A wrapper for functions decorated with one of the decorators of this module.
-  Using this wrapper class has two main advantages:
-  - Trying to decorate staticmethod/classmethod in the "wrong order" results
-    in an error (they won't accept an instance of this class)
-  - Decorating staticmethod/classmethod works in Python 2 due to this wrapper
-    class
-  """
-
-  def __init__(self, func):
-    self.func = func
-    self.is_default = False
-    self.is_final = False
-    self.is_override = False
-    self.skip = False
-
-  @classmethod
-  def wraps(cls, func, **set_members):
-    if not isinstance(func, cls):
-      func = cls(func)
-    for key, value in six.iteritems(set_members):
-      if not hasattr(func, key):
-        raise AttributeError('{}.{}'.format(cls.__name__, key))
-      setattr(func, key, value)
-    return func
-
-  @classmethod
-  def unwraps(cls, func):
-    if isinstance(func, cls):
-      return func.func
-    return func
-
-  @classmethod
-  def split(cls, func):
-    decoration = cls.wraps(func)
-    return decoration, decoration.func
-
-
 class Interface(six.with_metaclass(InterfaceClass)):
   """
   Base class for interfaces. Interfaces can not be instantiated.
   """
 
+  @Decoration.wraps(skip=True)
   def __new__(cls):
-    msg = 'interface {} can not be instantiated'.format(cls.__name__)
+    msg = 'interface {} cannot be instantiated'.format(cls.__name__)
     raise RuntimeError(msg)
-
-  __new__ = Decoration.wraps(__new__, skip=True)
 
 
 def is_interface(obj):
@@ -453,7 +472,7 @@ class ImplementationError(RuntimeError):
         self.impl.__name__,
         '' if len(self.interfaces) == 1 else 's',
         self.interfaces[0].__name__ if len(self.interfaces) == 1 else
-          ('{' + ', '.join(repr(x.__name__) for x in self.interfaces) + '}'),
+          ('{' + ', '.join(repr(x.__name__) for x in self.interfaces) + '}'),  # pylint: disable=C0330
       )
     )
     lines += ['  - {}'.format(x) for x in self.errors]
@@ -503,7 +522,7 @@ class Implementation(InlineMetaclassBase):
           break
       else:
         impl_error.add(None, "'{}' does not override a method of any of "
-          "the implemented interfaces.".format(key))
+                             "the implemented interfaces.".format(key))
       setattr(self, key, value.func)  # unpack the Decoration
 
     # Ensure all interface members are satisfied.
@@ -637,7 +656,7 @@ def default(func):
   Decorator for interface methods to mark them as a default implementation.
   """
 
-  return Decoration.wraps(func, is_default=True)
+  return Decoration.wrap(func, is_default=True)
 
 
 def final(func):
@@ -646,7 +665,7 @@ def final(func):
   default implementation and that it may not actually be implemented.
   """
 
-  return Decoration.wraps(func, is_default=True, is_final=True)
+  return Decoration.wrap(func, is_default=True, is_final=True)
 
 
 def override(func):
@@ -658,7 +677,7 @@ def override(func):
   Using #override() implies #default().
   """
 
-  return Decoration.wraps(func, is_override=True)
+  return Decoration.wrap(func, is_override=True)
 
 
 def overrides(interface):

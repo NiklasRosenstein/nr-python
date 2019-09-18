@@ -19,6 +19,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+"""
+An alias for [[collections]] (Py2) or [[collections.abc]] (Py3).
+"""
+
+from __future__ import absolute_import
+
 try:
   import collections.abc as _abc
 except ImportError:

@@ -46,8 +46,8 @@ class GenericMeta(type):
       arg_default = item[1] if len(item) > 1 else NotImplemented
       if arg_default is NotImplemented and had_optional:
         raise ValueError('invalid {}.__generic_args__, default argument '
-          'followed by non-default argument "{}"'
-          .format(cls.__name__, arg_name))
+                         'followed by non-default argument "{}"'
+                         .format(cls.__name__, arg_name))
       cls.__generic_args__[index] = (arg_name, arg_default)
     super(GenericMeta, cls).__init__(*args, **kwargs)
     if not hasattr(cls, '__generic_bind__'):
@@ -71,7 +71,8 @@ class GenericMeta(type):
           missing.append(arg_name)
       if collected_args and missing:
         raise RuntimeError('{}: no all Generic arguments satisfied by '
-          'class members (missing {})'.format(cls.__name__, ','.join(missing)))
+                           'class members (missing {})'
+                           .format(cls.__name__, ','.join(missing)))
       if collected_args:
         cls.__generic_bind__ = collected_args
 
@@ -81,7 +82,7 @@ class GenericMeta(type):
       args = (args,)
     if len(args) > len(cls.__generic_args__):
       raise TypeError('{} takes at most {} generic arguments ({} given)'
-        .format(cls.__name__, len(cls.__generic_args__), len(args)))
+                      .format(cls.__name__, len(cls.__generic_args__), len(args)))
     # Find the number of required arguments.
     for index in range(len(cls.__generic_args__)):
       if cls.__generic_args__[index][1] != NotImplemented:
@@ -91,7 +92,7 @@ class GenericMeta(type):
     min_args = index
     if len(args) < min_args:
       raise TypeError('{} takes at least {} generic arguments ({} given)'
-        .format(cls.__name__, min_args, len(args)))
+                      .format(cls.__name__, min_args, len(args)))
     # Bind the generic arguments.
     bind_data = []
     for index in range(len(cls.__generic_args__)):

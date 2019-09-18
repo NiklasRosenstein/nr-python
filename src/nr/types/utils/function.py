@@ -19,17 +19,17 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from __future__ import absolute_import
-
-__all__ = ['new_closure_cell', 'new_closure', 'copy_function']
+"""
+Provides tools for working with Python function objects, most prominently the
+[[copy_function()]] function.
+"""
 
 import functools
 import types
+from nr.types import abc
 
-from . import abc
 
-
-def new_closure_cell(x):
+def make_closure_cell(x):
   """
   Creates a new Python cell object that can usually be found in a functions
   `__closure__` tuple. The values in a `__closure__` must match the free
@@ -45,13 +45,13 @@ def new_closure_cell(x):
 def new_closure(cell_values):
   """
   Creates a function closure from the specified list/iterable of value. The
-  returned object is a tuple of cell objects created with #new_closure_cell().
+  returned object is a tuple of cell objects created with #make_closure_cell().
 
   cell_values (iterable): An iterable of cell values.
   return (tuple of cell): A tuple containing only cell objects.
   """
 
-  return tuple(map(new_closure_cell, cell_values))
+  return tuple(map(make_closure_cell, cell_values))
 
 
 def copy_function(
@@ -84,8 +84,8 @@ def copy_function(
   """
 
   if not isinstance(function, types.FunctionType):
-    raise TypeError('expected FunctionType, got {}'.format(
-                      type(function).__name__))
+    raise TypeError('expected FunctionType, got {}'
+                    .format(type(function).__name__))
 
   if code is None:
     code = function.__code__
@@ -109,10 +109,14 @@ def copy_function(
     closure = new_closure(closure)
     if len(closure) != len(function.__code__.co_freevars):
       raise ValueError('function requires {} free closure, only '
-                      '{} values are specified'.format(
-                        len(function.__code__.co_freevars),
-                        len(closure)))
+                       '{} values are specified'.format(
+                         len(function.__code__.co_freevars),
+                         len(closure)
+                       ))
 
   new_func = types.FunctionType(code, globals, name, argdefs, closure)
   functools.update_wrapper(new_func, function)
   return new_func
+
+
+__all__ = ['make_closure_cell', 'new_closure', 'copy_function']

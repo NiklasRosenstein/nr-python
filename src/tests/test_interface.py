@@ -24,6 +24,15 @@ def test_constructed():
     Foo()
 
 
+def test_interface_cannot_be_constructed():
+  class IFoo(Interface):
+    def bar(self):
+      pass
+  with pytest.raises(RuntimeError) as excinfo:
+    IFoo()
+  assert str(excinfo.value) == 'interface IFoo cannot be instantiated'
+
+
 def test_value():
 
   class IFoo(Interface):
@@ -449,3 +458,86 @@ def test_property_wrong_decoration():
       raise AError
 
   assert 'foo' not in IFoo
+
+
+def test_instancecheck():
+
+  class IFoo(Interface):
+    def foo(self):
+      pass
+
+  @implements(IFoo)
+  class Bar(object):
+    def foo(self):
+      return 42
+
+  assert Bar().foo() == 42
+  assert IFoo.implemented_by(Bar)
+  assert IFoo.provided_by(Bar())
+  assert isinstance(Bar(), IFoo)
+
+  class ISpam(IFoo):
+    def spam(self):
+      pass
+
+  @implements(ISpam)
+  class Eggs(object):
+    def foo(self):
+      return 99
+    def spam(self):
+      return 42
+
+  assert Eggs().foo() == 99
+  assert Eggs().spam() == 42
+  assert IFoo.implemented_by(Eggs)
+  assert IFoo.provided_by(Eggs())
+  assert ISpam.implemented_by(Eggs)
+  assert ISpam.provided_by(Eggs())
+  assert isinstance(Eggs(), IFoo)
+  assert isinstance(Eggs(), ISpam)
+
+
+def test_implementation_order():
+  class IFoo(Interface):
+    pass
+
+  impls = []
+  for i in range(200):
+    @implements(IFoo)
+    class Bar(object):
+      pass
+    impls.append(Bar)
+
+  assert list(IFoo.implementations()) == impls
+
+
+def test_readme_compound():
+
+  class IFoo(Interface):
+    """ The foo interface. """
+
+    x = attr("""Some attribute.""")
+
+    def bar(self, q, r=None):
+      """ The bar function. """
+
+  assert set(IFoo) == set(['x', 'bar'])
+  assert not hasattr(IFoo, 'x')
+  assert not hasattr(IFoo, 'bar')
+  assert IFoo['x'].name == 'x'
+  assert IFoo['bar'].name == 'bar'
+
+  @implements(IFoo)
+  class Foo(object):
+
+    def __init__(self, x=None):
+      self.x = x
+
+    def bar(self, q, r=None):
+      return q, r, self.x
+
+  assert issubclass(Foo, Implementation)
+  assert IFoo.implemented_by(Foo)
+  assert IFoo.provided_by(Foo())
+  assert list(IFoo.implementations()) == [Foo]
+  assert Foo(42).x == 42

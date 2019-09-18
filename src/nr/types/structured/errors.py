@@ -36,7 +36,7 @@ class ExtractTypeError(ExtractError):
 
   def __init__(self, locator, message=None):
     if message is None:
-      expected = locator.datatype().readable()
+      expected = locator.datatype().human_readable()
       got = type(locator.value()).__name__
       message = 'expected "{}", got "{}"'.format(expected, got)
     super(ExtractTypeError, self).__init__(locator, message)

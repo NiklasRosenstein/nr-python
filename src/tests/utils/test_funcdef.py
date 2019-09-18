@@ -19,48 +19,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-"""
-This module is used to design data models that can then be serialized and
-deserialized into/from JSON or YAML.
-"""
-
-from .errors import *
-from .locator import *
-from .mixins import *
-from .types import *
-from .object import *
-from .collection import *
-from . import utils
+import pytest
+from nr.types.utils.funcdef import raise_kwargs
 
 
-def extract(value, py_type_def, locator=None, **options):
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
-  return locator.extract()
+def test_raise_kwargs():
 
+  def my_function(**kwargs):
+    raise_kwargs(kwargs)
 
-def store(value, py_type_def=None, locator=None, **options):
-  if py_type_def is None and isinstance(value, (Object, Collection)):
-    py_type_def = type(value)
+  with pytest.raises(TypeError) as excinfo:
+    my_function(a=42)
 
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
-
-  return locator.store()
-
-
-__all__ = (
-  errors.__all__ +
-  locator.__all__ +
-  mixins.__all__ +
-  types.__all__ +
-  object.__all__ +
-  collection.__all__ +
-  ['utils', 'extract', 'store']
-)
+  assert str(excinfo.value) == "'a' is an invalid keyword argument for my_function()"

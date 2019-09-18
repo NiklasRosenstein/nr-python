@@ -1,5 +1,5 @@
 
-from nr.types.functools import copy_function
+from nr.types.utils.function import copy_function
 import pytest
 
 
@@ -22,3 +22,14 @@ def test_has_closure():
 
   func = copy_function(func, closure={'value': 'foo'})
   func()
+
+
+def test_copy_function():
+  def test(value):
+    def x():
+      return value
+    return x
+  x = test(42)
+  assert x() == 42
+  y = copy_function(x, closure={'value': 99})
+  assert y() == 99

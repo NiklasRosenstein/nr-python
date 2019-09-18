@@ -24,6 +24,7 @@ Describes a strong typing system that can then be extracted from a structured
 object.
 """
 
+import decimal
 import inspect
 import six
 import sys
@@ -37,16 +38,24 @@ from nr.types.interface import (
   implements,
   override,
   staticattr)
+from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
-from six import string_types, PY2
 
-getargspec = getattr(__import__('inspect'), 'getargspec' if PY2 else 'getfullargspec')
+getargspec = getattr(
+  __import__('inspect'), 'getargspec' if six.PY2 else 'getfullargspec')
+
+#: A message sent to [[IDataType]] instances when the datatype is attached to
+#: a field, which in turn is attached to an [[Object]]. The message data is
+#: a dictionary of the object and field name.
+MSG_PROPAGATE_FIELDNAME = 'MSG_PROPAGATE_FIELDNAME'
 
 
 class IDataType(Interface):
   """
   Interface that describes a datatype.
   """
+
+  classdef.hashable_on([])  # adds __hash__, __eq__, __ne__ to the interface
 
   @default
   def __repr__(self):
@@ -60,8 +69,19 @@ class IDataType(Interface):
     return '{}({})'.format(type(self).__name__, ', '.join(parts))
 
   @default
-  def readable(self):
+  def human_readable(self):
     return repr(self)
+
+  @default
+  def child_datatypes(self):  # type: () -> Iterable[IDataType]
+    return ()
+
+  @default
+  def message(self, message_type, data):  # type: () -> Optional[bool]
+    for child in self.child_datatypes():
+      result = child.message(message_type, data)
+      if result is False:
+        return False
 
   def extract(self, locator):  # type: (Locator) -> Any
     pass
@@ -72,6 +92,8 @@ class IDataType(Interface):
 
 @implements(IDataType)
 class AnyType(object):
+
+  classdef.hashable_on([])
 
   @override
   def extract(self, locator):
@@ -84,6 +106,8 @@ class AnyType(object):
 
 @implements(IDataType)
 class BooleanType(object):
+
+  classdef.hashable_on([])
 
   @override
   def extract(self, locator):
@@ -100,12 +124,14 @@ class StringType(object):
   Represents a string value.
   """
 
+  classdef.hashable_on(['strict'])
+
   def __init__(self, strict=True):
     self.strict = strict
 
   @override
   def extract(self, locator):
-    if isinstance(locator.value(), string_types):
+    if isinstance(locator.value(), six.string_types):
       return locator.value()
     if self.strict:
       locator.type_error()
@@ -122,12 +148,14 @@ class IntegerType(object):
   Represents an integer value.
   """
 
+  classdef.hashable_on(['strict'])
+
   def __init__(self, strict=True):
     self.strict = strict
 
   @override
   def extract(self, locator):
-    if not self.strict and isinstance(locator.value(), string_types):
+    if not self.strict and isinstance(locator.value(), six.string_types):
       try:
         return int(locator.value())
       except ValueError as exc:
@@ -142,6 +170,59 @@ class IntegerType(object):
 
 
 @implements(IDataType)
+class DecimalType(object):
+  """
+  Represents a decimal value, which can be represented by a float or
+  [[decimal.Decimal]] object. If the selected Python type is Decimal, it
+  will always accept strings as input.
+
+  If the selected type is `float`, it will only accept a string as input if
+  *strict* is set to `False`.
+  """
+
+  classdef.hashable_on(['python_type', 'decimal_context', 'strict'])
+
+  def __init__(self, python_type, decimal_context=None, strict=True):
+    if python_type not in (float, decimal.Decimal):
+      raise ValueError('python_type must be float or decimal.Decimal, got {!r}'
+                       .format(python_type))
+    if python_type is not decimal.Decimal and decimal_context:
+      raise ValueError('decimal_context can only be used if python_type is '
+                       'decimal.Decimal, but got {!r}'.format(python_type))
+    self.python_type = python_type
+    self.decimal_context = decimal_context
+    self.strict = strict
+
+  def coerce(self, value):
+    if self.python_type is decimal.Decimal:
+      return decimal.Decimal(value, self.decimal_context)
+    elif self.python_type is float:
+      return float(value)
+    else:
+      raise RuntimeError('python_type is invalid: {!r}'
+                         .format(self.python_type))
+
+  def accepted_input_types(self):
+    types = (int, float, decimal.Decimal)
+    if not self.strict or self.python_type is decimal.Decimal:
+      types += (str,)
+    return types
+
+  @override
+  def extract(self, locator):
+    value = locator.value()
+    if isinstance(value, self.accepted_input_types()):
+      return self.coerce(value)
+    locator.type_error()
+
+  @override
+  def store(self, value):
+    # TODO(@NiklasRosenstein): Can we make it decidable by the user if the
+    #   serialization library supports [[decimal.Decimal]]?
+    return float(value)
+
+
+@implements(IDataType)
 class ArrayType(object):
   """
   Represents an array type.
@@ -149,10 +230,16 @@ class ArrayType(object):
 
   BASIC_SEQUENCE_TYPES = (list, tuple, set)
 
+  classdef.hashable_on(['item_type', 'py_type', 'store_type'])
+
   def __init__(self, item_type, py_type=list, store_type=list):
     self.item_type = item_type
     self.py_type = py_type
     self.store_type = store_type
+
+  @override
+  def child_datatypes(self):
+    yield self.item_type
 
   @override
   def extract(self, locator):
@@ -185,8 +272,14 @@ class DictType(object):
 
   BASIC_DICTIONARY_TYPES = (dict,)
 
+  classdef.hashable_on(['value_type'])
+
   def __init__(self, value_type):
     self.value_type = value_type
+
+  @override
+  def child_datatypes(self):
+    yield self.value_type
 
   @override
   def extract(self, locator):
@@ -213,6 +306,8 @@ class ObjectType(object):
   Represents the datatype for an [[Object]] subclass.
   """
 
+  classdef.hashable_on(['object_cls'])
+
   def __init__(self, object_cls):
     assert isinstance(object_cls, type), object_cls
     assert issubclass(object_cls, Object), object_cls
@@ -229,7 +324,7 @@ class ObjectType(object):
 
     kwargs = {}
     handled_keys = set()
-    for name, field in six.iteritems(fields.by_priority()):
+    for name, field in fields.items().sortby(lambda x: x[1].priority):
       assert name == field.name, "woops: {}".format((name, field))
       field.extract_kwargs(self.object_cls, locator, kwargs, handled_keys)
 
@@ -253,10 +348,30 @@ class ObjectType(object):
     if not isinstance(locator.value(), self.object_cls):
       locator.type_error()
     result = {}
-    for name, field in six.iteritems(self.object_cls.__fields__):
+    for name, field in self.object_cls.__fields__.items():
       value = getattr(locator.value(), name)
       result[field.name] = locator.advance(name, value, field.datatype).store()
     return result
+
+  @override
+  def message(self, message_type, data):
+    if message_type == MSG_PROPAGATE_FIELDNAME:
+      if self.object_cls.__name__ == _InlineObjectTranslator.GENERATED_TYPE_NAME:
+        self.object_cls.__name__ = data
+    return IDataType['message'](self, message_type, data)
+
+
+class UnionWrap(object):
+  """
+  Wraps the value of a Union field.
+  """
+
+  classdef.hashable_on(['datatype', 'value'])
+  classdef.def_repr(['datatype', 'value'])
+
+  def __init__(self, datatype, value):
+    self.datatype = datatype
+    self.value = value
 
 
 @implements(IDataType)
@@ -266,28 +381,15 @@ class UnionType(object):
   key that has the name of the specified type.
   """
 
-  class UnionInstance(dict):
-
-    def __init__(self, data, type_key):
-      super(UnionType.UnionInstance, self).__init__(data)
-      self._type_key = type_key
-
-    @property
-    def type(self):
-      return self[self._type_key]
-
-    @property
-    def value(self):
-      return self[self.type]
-
-    def __call__(self):
-      return self[self.type]
+  classdef.hashable_on(['mapping', 'strict', 'type_key'])
 
   def __init__(self, mapping, strict=True, type_key='type'):  # type: (Dict[str, IDataType], str, bool) -> None
-    from .object import translate_field_type
     self.mapping = {k: translate_field_type(v) for k, v in mapping.items()}
-    self.strict = strict
     self.type_key = type_key
+
+  @override
+  def child_datatypes(self):
+    return self.mapping.values()
 
   @override
   def extract(self, locator):
@@ -304,10 +406,8 @@ class UnionType(object):
     if type_name not in self.mapping:
       locator.value_error('unexpected "{}": "{}"'.format(self.type_key, type_name))
     datatype = self.mapping[type_name]
-    return self.UnionInstance({
-      self.type_key: type_name,
-      type_name: locator.advance(type_name, locator.value()[type_name], datatype).extract()
-    }, self.type_key)
+    value = locator.advance(type_name, locator.value()[type_name], datatype).extract()
+    return UnionWrap(datatype, value)
 
   @override
   def store(self, locator):
@@ -336,6 +436,8 @@ class ForwardDecl(object):
     wheels: List[Wheel]
   ```
   """
+
+  classdef.hashable_on(['name', 'frame'])
 
   def __init__(self, name, frame=None):
     self.name = name
@@ -390,6 +492,8 @@ class _PlainTypeTranslator(object):
       return BooleanType()
     elif py_type_def is object:
       return AnyType()
+    elif py_type_def in (float, decimal.Decimal):
+      return DecimalType(py_type_def)
     raise InvalidTypeDefinitionError(py_type_def)
 
 
@@ -417,17 +521,13 @@ class _ArrayTranslator(object):
 
 
 @implements(IFieldTypeTranslator)
-class _ObjectTranslator(object):
+class _CollectionTranslator(object):
 
   @override
   @staticmethod
   def translate(py_type_def):
     if isinstance(py_type_def, dict) and len(py_type_def) == 0:
       return DictType(AnyType())
-    elif isinstance(py_type_def, dict) and len(py_type_def) == 1:
-      key, value = next(iter(py_type_def.items()))
-      if isinstance(key, six.string_types):
-        return DictType(translate_field_type(value))
     # We're accepting a set as this allows the nice {value_type} syntax.
     elif isinstance(py_type_def, set) and len(py_type_def) == 1:
       return DictType(translate_field_type(next(iter(py_type_def))))
@@ -453,13 +553,41 @@ class _ForwardDeclTranslator(object):
 
 
 @implements(IFieldTypeTranslator)
-class _ObjectDefTranslator(object):
+class _ObjectAndCollectionTranslator(object):
 
   @override
   @staticmethod
   def translate(py_type_def):
     if isinstance(py_type_def, type) and issubclass(py_type_def, Object):
       return ObjectType(py_type_def)
+    elif isinstance(py_type_def, type) and issubclass(py_type_def, Collection):
+      return py_type_def.datatype
+    raise InvalidTypeDefinitionError(py_type_def)
+
+
+@implements(IFieldTypeTranslator)
+class _InlineObjectTranslator(object):
+  """
+  Implements the translation of inline object definitons in dictionary form.
+  Example:
+
+  ```py
+  datatype = translate_field_type({
+    'a': Field(int),
+    'b': Field(str),
+  })
+  assert type(datatype) == ObjectType
+  assert sorted(datatype.object_cls.__fields__.keys()) == ['a', 'b']
+  ```
+  """
+
+  GENERATED_TYPE_NAME = '_InlineObjectTranslator_generated'
+
+  @override
+  @classmethod
+  def translate(cls, py_type_def):
+    if isinstance(py_type_def, dict):
+      return ObjectType(type(cls.GENERATED_TYPE_NAME, (Object,), py_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
 
@@ -476,6 +604,7 @@ def translate_field_type(py_type_def):  # type: (Any) -> IDataType
     return py_type_def
   elif isinstance(py_type_def, type) and IDataType.implemented_by(py_type_def):
     return py_type_def()
+  # NOTE(@NiklasRosenstein): Potential perf improvement by caching sorted implementations.
   implementations = IFieldTypeTranslator.implementations()
   for impl in sorted(implementations, key=lambda x: x.priority):
     try:
@@ -487,6 +616,7 @@ def translate_field_type(py_type_def):  # type: (Any) -> IDataType
 
 from .locator import Locator
 from .object import Object, META
+from .collection import Collection
 
 
 __all__ = [
@@ -495,10 +625,12 @@ __all__ = [
   'BooleanType',
   'StringType',
   'IntegerType',
+  'DecimalType',
   'ArrayType',
   'DictType',
   'ObjectType',
   'UnionType',
+  'UnionWrap',
   'ForwardDecl',
   'IFieldTypeTranslator',
   'translate_field_type',

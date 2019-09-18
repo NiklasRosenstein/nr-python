@@ -43,7 +43,7 @@ def add_origin_metadata_field(field_name='origin'):
 
   def decorator(object_cls):
     object_cls.__fields__.update([
-      (field_name, MetadataField(OriginInfo, getter=getter))
+      MetadataField(OriginInfo, getter=getter, name=field_name)
     ])
     return object_cls
 

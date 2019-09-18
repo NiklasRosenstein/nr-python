@@ -19,16 +19,21 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+# pylint: disable=no-self-argument,not-callable
+
 from __future__ import absolute_import
 
 import functools
 import itertools
 import six
 
-from . import NotSet
+from nr.types.abc import Mapping
+from nr.types.singletons import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
+_slice = slice
 _next = next
+_next_attr = 'next' if six.PY2 else '__next__'
 
 
 class _dualmethod(object):
@@ -55,23 +60,26 @@ class _dualmethod(object):
     return function
 
 
-class stream(object):
+class Stream(object):
   """
-  A wrapper for iterables that provides the stream processor functions of
-  this module in an object-oriented interface.
+  A wrapper for iterables that provides stream processing functions. All of
+  this classes methods can be accessed in a static or non-static context.
+  Additionally, all of the methods are exposed in the parent module.
   """
 
   def __init__(self, iterable):
-    self.iterable = iter(iterable)
+    self.iterable = iterable
 
   def __iter__(self):
-    return iter(self.iterable)
+    return self
 
   def __next__(self):
+    if not hasattr(self.iterable, _next_attr):
+      self.iterable = iter(self.iterable)
     return _next(self.iterable)
 
   def __getitem__(self, val):
-    if isinstance(val, slice):
+    if isinstance(val, _slice):
       return self.slice(val.start, val.stop, val.step)
     else:
       raise TypeError('{} object is only subscriptable with slices'.format(type(self).__name__))
@@ -216,7 +224,7 @@ class stream(object):
   if six.PY2:
     @_dualmethod
     def next(cls, iterable):
-      if isinstance(iterable, stream):
+      if isinstance(iterable, Stream):
         return iterable.__next__()
       else:
         return _next(iter(iterable))
@@ -259,7 +267,20 @@ class stream(object):
 
   @_dualmethod
   def collect(cls, iterable, collect_cls=None, *args, **kwargs):
-    return (collect_cls or list)(iterable, *args, **kwargs)
+    """
+    Collects the stream into a collection.
+
+    If *collect_cls* is not explicitly specified and the stream is currently
+    wrapping a non-iterator, the wrapped object will be returned immediately.
+    Otherwise, *collect_cls* defaults to [[list]].
+    """
+
+    return_wrapped = isinstance(iterable, Stream) and \
+      not hasattr(iterable.iterable, _next_attr)
+    if collect_cls is None and return_wrapped:
+      return iterable.iterable
+    else:
+      return (collect_cls or list)(iterable, *args, **kwargs)
 
   @_dualmethod
   def batch(cls, iterable, n, collect_cls=None):
@@ -296,7 +317,37 @@ class stream(object):
 
     return cls(generate_batches())
 
+  @_dualmethod
+  def sortby(cls, iterable, by, reverse=False):
+    """
+    Orders the stream and returns a new [[Stream]] object that wraps the
+    ordered element list. The internal list can be retrieved efficiently
+    with the [[#collect()]] method.
 
-import sys
-_module = sys.modules[__name__]
-sys.modules[__name__] = stream
+    If *by* is a string, it will be used to look up an attribute or key.
+    Otherwise, a callable is expected which is used as the sorting key.
+    """
+
+    if isinstance(by, str):
+      lookup_attr = by
+      def by(item):
+        if isinstance(item, Mapping):
+          return item[lookup_attr]
+        else:
+          return getattr(item, lookup_attr)
+
+    return cls(sorted(iterable, key=by, reverse=reverse))
+
+  @_dualmethod
+  def sort(cls, iterable, reverse=False):
+    return cls.sortby(iterable, lambda x: x, reverse)
+
+
+def _expose_members():
+  for key in dir(Stream):
+    if key in vars(Stream) and isinstance(vars(Stream)[key], _dualmethod):
+      globals()[key] = getattr(Stream, key)
+      yield key
+
+
+__all__ = ['Stream'] + list(_expose_members())

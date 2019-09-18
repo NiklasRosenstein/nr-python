@@ -19,61 +19,201 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from . import record as _record
-from .meta import InlineMetaclassBase
+"""
+Offers the ability to implement sumtypes in Python, a concept borrowed from
+functional programming languages.
+
+Sumtypes are declared as classes. Their constructors as defined as
+class-members, either by creating a [[Constructor]] object or by inheriting
+from it.
+
+Constructors behave like objects from the [[nr.types.structured]] module.
+They can be declared as such, but don't need to be.
+
+```py
+from nr.types.structured import Constructor, Sumtype
+
+class Progress(Sumtype):
+  Pending = Constructor()
+  Loading = Constructor('percent')
+  Error = Constructor('message', 'traceback')
+  Done = Constructor()
+```
+
+Here a sumtype is created with four constructors. Two of the constructors
+accept arguments. Instances of the sumtype can be created by calling one of
+the constructors.
+
+```py
+print(Progress.Loading(0.34))
+```
+
+However, sumtypes cannot be instantiated directly unless they have a
+`__default__` constructor.
+
+```py
+print(Progress())  # TypeError: cannot construct sumtype 'Progress', use any of its constructors instead: {Pending, Loading, Error, Done}
+
+class Progress(Sumtype):
+  # ...
+  __default__ = Pending
+
+print(Progress())  # Progress.Pending()
+```
+
+Constructors can be defined in one of many ways. The [[Constructor]] class
+accepts
+
+* a single string, with member names separated by whitespace or comma
+* multiple string arguments, each representing a member name
+* multiple arguments of [[Field]] instances
+* a dictionary, mapping each member name of a [[Field]] object
+* a list of [[Field]] or string members
+* a single [[Object]] subclass
+
+Last but not least, a [[Constructor]] can be subclassed, in which case you
+declare the members of the constructor the same way you do for [[Object]]s in
+the [[nr.types.structured]] module.
+
+```py
+from nr.types.structured import Field, Object
+from nr.types.sumtype import Constructor, Sumtype
+
+class MyObject(Object):
+  member1 = Field(int)
+  member2 = Field(float, default=0.0)
+
+class TestSumtype(Sumtype):
+  Empty = Constructor()
+  SingleMember = Constructor('member')
+  SingleMemberWithField = Constructor(Field(object, name='member'))
+  MultipleMemberArgs = Constructor('member1', 'member2')
+  MultipleMemberSingleStringComma = Constructor('member1, member2')
+  MultipleMemberSingleStringSpace = Constructor('member1  member2')
+  MultipleMemberFieldArgs = Constructor(
+    Field(object, name='member1'),
+    Field(object, name='member2'),
+  )
+  MultipleMemberDict = Constructor({
+    'member1': Field(object),
+    'member2': Field(object),
+  })
+  MultipleMemberMixedFieldStringList = Constructor([
+    Field(object, name='member1'),
+    'member2',
+  ])
+  ObjectArg = Constructor(MyObject)
+  class Subclass(Constructor):
+    member1 = Field(object)
+    member2 = Field(object)
+```
+"""
+
+from nr.types.meta import InlineMetaclassBase
+from nr.types.structured import Object, Field, FieldSpec, IFieldDescriptor, create_object_class
 from six import iteritems
 from six.moves import zip
+from .meta import InlineMetaclassBase
 
 import types
 import six
 
 
-class Constructor(object):
+class Constructor(Object):
   """
-  Represents a constructor for a sumtype. Constructors are declared using
-  record types (see the [[record]] module) or by creating [[Constructor]]
-  objects from scratch (with the same interface as the
-  [[record.create_record()]] function).
+  Represents a constructor for a sumtype. Constructors basically wrap an
+  [[Object]]. Constructors are declared as class-level members of a
+  [[Sumtype]] subclass.
   """
 
-  def __init__(self, *record_or_fields, **kwargs):
+  def __init__(self, *args, **kwargs):
     """
     Creates a new constructor object.
 
     # Arguments (1)
 
-    record (type): A [[record.CleanRecord]] subclass.
+    object_cls (type)
 
     # Arguments (2)
 
-    fields (list, dict, str): Fields for the new record class.
-    mixins (tuple of type): Mixins for the record subclass.
+    fields (dict, list, str)
+    mixins (tuple)
+
+    # Arguments (3)
+
+    args (tuple of (str, Field))
+    mixins (tuple)
+
+    # Parameters:
+
+    object_cls: An [[Object]] subclass.
+    fields: Fields for a new object class. If a string is specified, it will
+      be split by whitespace or commas to generate the list version. If a list
+      is specified, every member will be turned into a [[Field]] accepting any
+      Python object. A dictionary will be treated as the members of an
+      [[Object]] subclass.
+    mixins: The mixins for creating the Object class.
     """
 
-    mixins = kwargs.pop('mixins', ())
-    for key in kwargs:
-      raise TypeError('unexpected keyword argument {!r}'.format(key))
+    if type(self) != Constructor:
+      return super(Constructor, self).__init__(*args, **kwargs)
 
-    if len(record_or_fields) == 1 and isinstance(record_or_fields[0], type):
-      if not issubclass(record_or_fields[0], _record.CleanRecord):
-        raise TypeError('expected record.CleanRecord subclass')
-      record = record_or_fields[0]
-    else:
-      record = _record.create('_Temporary', record_or_fields, *mixins)
-    self.record = record
+    def raise_kwargs():
+      for key in kwargs:
+        raise TypeError('unexpected keyword argument {!r}'.format(key))
+
+    def build_fields(field_names):
+      fields = {}
+      for item in field_names:
+        if isinstance(item, str):
+          fields[item] = Field(object)
+        elif IFieldDescriptor.provided_by(item):
+          if not item.name:
+            raise ValueError('found unnamed field: {!r}'.format(item))
+          fields[item.name] = item
+      return fields
+
+    if len(args) == 1 and isinstance(args[0], type):  # NOTE: constructor 1
+      raise_kwargs()
+      object_cls = args[0]
+      if not issubclass(object_cls, Object):
+        raise TypeError('expected Object subclass')
+
+    elif len(args) == 1 and isinstance(args[0], (dict, list, str)):  # NOTE: constructor 2
+      mixins = kwargs.pop('mixins', ())
+      raise_kwargs()
+      value = args[0]
+      if isinstance(value, str):
+        if ',' in value:
+          fields = build_fields(x.strip() for x in value.split(','))
+        else:
+          fields = build_fields(value.split())
+      elif isinstance(value, list):
+        fields = build_fields(value)
+      else:
+        fields = value
+      object_cls = create_object_class('_Temporary', fields, mixins=mixins)
+
+    else:  # NOTE: constructor 3
+      mixins = kwargs.pop('mixins', ())
+      raise_kwargs()
+      fields = build_fields(args)
+      object_cls = create_object_class('_Temporary', fields, mixins=mixins)
+
+    self.object_cls = object_cls
 
   def add_member(self, name, value):
-    setattr(self.record, name, value)
+    setattr(self.object_cls, name, value)
 
   def bind(self, name, sumtype):
     """
     Binds the [[Constructor]] to the [[Sumtype]] class. It basically just
-    rebuilds the [[#record]] class to be a subclass of the *sumtype*.
+    rebuilds the [[#object_cls]] class to be a subclass of the *sumtype*.
     """
 
     name = sumtype.__name__ + '.' + name
     attrs = {'__skip_sumtype_meta__': True}
-    typ = type(name, (sumtype, self.record), attrs)
+    typ = type(name, (sumtype, self.object_cls), attrs)
     typ.__constructor__ = self
     return typ
 
@@ -111,35 +251,34 @@ class member_of(object):
       c.add_member(self.name, self.value)
 
 
-class Sumtype(InlineMetaclassBase):
-  """
-  Base class for sumtypes. Subclass and created [[Constructor]] objects at
-  the class-level.
+class _SumtypeMeta(type(Object)):
 
-  A `__default__` constructor may be specified which is created when
-  instantiating an instance of the [[Sumtype]] directly. The `__default__`
-  may be set to a [[Constructor]] instance or to the name of a constructor.
-  Note that the `__default__` is not handled on subclasses.
-  """
-
-  __addins__ = []
-  __constructors__ = {}
-
-  def __metanew__(cls, name, bases, attrs):
-    subtype = type.__new__(cls, name, bases, attrs)
+  def __new__(cls, name, bases, attrs):
+    subtype = super(_SumtypeMeta, cls).__new__(cls, name, bases, attrs)
     if attrs.get('__skip_sumtype_meta__', False):
       return subtype
+
+    subtype.__fields__ = FieldSpec([])
+    constructor_mapping = {}
 
     # Get all previous constructors and get all new ones.
     constructors = getattr(subtype, '__constructors__', {}).copy()
     default_constructor = None
     for key, value in iteritems(vars(subtype)):
-      if isinstance(value, Constructor):
-        if key == '__default__':
-          default_constructor = value
+      is_subclass =  isinstance(value, type) and issubclass(value, Constructor)
+      if isinstance(value, Constructor) or is_subclass:
+        if id(value) in constructor_mapping:
+          constructor = constructor_mapping[id(value)]
+        elif is_subclass:
+          constructor = Constructor(value)
         else:
-          value.name = key
-          constructors[key] = value
+          constructor = value
+        constructor_mapping[id(value)] = constructor
+        if key == '__default__':
+          default_constructor = constructor
+        else:
+          constructor.name = key
+          constructors[key] = constructor
 
     # Update constructors from member_of declarations.
     for key, value in list(iteritems(vars(subtype))):
@@ -163,10 +302,31 @@ class Sumtype(InlineMetaclassBase):
 
     return subtype
 
+  def __instancecheck__(self, inst):
+    if issubclass(type(inst), self) or getattr(inst, '__sumtype__') == self:
+      return True
+    return False
+
+
+@six.add_metaclass(_SumtypeMeta)
+class Sumtype(object):
+  """
+  Base class for sumtypes. Subclass and created [[Constructor]] objects at
+  the class-level.
+
+  A `__default__` constructor may be specified which is created when
+  instantiating an instance of the [[Sumtype]] directly. The `__default__`
+  may be set to a [[Constructor]] instance or to the name of a constructor.
+  Note that the `__default__` is not handled on subclasses.
+  """
+
+  __addins__ = []
+  __constructors__ = {}
+
   def __new__(cls, *args, **kwargs):
     if hasattr(cls, '__constructor__'):
       # This is acually trying to construct from a constructor.
-      assert issubclass(cls, _record.CleanRecord)
+      assert issubclass(cls, Object)
       obj = object.__new__(cls)
       obj.__init__(*args, **kwargs)
       return obj
@@ -200,13 +360,4 @@ def add_is_methods(sumtype):
     setattr(sumtype, func_name, create_is_check(func_name, name))
 
 
-Sumtype.constructor = Constructor
-Sumtype.record = _record.Record
-Sumtype.field = _record.Field
-Sumtype.member_of = member_of
-Sumtype.add_is_methods = add_is_methods
 Sumtype.__addins__.append(add_is_methods)
-
-import sys
-Sumtype.__module_object__ = sys.modules[__name__]  # keep explicit reference for Py2
-sys.modules[__name__] = Sumtype

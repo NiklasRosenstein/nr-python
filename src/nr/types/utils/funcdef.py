@@ -20,47 +20,31 @@
 # IN THE SOFTWARE.
 
 """
-This module is used to design data models that can then be serialized and
-deserialized into/from JSON or YAML.
+Utils for writing functions. Strongly relies on [[sys._getframe()]].
 """
 
-from .errors import *
-from .locator import *
-from .mixins import *
-from .types import *
-from .object import *
-from .collection import *
-from . import utils
+import sys
 
 
-def extract(value, py_type_def, locator=None, **options):
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
-  return locator.extract()
+def get_caller_name(_stackdepth=0):
+  """
+  Gets the name of the calling function.
+  """
+
+  return sys._getframe(_stackdepth + 1).f_code.co_name
 
 
-def store(value, py_type_def=None, locator=None, **options):
-  if py_type_def is None and isinstance(value, (Object, Collection)):
-    py_type_def = type(value)
+def raise_kwargs(kwargs, name=None, _stackdepth=0):
+  """
+  Raises a [[TypeError]] indicating that the caller does not accept the
+  specified keyword arguments. If *name* is `None`, it will be derived
+  with [[get_caller_name()]].
+  """
 
-  datatype = translate_field_type(py_type_def)
-  if locator is None:
-    locator = Locator.root(value, datatype, options)
-  else:
-    locator = locator.emplace(value, datatype, options)
+  if kwargs:
+    if name is None:
+      name = get_caller_name(_stackdepth + 1)
+    key = next(iter(kwargs.keys()))
 
-  return locator.store()
-
-
-__all__ = (
-  errors.__all__ +
-  locator.__all__ +
-  mixins.__all__ +
-  types.__all__ +
-  object.__all__ +
-  collection.__all__ +
-  ['utils', 'extract', 'store']
-)
+    raise TypeError('{!r} is an invalid keyword argument for {}()'
+                    .format(key, name))

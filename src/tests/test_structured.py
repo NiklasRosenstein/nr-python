@@ -19,53 +19,54 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import decimal
 import pytest
 import six
 import sys
 import textwrap
-from nr.types import NotSet
+from nr.types.singletons import NotSet
 from nr.types.structured import *
 
 
 def test_locator_str_empty():
-  assert str(Locator.Proxy([])) == '$'
+  assert str(Locator.proxy([])) == '$'
 
 
 def test_locator_str_simple():
-  assert str(Locator.Proxy(['foobar'])) == '$.foobar'
-  assert str(Locator.Proxy(['spam', 'baz'])) == '$.spam.baz'
-  assert str(Locator.Proxy([0, 1, 5])) == '$[0][1][5]'
+  assert str(Locator.proxy(['foobar'])) == '$.foobar'
+  assert str(Locator.proxy(['spam', 'baz'])) == '$.spam.baz'
+  assert str(Locator.proxy([0, 1, 5])) == '$[0][1][5]'
 
 
 def test_locator_str_mixed():
-  assert str(Locator.Proxy(['foobar', 3, 'type'])) == '$.foobar[3].type'
+  assert str(Locator.proxy(['foobar', 3, 'type'])) == '$.foobar[3].type'
 
 
 def test_locator_str_escape():
-  assert str(Locator.Proxy(['root', 1, 'needs:escaping'])) == '$.root[1]."needs:escaping"'
-  assert str(Locator.Proxy(['"also needs escaping'])) == '$."\\"also needs escaping"'
-  assert str(Locator.Proxy(['no-escaping'])) == '$.no-escaping'
+  assert str(Locator.proxy(['root', 1, 'needs:escaping'])) == '$.root[1]."needs:escaping"'
+  assert str(Locator.proxy(['"also needs escaping'])) == '$."\\"also needs escaping"'
+  assert str(Locator.proxy(['no-escaping'])) == '$.no-escaping'
 
 
 def test_locator_resolve():
   data = {'2.4.0': {'foo': {'bar': {'spam-egg': []}}}}
 
-  locator = Locator.Proxy(['2.4.0', 'foo', 'bar', 'spam-egg'])
+  locator = Locator.proxy(['2.4.0', 'foo', 'bar', 'spam-egg'])
   assert locator.resolve(data) == []
 
-  locator = Locator.Proxy(['2.4.0', 'foo', 'bar', 'spam-eggzzz'])
+  locator = Locator.proxy(['2.4.0', 'foo', 'bar', 'spam-eggzzz'])
   with pytest.raises(KeyError) as excinfo:
     locator.resolve(data)
   assert str(excinfo.value) == repr(str(locator))
 
-  locator = Locator.Proxy(['2.4.0', 'foo', 'bar', 'spam-egg', 1])
+  locator = Locator.proxy(['2.4.0', 'foo', 'bar', 'spam-egg', 1])
   with pytest.raises(IndexError) as excinfo:
     locator.resolve(data)
   assert str(excinfo.value) == 'list index out of range at $."2.4.0".foo.bar.spam-egg[1]'
 
 
 def test_locator_resolve_and_emplace():
-  proxy = Locator.Proxy(['foo', 1, 'bar'])
+  proxy = Locator.proxy(['foo', 1, 'bar'])
   assert str(proxy) == '$.foo[1].bar'
 
   data = {'foo': [{'bar': 11}]}
@@ -79,47 +80,62 @@ def test_locator_resolve_and_emplace():
   assert proxy.extract() == 42
 
 
+def test_decimal_type():
+  locator = Locator.proxy(['value'], '42.0', DecimalType(float, strict=False))
+  assert locator.extract() == pytest.approx(42.0)
+
+  locator = Locator.proxy(['value'], '42.0', DecimalType(float, strict=True))
+  with pytest.raises(ExtractTypeError):
+    locator.extract()
+
+  locator = Locator.proxy(['value'], '42.0', DecimalType(decimal.Decimal, strict=False))
+  assert locator.extract() == decimal.Decimal('42.0')
+
+  locator = Locator.proxy(['value'], '42.0', DecimalType(decimal.Decimal, strict=True))
+  assert locator.extract() == decimal.Decimal('42.0')
+
+
 def test_string_type():
-  locator = Locator.Proxy(['a', 'b', 'c'], "foobar", StringType())
+  locator = Locator.proxy(['a', 'b', 'c'], "foobar", StringType())
   assert locator.extract() == "foobar"
 
-  locator = Locator.Proxy(['a', 'b', 'c'], 42, StringType())
+  locator = Locator.proxy(['a', 'b', 'c'], 42, StringType())
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.a.b.c'
 
-  locator = Locator.Proxy(['a', 'b', 'c'], 42, StringType(strict=False))
+  locator = Locator.proxy(['a', 'b', 'c'], 42, StringType(strict=False))
   assert locator.extract() == "42"
 
 
 def test_array_type():
-  locator = Locator.Proxy(['a', 'b'], ["foo", "bar", "baz"], ArrayType(StringType()))
+  locator = Locator.proxy(['a', 'b'], ["foo", "bar", "baz"], ArrayType(StringType()))
   assert locator.extract() == ["foo", "bar", "baz"]
 
-  locator = Locator.Proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType()))
+  locator = Locator.proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType()))
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.a.b[1]'
 
-  locator = Locator.Proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType(strict=False)))
+  locator = Locator.proxy(['a', 'b'], ["foo", 42, "baz"], ArrayType(StringType(strict=False)))
   assert locator.extract() == ["foo", "42", "baz"]
 
 
 def test_dict_type():
-  locator = Locator.Proxy(['foo'], "Hello World!", DictType(StringType()))
+  locator = Locator.proxy(['foo'], "Hello World!", DictType(StringType()))
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.foo'
 
-  locator = Locator.Proxy(['foo'], {"msg": "Hello World!"}, DictType(StringType()))
+  locator = Locator.proxy(['foo'], {"msg": "Hello World!"}, DictType(StringType()))
   assert locator.extract() == {"msg": "Hello World!"}
 
   typedef = ArrayType(DictType(StringType()))
-  locator = Locator.Proxy(['root'], [{"a": "b"}, {"c": "d", "e": "f"}], typedef)
+  locator = Locator.proxy(['root'], [{"a": "b"}, {"c": "d", "e": "f"}], typedef)
   assert locator.extract() == [{"a": "b"}, {"c": "d", "e": "f"}]
 
   typedef = ArrayType(DictType(StringType()))
-  locator = Locator.Proxy(['root'], [{"a": "b"}, {"c": 0.2, "e": "f"}], typedef)
+  locator = Locator.proxy(['root'], [{"a": "b"}, {"c": 0.2, "e": "f"}], typedef)
   with pytest.raises(ExtractTypeError) as excinfo:
     locator.extract()
   assert str(excinfo.value.locator) == '$.root[1].c'
@@ -127,10 +143,10 @@ def test_dict_type():
 
 def test_union_type():
   datatype = UnionType({'int': IntegerType(), 'string': StringType()})
-  assert extract({'type': 'int', 'int': 42}, datatype) == {'type': 'int', 'int': 42}
-  assert extract({'type': 'string', 'string': 'foo'}, datatype) == {'type': 'string', 'string': 'foo'}
+  assert extract({'type': 'int', 'int': 42}, datatype) == UnionWrap(IntegerType(), 42)
+  assert extract({'type': 'string', 'string': 'foo'}, datatype) == UnionWrap(StringType(), 'foo')
   with pytest.raises(ExtractValueError):
-    extract({'type': 'int', 'string': 'foo'}, datatype) == {'type': 'int', 'string': 'foo'}
+    extract({'type': 'int', 'string': 'foo'}, datatype)
 
 
 def test_translate_field_type():
@@ -141,8 +157,6 @@ def test_translate_field_type():
   assert isinstance(translate_field_type([]).item_type, AnyType)
   assert isinstance(translate_field_type({str}), DictType)
   assert isinstance(translate_field_type({str}).value_type, StringType)
-  assert isinstance(translate_field_type({"key": str}), DictType)
-  assert isinstance(translate_field_type({"key": str}).value_type, StringType)
 
   with pytest.raises(InvalidTypeDefinitionError):
     translate_field_type([str, str])
@@ -154,6 +168,14 @@ def test_translate_field_type():
 
   typedef = ArrayType(StringType())
   assert translate_field_type(typedef) is typedef
+
+  # Test _InlineObjectTranslator
+  datatype = translate_field_type({
+    'a': Field(int),
+    'b': Field(str),
+  })
+  assert type(datatype) == ObjectType
+  assert sorted(datatype.object_cls.__fields__.keys()) == ['a', 'b']
 
 
 def test_translate_field_type_typing():
@@ -175,15 +197,16 @@ def test_object():
   def _test_object_def(Person):
     assert hasattr(Person, '__fields__')
     assert list(Person.__fields__.keys()) == ['name', 'age', 'telephone_numbers']
+    fields = Person.__fields__
 
-    assert isinstance(Person.name.datatype, StringType)
-    assert isinstance(Person.age.datatype, IntegerType)
-    assert isinstance(Person.telephone_numbers.datatype, ArrayType)
-    assert isinstance(Person.telephone_numbers.datatype.item_type, StringType)
+    assert isinstance(fields['name'].datatype, StringType)
+    assert isinstance(fields['age'].datatype, IntegerType)
+    assert isinstance(fields['telephone_numbers'].datatype, ArrayType)
+    assert isinstance(fields['telephone_numbers'].datatype.item_type, StringType)
 
-    assert not Person.name.nullable
-    assert Person.age.nullable
-    assert Person.telephone_numbers.nullable
+    assert not fields['name'].nullable
+    assert fields['age'].nullable
+    assert fields['telephone_numbers'].nullable
 
   from typing import List, Optional
 
@@ -242,6 +265,16 @@ def test_object():
   assert extract(payload, List[Person]) == expected
 
 
+def test_object_equality():
+  class Obj(Object):
+    a = Field(int)
+
+  assert Obj(1) == Obj(1)
+  assert not (Obj(1) == Obj(2))
+  assert Obj(1) != Obj(2)
+  assert not (Obj(1) != Obj(1))
+
+
 def test_object_subclassing():
 
   class Person(Object):
@@ -252,9 +285,15 @@ def test_object_subclassing():
 
   assert len(Student.__fields__) == 2
   assert list(Student.__fields__) == ['name', 'student_id']
-  assert Student.name is Person.name
+  assert Student.__fields__['name'] is Person.__fields__['name']
   assert Student('John Wick', '4341115409').name == 'John Wick'
   assert Student('John Wick', '4341115409').student_id == '4341115409'
+
+
+def test_fieldspec_equality():
+  assert FieldSpec() == FieldSpec()
+  assert FieldSpec([Field(object, name='a')]) == FieldSpec([Field(object, name='a')])
+  assert FieldSpec([Field(object, name='a')]) != FieldSpec([Field(object, name='b')])
 
 
 def test_fieldspec_update():
@@ -264,20 +303,18 @@ def test_fieldspec_update():
     foo = Field(str)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo']
-  assert hasattr(TestObject, 'test')
-  assert hasattr(TestObject, 'foo')
-  assert set(dir(TestObject)).issuperset(set(['test', 'foo']))
-  assert TestObject.foo.name == 'foo'
+  assert not hasattr(TestObject, 'test')
+  assert not hasattr(TestObject, 'foo')
+  assert TestObject.__fields__['foo'].name == 'foo'
 
-  fields = [('test', Field(str)), ('bar', Field(object))]
+  fields = [Field(str, name='test'), Field(object, name='bar')]
   TestObject.__fields__.update(fields)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
-  assert hasattr(TestObject, 'test')
-  assert hasattr(TestObject, 'foo')
-  assert hasattr(TestObject, 'bar')
-  assert set(dir(TestObject)).issuperset(set(['test', 'foo', 'bar']))
-  assert TestObject.bar.name == 'bar'
+  assert not hasattr(TestObject, 'test')
+  assert not hasattr(TestObject, 'foo')
+  assert not hasattr(TestObject, 'bar')
+  assert TestObject.__fields__['bar'].name == 'bar'
 
 
 def test_metadata_field():
@@ -313,7 +350,7 @@ def test_metadata_field():
   def metadata_getter(locator, handled_keys):
     return locator.value().get('_metadata', {})
 
-  Test.meta.metadata_getter = metadata_getter
+  Test.__fields__['meta'].metadata_getter = metadata_getter
   data = {'_metadata': {'meta': 'bar'}, 'value': 42}
   with pytest.raises(ExtractValueError) as excinfo:
     extract(data, Test)
@@ -329,7 +366,7 @@ def test_metadata_field():
     handled_keys.add('_metadata')  # allow even in _strict mode
     return locator.value().get('_metadata', {})
 
-  Test.meta.metadata_getter = metadata_getter
+  Test.__fields__['meta'].metadata_getter = metadata_getter
   Test.Meta.strict = True
   data = {'_metadata': {'meta': 'bar'}, 'value': 42}
   assert extract(data, Test).meta == 'bar'
@@ -388,8 +425,90 @@ def test_forward_decl_inline():
 
 def test_extract_custom_locator():
   data = {'a': {'b': 42}}
-  locator = Locator.Proxy(['a', 'b'])
+  locator = Locator.proxy(['a', 'b'])
   assert extract(locator.resolve(data), IntegerType(), locator) == 42
   with pytest.raises(ExtractTypeError):
     extract(locator.resolve(data), StringType(), locator)
   assert extract(locator.resolve(data), StringType(strict=False), locator) == '42'
+
+
+def test_inline_object_def_constructible():
+  class MyObject(Object):
+    myfield = Field({
+      'a': Field(int),
+      'b': Field(str)
+    })
+
+  assert issubclass(MyObject.myfield, Object)
+  assert MyObject.myfield.__name__ == 'MyObject.myfield'
+
+  obj = extract({'myfield': {'a': 0, 'b': 'foo'}}, MyObject)
+  assert isinstance(obj.myfield, MyObject.myfield)
+  assert obj.myfield.a == 0
+  assert obj.myfield.b == 'foo'
+  assert obj.myfield == MyObject.myfield(0, 'foo')
+  assert obj == MyObject(obj.myfield)
+  assert str(obj.myfield) == "MyObject.myfield(a=0, b='foo')"
+
+
+def test_collection():
+  class Items(Collection, list):
+    item_type = str
+
+    def do_stuff(self):
+      return ''.join(self)
+
+  assert Items.datatype == ArrayType(StringType(), Items)
+
+  items = extract(['a', 'b', 'c'], Items)
+  assert items.do_stuff() == 'abc'
+  assert store(items) == ['a', 'b', 'c']
+
+
+# Mixins
+
+def test_to_json():
+  class Container(Object, ToJSON):
+    data = Field(object)
+  assert Container('abc').to_json() == {'data': 'abc'}
+  assert Container([Container('abc')]).to_json() == {'data': [{'data': 'abc'}]}
+  assert Container(b'42').to_json() == {'data': b'42'}
+  assert Container(bytearray(b'42')).to_json() == {'data': bytearray(b'42')}
+
+
+def test_as_dict():
+  class Container(Object, AsDict):
+    data = Field(object)
+  assert Container('abc').as_dict() == {'data': 'abc'}
+  assert Container([Container('abc')]).as_dict() == {'data': [Container('abc')]}
+  assert Container(b'42').as_dict() == {'data': b'42'}
+  assert Container(bytearray(b'42')).as_dict() == {'data': bytearray(b'42')}
+
+
+def test_sequence():
+  class Container(Object, Sequence):
+    a = Field(object)
+    b = Field(object)
+  obj = Container(42, 'foo')
+  assert obj.a == 42
+  assert len(obj) == 2
+  assert tuple(obj) == (42, 'foo')
+  assert obj[0] == 42
+  assert obj[1] == 'foo'
+
+
+def test_readme_example():
+  Person = ForwardDecl('Person')
+  People = translate_field_type({Person})
+  class Person(Object):
+    name = ObjectKeyField()
+    age = Field(int)
+    numbers = Field([str])
+
+  data = {
+    'John': {'age': 52, 'numbers': ['+1 123 5423435']},
+    'Barbara': {'age': 29, 'numbers': ['+44 1523/5325323']}
+  }
+  people = extract(data, People)
+  assert people['John'] == Person('John', 52, ['+1 123 5423435'])
+  assert people['Barbara'] == Person('Barbara', 29, ['+44 1523/5325323'])
