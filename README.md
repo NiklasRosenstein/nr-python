@@ -2,11 +2,11 @@
 
 [![CircleCI](https://circleci.com/gh/NiklasRosenstein/python-nr.types.svg?style=svg)](https://circleci.com/gh/NiklasRosenstein/python-nr.types)
 
-`nr.types` is a Python utility library, aiming to cover a wide range of use cases with Python programming utilities. Anything that makes
-implementing something in Python easier goes in here. It is aimed to be
-compatible with Python 2.7 and 3.4+.
+`nr.types` is a Python library aiming to provide a broad set of common tools
+for developing Python applications.
 
-This library is published to [PyPI] and [Conda-forge].
+This library is published to [PyPI] and [Conda-forge]. It is compatible with
+CPython 2.7 and 3.4+.
 
   [PyPI]: https://pypi.org/project/nr.types/
   [Conda-forge]: https://github.com/conda-forge/nr.types-feedstock
@@ -20,8 +20,8 @@ __Table of Contents__
   inspired by Zope.
 * `nr.types.meta` &ndash; Useful metaclasses.
 * `nr.types.proxy` &ndash; Eager and lazy object proxies.
-* `nr.types.singletons` &ndash; Provides singletones, like `NotSet`.
-* `nr.types.stream` &ndash; Iterable streaming in Python.
+* `nr.types.singletons` &ndash; Provides singletons like `NotSet`.
+* `nr.types.stream` &ndash; Streaming iterators in Python.
 * `nr.types.structured` &ndash; Data-model description library.
 * `nr.types.sumtype` &ndash; Allows you to create sumtypes in Python.
 * `nr.types.utils` &ndash; More generic utilities.
