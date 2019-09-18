@@ -61,6 +61,6 @@ setuptools.setup(
     'full': ['PyYAML'],
   },
   cmdclass = {
-    'version': Verify
+    'verify': Verify
   }
 )
