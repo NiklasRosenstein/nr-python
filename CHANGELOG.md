@@ -1,8 +1,14 @@
 # Changelog
 
-### v2.6.0 (unreleased)
+### v3.0.1 (2019-09-18)
 
-* Moved `nr.types._impl.ordereddict` to `nr.types.maps.ordereddict`
+* `nr.types.structured`
+  * Fix bug in `WildcardField()` constructor that passes an incorrect type
+    to the `DictType()` constructor
+
+### v3.0.0 (2019-09-18)
+
+* Big reshaping of the library.
 
 ### v2.5.5 (2019-08-22)
 
