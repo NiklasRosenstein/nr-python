@@ -12,9 +12,9 @@ import collections
 import os
 
 from nr.pybundle import nativedeps
-from nr.types import record, stream
+from nr.types import structured, stream
 
-class Module(record):
+class Module(structured.Object):
   __annotations__ = [
     ('deps', list, Named.Initializer(list)),
     ('files', list, Named.Initializer(list))

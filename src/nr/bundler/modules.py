@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from .vendor import pip_pep425tags as tags
-from nr.types import record, stream
+from nr.types import structured, stream
 from .utils import system
 from .hooks import Hook
 
@@ -90,7 +90,7 @@ def get_imports(filename, source=None):
   return result
 
 
-class ImportInfo(record):
+class ImportInfo(structured.Object):
   __annotations__ = [
     ('name', str),
     ('filename', str),
@@ -172,7 +172,7 @@ class ImportInfo(record):
     return ImportInfo(module_name, self.filename, self.lineno, self.is_from_import)
 
 
-class ModuleInfo(record):
+class ModuleInfo(structured.Object):
   """
   Represents a Python module.
   """
@@ -180,7 +180,7 @@ class ModuleInfo(record):
   __annotations__ = [
     ('name', str),
     ('filename', str),
-    ('type', type),
+    ('type', str),
     ('imported_from', set, lambda: set()),
     ('imports', list, None),
     ('is_zippable', bool, None),

@@ -21,7 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types import record, sumtype
+from nr.types import structured
+from nr.types.sumtype import Constructor, Sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
 from .utils import gitignore, system
@@ -39,7 +40,7 @@ import textwrap
 import zipfile
 
 
-class AppResource(record):
+class AppResource(structured.Object):
   """
   Represents a file or directory that that is an application resource file
   and will need to be copied to the application folder.
@@ -58,7 +59,7 @@ class AppResource(record):
     self.source = nr.fs.canonical(self.source)
 
 
-class SiteSnippet(record):
+class SiteSnippet(structured.Object):
   """
   A code snippet that is inserted into the `site.py` module .
   """
@@ -72,7 +73,7 @@ class SiteSnippet(record):
   ]
 
 
-class DirConfig(record):
+class DirConfig(structured.Object):
   """
   The configuration where the bundle files will be placed.
   """
@@ -102,7 +103,7 @@ class DirConfig(record):
                nr.fs.join(bundle_dir, 'res'))
 
 
-class Entrypoint(sumtype):
+class Entrypoint(Sumtype):
   """
   Represents an entrypoint specification of the format
   `[@]name=<spec> [args...]` where `<spec>` can be of the format
@@ -112,8 +113,8 @@ class Entrypoint(sumtype):
   be executed in GUI mode.
   """
 
-  File = sumtype.constructor('name filename args gui')
-  Qid = sumtype.constructor('name module function args gui')
+  File = Constructor('name filename args gui')
+  Qid = Constructor('name module function args gui')
 
   def distlib_spec(self):
     if self.is_file():
@@ -383,7 +384,7 @@ class PythonAppBundle(object):
       self.scripts.make_script(ep)
 
 
-class DistributionBuilder(record):
+class DistributionBuilder(structured.Object):
   """
   This object handles building a distribution and contains most of the
   functionality that is also provided via the pybundle command-line.
