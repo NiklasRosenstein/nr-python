@@ -9,6 +9,12 @@
 
 ### Changes
 
+#### v1.5.0 (unreleased)
+
+* Add `mode` argument to `nr.fs.listdir()`
+* Add `nr.fs.atomic_file` class
+* Alias `os.rename` as `nr.fs.rename`
+
 #### v1.4.0 (2019-04-16)
 
 * Add `nr.fs.remove()` function

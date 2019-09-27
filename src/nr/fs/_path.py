@@ -51,7 +51,8 @@ from os import (
   pathsep,
   curdir,
   pardir,
-  getcwd as cwd
+  getcwd as cwd,
+  rename
 )
 from os.path import (
   expanduser,
@@ -469,24 +470,47 @@ def fixcase(path):
   return path
 
 
-def listdir(path, do_raise=True):
+def listdir(path, do_raise=True, mode=None):
   """
-  Like #os.listdir(), but if *do_raise* is #False, an empty list will be
-  returned if the *path* does not exist.
+  Similar to [[os.listdir()]], but with additional functionality.
+
+  If *do_raise* is set to False, the function will catch the OSError
+  for `ENOENT` and `EPERM` that is raised by [[os.listdir()]] if the
+  directory does not exist or the users permissions are insufficient.
+
+  The *mode* argument can be used to specify how the results are being
+  returned. The default value is `None` and will return the directory
+  entry names as is. Alternatively, the value `tuple` (as a string or
+  class object) can be passed to receive a tuple of the entry name and
+  absolute path instead.
   """
 
+  if mode not in (None, tuple, 'tuple'):
+    raise ValueError('invalid value for argument mode: {!r}'.format(mode))
+
   if do_raise:
-    return os.listdir(path)
+    result = os.listdir(path)
   else:
     try:
-      return os.listdir(path)
+      result = os.listdir(path)
     except (OSError, IOError) as e:
       if e.errno in (errno.ENOENT, errno.EPERM):
-        return []
-      raise
+        result = []
+      else:
+        raise
+
+  if mode in (tuple, 'tuple'):
+    result = [(x, join(path, x)) for x in result]
+
+  return result
 
 
 def remove(path):
+  """
+  Alias for [[shutil.rmtree()]] if *path* is a directory, otherwise
+  [[os.remove()]].
+  """
+
   if isdir(path):
     shutil.rmtree(path)
   else:
