@@ -59,6 +59,7 @@ setuptools.setup(
   extras_require = {
     'test': ['pytest', 'pytest-cov'],
     'full': ['PyYAML'],
+    'persist': ['nr.fs >= 1.5.0']
   },
   cmdclass = {
     'verify': Verify

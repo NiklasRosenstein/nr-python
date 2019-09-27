@@ -3,6 +3,7 @@
 ### v3.1.0 (2019-09-27)
 
 * Add `nr.types.persist` module
+  * Requires `nr.fs >= 1.5.0`, which can be installed with the `[persist]` extra
 
 ### v3.0.3 (2019-09-18)
 
