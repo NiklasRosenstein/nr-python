@@ -1,5 +1,9 @@
 # Changelog
 
+### v3.1.0 (2019-09-27)
+
+* Add `nr.types.persist` module
+
 ### v3.0.3 (2019-09-18)
 
 * `nr.types.structured`
