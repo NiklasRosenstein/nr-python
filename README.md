@@ -9,7 +9,7 @@
 
 ### Changes
 
-#### v1.5.0 (unreleased)
+#### v1.5.0 (2019-09-27)
 
 * Add `mode` argument to `nr.fs.listdir()`
 * Add `nr.fs.atomic_file` class
