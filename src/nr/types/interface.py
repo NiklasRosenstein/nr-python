@@ -29,6 +29,7 @@ import six
 import sys
 import types
 
+from deprecated import deprecated
 from nr.types.collections import OrderedSet
 from nr.types.singletons import NotSet
 from nr.types.meta import InlineMetaclassBase
@@ -506,7 +507,9 @@ class Implementation(InlineMetaclassBase):
       for member in interface.members():
         if isinstance(member, Method) and member.name not in attrs and member.impl:
           attrs[member.name] = member.impl
-        elif isinstance(member, Attribute) and member.static and member.default is not NotSet:
+        elif (isinstance(member, Attribute) and member.static and
+              member.default is not NotSet and member.name not in attrs and
+              not any(hasattr(x, member.name) for x in bases)):
           attrs[member.name] = member.make_default()
 
     self = type.__new__(cls, name, bases, attrs)
@@ -620,7 +623,7 @@ def implements(*interfaces):
   return decorator
 
 
-def attr(type=None, default=NotSet):
+def attr(type=None, default=NotSet, static=False):
   """
   Declare an unnamed attribute that will be bound when the interface is
   constructed. The result of this function must be assigned to a member
@@ -632,9 +635,10 @@ def attr(type=None, default=NotSet):
   *Changed in 2.5.0*: Added *default* parameter.
   """
 
-  return Attribute(None, None, type, default, False)
+  return Attribute(None, None, type, default, static)
 
 
+@deprecated('use attr(..., static=True) instead')
 def staticattr(value):
   """
   Assign a static attribute to the interface. This static attribute will carry

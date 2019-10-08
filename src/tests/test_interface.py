@@ -287,6 +287,37 @@ def test_staticattr_default():
   assert 'x' not in vars(Bar())
 
 
+def test_staticattr_override():
+
+  class IFoo(Interface):
+    x = staticattr(24)
+
+  @implements(IFoo)
+  class Bar(object):
+    x = 42
+
+  class Foo(Bar):
+    x = 99
+
+  class Spam(Bar):
+    pass
+
+  assert hasattr(Bar, 'x')
+  assert Bar.x == 42
+  assert Bar().x == 42
+  assert 'x' not in vars(Bar())
+
+  assert hasattr(Foo, 'x')
+  assert Foo.x == 99
+  assert Foo().x == 99
+  assert 'x' not in vars(Foo())
+
+  assert hasattr(Spam, 'x')
+  assert Spam.x == 42
+  assert Spam().x == 42
+  assert 'x' not in vars(Spam())
+
+
 def test_staticattr_for_classmethod():
 
   class IFoo(Interface):
