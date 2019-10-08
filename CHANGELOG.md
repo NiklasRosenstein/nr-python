@@ -1,5 +1,11 @@
 # Changelog
 
+### v3.2.0 (unreleased)
+
+* `nr.types.interface`
+  * Fix static attribute assignment
+  * Deprecated `staticattr()` in favor of new `attr(..., static=True)`
+
 ### v3.1.0 (2019-09-27)
 
 * Add `nr.types.persist` module
