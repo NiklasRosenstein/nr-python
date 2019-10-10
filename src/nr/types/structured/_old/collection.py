@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 import six
-from .types import translate_field_type, ArrayType
+from .datatype import translate_field_type, ArrayType
 
 
 class _CollectionClass(type):

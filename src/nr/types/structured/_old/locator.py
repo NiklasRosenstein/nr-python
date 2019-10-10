@@ -217,7 +217,7 @@ class LocationInfo(object):
 
 
 from .errors import ExtractTypeError, ExtractValueError
-from .types import IDataType, AnyType
+from .datatype import IDataType, AnyType
 
 
 __all__ = [

@@ -19,48 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-class ExtractError(Exception):
-
-  def __init__(self, locator, message=None):  # type: (Locator, Optional[str]) -> None
-    self.locator = locator
-    self.message = message
-
-  def __str__(self):
-    result = 'error in extract of value {}'.format(self.locator)
-    if self.message:
-      result += ': ' + str(self.message)
-    return result
-
-
-class ExtractTypeError(ExtractError):
-
-  def __init__(self, locator, message=None):
-    if message is None:
-      expected = locator.datatype().human_readable()
-      got = type(locator.value()).__name__
-      message = 'expected "{}", got "{}"'.format(expected, got)
-    super(ExtractTypeError, self).__init__(locator, message)
-
-
-class ExtractValueError(ExtractError):
-  pass
-
-
-class InvalidTypeDefinitionError(Exception):
-
-  def __init__(self, py_type_def):
-    self.py_type_def = py_type_def
-
-  def __str__(self):
-    return repr(self.py_type_def)
-
-
-from .locator import Locator
-
+from .datatypes import *
+from .adapters import *
+from .converters import json
+from .mapper import Mapper
 
 __all__ = [
-  'ExtractError',
-  'ExtractTypeError',
-  'ExtractValueError',
-  'InvalidTypeDefinitionError',
+  datatypes.__all__ +
+  adapters.__all__ +
+  mapper.__all__
 ]

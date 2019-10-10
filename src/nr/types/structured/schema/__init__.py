@@ -19,5 +19,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .core.interfaces import *
-from .core.mapper import Mapper
+from .schema import Schema
+#from .collection import Collection

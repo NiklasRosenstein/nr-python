@@ -25,8 +25,10 @@ Utils for class definition.
 
 import sys
 
+from deprecated import deprecated
 
-def hashable_on(key_properties, _stackdepth=0, decorate=None):
+
+def comparable(key_properties, _stackdepth=0, decorate=None):
   """
   Creates a `__hash__()`, `__eq__()` and `__ne__()` method in the callers
   frame. The functions will hash/compare based on the specified
@@ -93,3 +95,9 @@ def def_repr(properties, _stackdepth=0, decorate=None):
 
   frame = sys._getframe(_stackdepth + 1)
   frame.f_locals['__repr__'] = __repr__
+
+
+
+@deprecated('renamed to comparable()')
+def hashable_on(key_properties, _stackdepth=0, decorate=None):
+  return comparable(key_properties, _stackdepth+3, decorate)

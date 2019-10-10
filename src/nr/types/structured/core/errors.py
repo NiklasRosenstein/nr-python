@@ -19,5 +19,46 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .core.interfaces import *
-from .core.mapper import Mapper
+
+class ExtractError(Exception):
+
+  def __init__(self, location, message=None):  # type: (Location, Optional[str])
+    self.location = location
+    self.message = message
+
+  def __str__(self):
+    result = 'error in extract of value {}'.format(self.location.path)
+    if self.message:
+      result += ': ' + str(self.message)
+    return result
+
+
+class ExtractTypeError(ExtractError):
+
+  def __init__(self, location, message=None):  # type: (Location, Optional[str])
+    if message is None:
+      expected = location.datatype.to_human_readable()
+      got = type(location.value).__name__
+      message = 'expected "{}", got "{}"'.format(expected, got)
+    super(ExtractTypeError, self).__init__(location, message)
+
+
+class ExtractValueError(ExtractError):
+  pass
+
+
+class InvalidTypeDefinitionError(Exception):
+
+  def __init__(self, py_type_def):
+    self.py_type_def = py_type_def
+
+  def __str__(self):
+    return repr(self.py_type_def)
+
+
+__all__ = [
+  'ExtractError',
+  'ExtractTypeError',
+  'ExtractValueError',
+  'InvalidTypeDefinitionError',
+]

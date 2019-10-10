@@ -32,7 +32,7 @@ from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional
 from .errors import ExtractTypeError, InvalidTypeDefinitionError
 from .locator import Locator
-from .types import (
+from .datatype import (
   MSG_PROPAGATE_FIELDNAME,
   IDataType,
   DictType,
@@ -93,7 +93,7 @@ class IFieldDescriptor(Interface):
   #: must be set by an implementation.
   required = attr(bool)
 
-  classdef.hashable_on('priority name datatype derived required',
+  classdef.comparable('priority name datatype derived required',
                        decorate=default)
 
   def __init__(self):
@@ -329,7 +329,7 @@ class FieldSpec(object):
   fields for an [[Object]] subclass.
   """
 
-  classdef.hashable_on('_FieldSpec__fields')
+  classdef.comparable('_FieldSpec__fields')
 
   @classmethod
   def from_annotations(cls, obj_class):

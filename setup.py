@@ -55,7 +55,7 @@ setuptools.setup(
   license = 'MIT',
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
-  install_requires = ['six', 'typing'],
+  install_requires = ['deprecated', 'six', 'typing'],
   extras_require = {
     'test': ['pytest', 'pytest-cov'],
     'full': ['PyYAML'],
