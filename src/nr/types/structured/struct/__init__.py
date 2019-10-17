@@ -19,4 +19,22 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-# empty
+from ..core.interfaces import Location
+from .struct import CustomCollection, Struct
+from .fields import *
+from .globals import get_type_mapper
+from .plugins import StructType
+
+
+def deserialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
+  if type_mapper is None:
+    type_mapper = get_type_mapper(None, _stackdepth + 1)
+  datatype = type_mapper.adapt(py_type_def)
+  return mapper.deserialize(Location(None, None, data, datatype))
+
+
+def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
+  if type_mapper is None:
+    type_mapper = get_type_mapper(None, _stackdepth + 1)
+  datatype = type_mapper.adapt(py_type_def)
+  return mapper.deserialize(Location(None, None, data, datatype))

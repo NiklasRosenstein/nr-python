@@ -25,10 +25,16 @@ import typing
 from nr.types.interface import implements
 from nr.types.utils.typing import is_generic, get_generic_args
 from .errors import InvalidTypeDefinitionError
+from .mappers import BaseTypeMapper
 from .interfaces import ITypeDefAdapter
 from .datatypes import *
 
 
+class DefaultTypeMapper(BaseTypeMapper):
+  pass
+
+
+@DefaultTypeMapper.register()
 @implements(ITypeDefAdapter)
 class PlainTypeTranslator(object):
 
@@ -46,6 +52,7 @@ class PlainTypeTranslator(object):
     raise InvalidTypeDefinitionError(py_type_def)
 
 
+@DefaultTypeMapper.register()
 @implements(ITypeDefAdapter)
 class CollectionTranslator(object):
 
@@ -55,7 +62,7 @@ class CollectionTranslator(object):
       return CollectionType(AnyType())
     # [<type>]
     elif isinstance(py_type_def, list) and len(py_type_def) == 1:
-      return CollectionType(mapper.translate_type_def(py_type_def[0]))
+      return CollectionType(mapper.adapt(py_type_def[0]))
     # list
     elif py_type_def is list:
       return CollectionType(AnyType())
@@ -67,16 +74,17 @@ class CollectionTranslator(object):
       item_type_def = get_generic_args(py_type_def)[0]
       if isinstance(item_type_def, typing.TypeVar):
         item_type_def = object
-      return CollectionType(mapper.translate_type_def(item_type_def))
+      return CollectionType(mapper.adapt(item_type_def))
     # typing.Set
     elif is_generic(py_type_def, typing.Set):
       item_type_def = get_generic_args(py_type_def)[0]
       if isinstance(item_type_def, typing.TypeVar):
         item_type_def = object
-      return CollectionType(mapper.translate_type_def(item_type_def), py_type=set)
+      return CollectionType(mapper.adapt(item_type_def), py_type=set)
     raise InvalidTypeDefinitionError(py_type_def)
 
 
+@DefaultTypeMapper.register()
 @implements(ITypeDefAdapter)
 class ObjectTranslator(object):
 
@@ -86,7 +94,7 @@ class ObjectTranslator(object):
       return ObjectType(AnyType())
     # {<type>}
     elif isinstance(py_type_def, set) and len(py_type_def) == 1:
-      return ObjectType(mapper.translate_type_def(next(iter(py_type_def))))
+      return ObjectType(mapper.adapt(next(iter(py_type_def))))
     # dict
     elif py_type_def is dict:
       return ObjectType(AnyType())
@@ -97,12 +105,14 @@ class ObjectTranslator(object):
         raise InvalidTypeDefinitionError(py_type_def)
       if isinstance(value_type_def, typing.TypeVar):
         value_type_def = object
-      return ObjectType(mapper.translate_type_def(value_type_def))
+      return ObjectType(mapper.adapt(value_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
 
 __all__ = [
+  'DefaultTypeMapper',
   'PlainTypeTranslator',
   'CollectionTranslator',
-  'ObjectTranslator'
+  'ObjectTranslator',
+  'set_type_mapper',
 ]

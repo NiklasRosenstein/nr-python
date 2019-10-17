@@ -28,11 +28,17 @@ import six
 
 from nr.types.collections import OrderedDict
 from nr.types.interface import implements
-from ..errors import ExtractTypeError
-from ..interfaces import IConverter
-from ..datatypes import *
+from .mappers import BaseObjectMapper
+from .errors import ExtractTypeError
+from .interfaces import IConverter
+from .datatypes import *
 
 
+class JsonObjectMapper(BaseObjectMapper):
+  pass
+
+
+@JsonObjectMapper.register()
 @implements(IConverter)
 class AnyConverter(object):
 
@@ -48,6 +54,7 @@ class AnyConverter(object):
     return location.value
 
 
+@JsonObjectMapper.register()
 @implements(IConverter)
 class BooleanConverter(object):
 
@@ -67,6 +74,7 @@ class BooleanConverter(object):
     return bool(location.value)
 
 
+@JsonObjectMapper.register()
 @implements(IConverter)
 class StringConverter(object):
 
@@ -86,6 +94,7 @@ class StringConverter(object):
     return location.value
 
 
+@JsonObjectMapper.register()
 @implements(IConverter)
 class IntegerConverter(object):
 
@@ -101,6 +110,7 @@ class IntegerConverter(object):
     return location.value
 
 
+@JsonObjectMapper.register()
 @implements(IConverter)
 class DecimalConverter(object):
 
@@ -127,6 +137,7 @@ class DecimalConverter(object):
     return float(location.value)
 
 
+@JsonObjectMapper.register()
 @implements(IConverter)
 class CollectionConverter(object):
   """
@@ -187,6 +198,7 @@ class CollectionConverter(object):
     return result
 
 
+@JsonObjectMapper.register()
 @implements(IConverter)
 class ObjectConverter(object):
 
@@ -215,3 +227,15 @@ class ObjectConverter(object):
       item_location = location.sub(key, location.value[key], value_type)
       result[key] = mapper.serialize(item_location)
     return result
+
+
+__all__ = [
+  'JsonObjectMapper',
+  'AnyConverter',
+  'BooleanConverter',
+  'StringConverter',
+  'IntegerConverter',
+  'DecimalConverter',
+  'CollectionConverter',
+  'ObjectConverter'
+]

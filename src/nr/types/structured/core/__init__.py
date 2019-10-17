@@ -20,12 +20,16 @@
 # IN THE SOFTWARE.
 
 from .datatypes import *
-from .adapters import *
-from .converters import json
-from .mapper import Mapper
+from .adapters import DefaultTypeMapper
+from .errors import *
+from .interfaces import *
+from .mappers import *
+from .json import JsonObjectMapper
 
 __all__ = [
   datatypes.__all__ +
-  adapters.__all__ +
-  mapper.__all__
+  errors.__all__ +
+  interfaces.__all__ +
+  mappers.__all__ +
+  ['DefaultTypeMapper', 'JsonObjectMapper']
 ]

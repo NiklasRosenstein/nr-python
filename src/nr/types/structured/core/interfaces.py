@@ -156,20 +156,6 @@ class Location(object):
     return Location(self, ident, value, datatype)
 
 
-class IMapper(Interface):
-  """
-  The mapper keeps a reference to implementations of the [[ITypeDefAdapter]]
-  and [[IConverter]] objects and is thus capable of taking a [[Location]]
-  and deserializing/serializing it.
-  """
-
-  def deserialize(self, location):  # type: (Location) -> Any
-    pass
-
-  def serialize(self, location):  # type: (Location) -> Any
-    pass
-
-
 class IDataType(Interface):
   """
   Interface for datatypes. A datatype usually has a one to one mapping with
@@ -216,6 +202,18 @@ class IDataType(Interface):
     """
 
 
+class ITypeMapper(Interface):
+  """
+  The type mapper is an interface for an object that controls the adaptation
+  of Python type definitions to [[IDataType]]s. This is usually implemented
+  as a collection of [[ITypeDefAdapter]] objects.
+  """
+
+  def adapt(self, py_type_def):  # type: (Any) -> IDataType
+    # raises: InvalidTypeDefinitionError
+    pass
+
+
 class ITypeDefAdapter(Interface):
   """
   Adapts a Python type definition to an [[IDataType]].
@@ -223,11 +221,25 @@ class ITypeDefAdapter(Interface):
 
   priority = attr(int, default=0)
 
-  def adapt(self, mapper, py_type_def):  # type: (IMapper, Any) -> IDataType
+  def adapt(self, mapper, py_type_def):  # type: (ITypeMapper, Any) -> IDataType
     """
     raises InvalidTypeDefinitionError: If the object is unable to adapt the
       *py_type_def* to an [[IDataType]].
     """
+
+
+class IObjectMapper(Interface):
+  """
+  The object mapper controls how values and their associated data types are
+  serialized and deserialized. This is usually implemented as a collection of
+  [[IConverter]] instances.
+  """
+
+  def deserialize(self, location):  # type: (Location) -> Any
+    pass
+
+  def serialize(self, location):  # type: (Location) -> Any
+    pass
 
 
 class IConverter(Interface):
@@ -242,8 +254,19 @@ class IConverter(Interface):
   def accept(self, datatype):  # type: (IDataType) -> Any
     pass
 
-  def deserialize(self, mapper, locator):  # type: (IMapper, Locator) -> Any
+  def deserialize(self, mapper, locator):  # type: (IObjectMapper, Locator) -> Any
     pass
 
-  def serialize(self, mapper, locator):  # type: (IMapper, Locator) -> Any
+  def serialize(self, mapper, locator):  # type: (IObjectMapper, Locator) -> Any
     pass
+
+
+__all__ = [
+  'Path',
+  'Location',
+  'IDataType',
+  'ITypeMapper',
+  'ITypeDefAdapter',
+  'IObjectMapper',
+  'IConverter'
+]

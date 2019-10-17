@@ -19,5 +19,32 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .schema import Schema
-#from .collection import Collection
+import sys
+from ..core.adapters import DefaultTypeMapper
+
+default_type_mapper = None
+module_type_mappers = {}
+
+
+def set_type_mapper(module, mapper):  # type: (str, ITypeMapper)
+  """ Sets the type mapper for a module. """
+
+  module_type_mappers[module] = mapper
+
+
+def set_default_type_mapper(mapper):  # type: ()
+  """ Sets the default type mapper. """
+
+  global default_type_mapper
+  default_type_mapper = mapper
+
+
+def get_type_mapper(module=None, _stackdepth=0):  # type: (Optional[str], int) -> ITypeMapper
+  """ Retrieves the type mapper for the specified *module*. If no module is
+  specified, it will be retrieved from the callers stack. """
+
+  if module is None:
+    frame = sys._getframe(_stackdepth + 1)
+    module = frame.f_code.co_name
+
+  return module_type_mappers.get(module, default_type_mapper or DefaultTypeMapper())
