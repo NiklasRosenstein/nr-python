@@ -154,10 +154,10 @@ class ObjectKeyField(object):
   structure.
   """
 
-  def __init__(self):
+  def __init__(self, serialize=False):
     super(ObjectKeyField, self).__init__()
     self.required = True
-    self.derived = True
+    self.derived = not serialize
     self.datatype = StringType()
 
   @override
@@ -166,8 +166,12 @@ class ObjectKeyField(object):
 
   @override
   def extract_kwargs(self, object_cls, locator, kwargs, handled_keys):
-    assert self.name not in kwargs, (self, object_cls, locator)
-    kwargs[self.name] = locator.key()
+    if not self.derived and self.name in locator.value():
+      handled_keys.add(self.name)
+      kwargs[self.name] = locator.value()[self.name]
+    else:
+      assert self.name not in kwargs, (self, object_cls, locator)
+      kwargs[self.name] = locator.key()
 
 
 @implements(IFieldDescriptor)
