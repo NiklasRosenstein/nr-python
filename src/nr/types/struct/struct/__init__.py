@@ -38,3 +38,12 @@ def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
     type_mapper = get_type_mapper(None, _stackdepth + 1)
   datatype = type_mapper.adapt(py_type_def)
   return mapper.deserialize(Location(None, None, data, datatype))
+
+
+__all__ = [
+  'CustomCollection',
+  'Struct',
+  'deserialize',
+  'serialize',
+  'StructType'
+] + fields.__all__

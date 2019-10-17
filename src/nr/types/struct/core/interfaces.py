@@ -116,7 +116,7 @@ class Location(object):
   An identifier can be a string or integer.
   """
 
-  def __init__(self, parent, ident, value, datatype):
+  def __init__(self, parent, ident, value, datatype, options=None):
     # type: (Location, Optional[str], Any, Optional[IDataType])
     if parent and not isinstance(parent, Location):
       raise TypeError('expected Location for argument parent, got {}'.format(
@@ -126,10 +126,14 @@ class Location(object):
       if parent is not None:
         raise RuntimeError('Location.ident can only be none without parent')
 
+    if options is None:
+      options = parent.options if parent else {}
+
     self.parent = parent
     self.ident = ident
     self.value = value
     self.datatype = datatype
+    self.options = options
     self._path = None
 
   def __repr__(self):

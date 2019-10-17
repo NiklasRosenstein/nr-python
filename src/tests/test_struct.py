@@ -25,11 +25,7 @@ import six
 import sys
 import textwrap
 from nr.types.singletons import NotSet
-from nr.types.structured.struct import CustomCollection, Field, Struct, StructType, deserialize
-from nr.types.structured.core import (Path, DefaultTypeMapper,
-  ExtractTypeError, ExtractValueError, InvalidTypeDefinitionError,
-  JsonObjectMapper)
-from nr.types.structured.core.datatypes import *
+from nr.types.struct import *
 
 
 def make_location(path, value=None, datatype=None):
@@ -256,6 +252,128 @@ class TestStruct(object):
     ]
     assert deserialize(self.mapper, payload, [Person]) == expected
 
+  def test_struct_equality(self):
+    class Obj(Struct):
+      a = Field(int)
+
+    assert Obj(1) == Obj(1)
+    assert not (Obj(1) == Obj(2))
+    assert Obj(1) != Obj(2)
+    assert not (Obj(1) != Obj(1))
+
+  def test_struct_subclassing(self):
+
+    class Person(Struct):
+      name = Field(str)
+
+    class Student(Person):
+      student_id = Field(str)
+
+    assert len(Student.__fields__) == 2
+    assert list(Student.__fields__) == ['name', 'student_id']
+    assert Student.__fields__['name'] is Person.__fields__['name']
+    assert Student('John Wick', '4341115409').name == 'John Wick'
+    assert Student('John Wick', '4341115409').student_id == '4341115409'
+
+  def test_struct_def(self):
+    class A(Struct):
+      __fields__ = ['a', 'c', 'b']
+    assert isinstance(A.__fields__, FieldSpec)
+    assert list(A.__fields__.keys()) == ['a', 'c', 'b']
+    assert A.__fields__['a'].datatype == AnyType()
+    assert A.__fields__['c'].datatype == AnyType()
+    assert A.__fields__['b'].datatype == AnyType()
+
+    class B(Struct):
+      __fields__ = [
+        ('a', int),
+        ('b', str, 'value')
+      ]
+    assert isinstance(B.__fields__, FieldSpec)
+    assert list(B.__fields__.keys()) == ['a', 'b']
+    assert B.__fields__['a'].datatype == IntegerType()
+    assert B.__fields__['b'].datatype == StringType()
+
+  def test_fieldspec_equality(self):
+    assert FieldSpec() == FieldSpec()
+    assert FieldSpec([Field(object, name='a')]) == FieldSpec([Field(object, name='a')])
+    assert FieldSpec([Field(object, name='a')]) != FieldSpec([Field(object, name='b')])
+
+  def test_fieldspec_update(self):
+
+    class TestObject(Struct):
+      test = Field(int)
+      foo = Field(str)
+
+    assert list(TestObject.__fields__.keys()) == ['test', 'foo']
+    assert not hasattr(TestObject, 'test')
+    assert not hasattr(TestObject, 'foo')
+    assert TestObject.__fields__['foo'].name == 'foo'
+
+    fields = [Field(str, name='test'), Field(object, name='bar')]
+    TestObject.__fields__.update(fields)
+
+    assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
+    assert not hasattr(TestObject, 'test')
+    assert not hasattr(TestObject, 'foo')
+    assert not hasattr(TestObject, 'bar')
+    assert TestObject.__fields__['bar'].name == 'bar'
+
+  def test_metadata_field(self):
+
+    class Test(Struct):
+      meta = MetadataField(str)
+      value = Field(int)
+
+      class Meta:
+        strict = True
+
+    assert Test('foo', 42).meta == 'foo'
+    assert Test('foo', 42).value == 42
+
+    data = {'meta': 'foo', 'value': 42}
+    with pytest.raises(ExtractValueError) as excinfo:
+      deserialize(self.mapper, data, Test)
+    assert 'does not allow additional keys on extract' in str(excinfo.value)
+
+    data = {'value': 42}
+    assert deserialize(self.mapper, data, Test).meta is None
+    assert deserialize(self.mapper, data, Test).value == 42
+
+    class Map(dict):
+      pass
+    data = Map({'value': 42})
+    data.__metadata__ = {'meta': 'foo'}
+    assert deserialize(self.mapper, data, Test).meta == 'foo'
+    assert deserialize(self.mapper, data, Test).value == 42
+
+    # Test read function that doesn't add to handled_keys.
+
+    def metadata_getter(locator, handled_keys):
+      return locator.value.get('_metadata', {})
+
+    Test.__fields__['meta'].metadata_getter = metadata_getter
+    data = {'_metadata': {'meta': 'bar'}, 'value': 42}
+    with pytest.raises(ExtractValueError) as excinfo:
+      deserialize(self.mapper, data, Test)
+    assert 'does not allow additional keys on extract' in str(excinfo.value)
+
+    Test.Meta.strict = False
+    assert deserialize(self.mapper, data, Test).meta == 'bar'
+    assert deserialize(self.mapper, data, Test).value == 42
+
+    # Test read function that _does_ add to handled_keys.
+
+    def metadata_getter(locator, handled_keys):
+      handled_keys.add('_metadata')  # allow even in _strict mode
+      return locator.value.get('_metadata', {})
+
+    Test.__fields__['meta'].metadata_getter = metadata_getter
+    Test.Meta.strict = True
+    data = {'_metadata': {'meta': 'bar'}, 'value': 42}
+    assert deserialize(self.mapper, data, Test).meta == 'bar'
+    assert deserialize(self.mapper, data, Test).value == 42
+
   def test_custom_collection(self):
 
     class Items(CustomCollection, list):
@@ -290,7 +408,166 @@ class CurrentlyDisabledTests(object):
 
   def test_union_type(self):
     datatype = UnionType({'int': IntegerType(), 'string': StringType()})
-    assert extract({'type': 'int', 'int': 42}, datatype) == UnionWrap(IntegerType(), 42)
-    assert extract({'type': 'string', 'string': 'foo'}, datatype) == UnionWrap(StringType(), 'foo')
+    assert deserialize(self.mapper, {'type': 'int', 'int': 42}, datatype) == UnionWrap(IntegerType(), 42)
+    assert deserialize(self.mapper, {'type': 'string', 'string': 'foo'}, datatype) == UnionWrap(StringType(), 'foo')
     with pytest.raises(ExtractValueError):
-      extract({'type': 'int', 'string': 'foo'}, datatype)
+      deserialize(self.mapper, {'type': 'int', 'string': 'foo'}, datatype)
+
+  def _test_forward_decl_node(Node):
+    payload = {
+      'id': 'root',
+      'children': [
+        {'id': 'a'},
+        {'id': 'b', 'children': [{'id': 'c'}]}
+      ]
+    }
+    expect = Node('root', [
+      Node('a'),
+      Node('b', [Node('c')])
+    ])
+    got = extract(payload, Node)
+    assert got == expect
+
+    expect = {
+      'id': 'root',
+      'children': [
+        {'id': 'a', 'children': []},
+        {'id': 'b', 'children': [{'id': 'c', 'children': []}]}
+      ]
+    }
+    assert store(got) == expect
+
+  def test_forward_decl():
+    Node = ForwardDecl('Node')
+    class Node(Object):
+      id = Field(str)
+      children = Field([Node], default=list)
+    _test_forward_decl_node(Node)
+
+  #class _GlobalNode(Struct):
+  #  id = Field(str)
+  #  children = Field([ForwardDecl('_GlobalNode')], default=list)
+
+  def test_forward_decl_global():
+    _test_forward_decl_node(_GlobalNode)
+
+  @pytest.mark.skip("Currently not supported.")
+  def test_forward_decl_inline():
+    class Node(Object):
+      id = Field(str)
+      children = Field([ForwardDecl('Node')], default=list)
+    _test_forward_decl_node(Node)
+
+  def test_extract_custom_locator():
+    data = {'a': {'b': 42}}
+    locator = Locator.proxy(['a', 'b'])
+    assert extract(locator.resolve(data), IntegerType(), locator) == 42
+    with pytest.raises(ExtractTypeError):
+      extract(locator.resolve(data), StringType(), locator)
+    assert extract(locator.resolve(data), StringType(strict=False), locator) == '42'
+
+  def test_inline_object_def_constructible():
+    class MyObject(Object):
+      myfield = Field({
+        'a': Field(int),
+        'b': Field(str)
+      })
+
+    assert issubclass(MyObject.myfield, Object)
+    assert MyObject.myfield.__name__ == 'MyObject.myfield'
+
+    obj = extract({'myfield': {'a': 0, 'b': 'foo'}}, MyObject)
+    assert isinstance(obj.myfield, MyObject.myfield)
+    assert obj.myfield.a == 0
+    assert obj.myfield.b == 'foo'
+    assert obj.myfield == MyObject.myfield(0, 'foo')
+    assert obj == MyObject(obj.myfield)
+    assert str(obj.myfield) == "MyObject.myfield(a=0, b='foo')"
+
+  def test_collection():
+    class Items(Collection, list):
+      item_type = str
+
+      def do_stuff(self):
+        return ''.join(self)
+
+    assert Items.datatype == ArrayType(StringType(), Items)
+
+    items = extract(['a', 'b', 'c'], Items)
+    assert items.do_stuff() == 'abc'
+    assert store(items) == ['a', 'b', 'c']
+
+  # Mixins
+
+  def test_to_json():
+    class Container(Object, ToJSON):
+      data = Field(object)
+    assert Container('abc').to_json() == {'data': 'abc'}
+    assert Container([Container('abc')]).to_json() == {'data': [{'data': 'abc'}]}
+    assert Container(b'42').to_json() == {'data': b'42'}
+    assert Container(bytearray(b'42')).to_json() == {'data': bytearray(b'42')}
+
+  def test_as_dict():
+    class Container(Object, AsDict):
+      data = Field(object)
+    assert Container('abc').as_dict() == {'data': 'abc'}
+    assert Container([Container('abc')]).as_dict() == {'data': [Container('abc')]}
+    assert Container(b'42').as_dict() == {'data': b'42'}
+    assert Container(bytearray(b'42')).as_dict() == {'data': bytearray(b'42')}
+
+  def test_sequence():
+    class Container(Object, Sequence):
+      a = Field(object)
+      b = Field(object)
+    obj = Container(42, 'foo')
+    assert obj.a == 42
+    assert len(obj) == 2
+    assert tuple(obj) == (42, 'foo')
+    assert obj[0] == 42
+    assert obj[1] == 'foo'
+
+  def test_readme_example():
+    Person = ForwardDecl('Person')
+    People = translate_field_type({Person})
+    class Person(Object):
+      name = ObjectKeyField()
+      age = Field(int)
+      numbers = Field([str])
+
+    data = {
+      'John': {'age': 52, 'numbers': ['+1 123 5423435']},
+      'Barbara': {'age': 29, 'numbers': ['+44 1523/5325323']}
+    }
+    people = extract(data, People)
+    assert people['John'] == Person('John', 52, ['+1 123 5423435'])
+    assert people['Barbara'] == Person('Barbara', 29, ['+44 1523/5325323'])
+
+  #from nr.types.structured import *
+  #from nr.types.structured.utils.yaml import load as load_yaml_with_metadata
+
+  def test_add_origin_metadata_field():
+
+    @utils.add_origin_metadata_field()
+    class Item(Object):
+      name = Field(str)
+
+    class Config(Object):
+      items = Field([Item])
+
+    yaml_data = '''
+      items:
+        - name: foo
+        - name: bar
+        - name: baz
+    '''
+
+    data = load_yaml_with_metadata(yaml_data, filename='foobar.yaml')
+    obj = extract(data, Config)
+
+    assert obj.items[0].origin.filename == 'foobar.yaml'
+    assert obj.items[1].origin.filename == 'foobar.yaml'
+    assert obj.items[2].origin.filename == 'foobar.yaml'
+
+    assert obj.items[0].origin.lineno == 3
+    assert obj.items[1].origin.lineno == 4
+    assert obj.items[2].origin.lineno == 5

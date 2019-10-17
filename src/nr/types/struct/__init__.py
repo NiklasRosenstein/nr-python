@@ -22,7 +22,7 @@
 from .core import *
 from .struct import *
 
-__all__ = [
+__all__ = (
   core.__all__ +
   struct.__all__
-]
+)

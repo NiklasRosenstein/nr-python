@@ -22,6 +22,7 @@
 import functools
 import six
 
+from nr.types import abc
 from nr.types.collections import OrderedDict
 from nr.types.singletons import NotSet
 from nr.types.stream import Stream
@@ -57,7 +58,7 @@ class StructField(object):
   to an [[IDatatype]] instance when it is processed by the [[_StructMeta]]
   class. """
 
-  classdef.comparable('__class__ instance_index name datatype required')
+  classdef.comparable('__class__ name datatype required')
 
   def __init__(self, name, datatype, required, options=None):
     if type(self) == StructField:
@@ -124,18 +125,22 @@ class ObjectKeyField(StructField):
   """ This is a [[StringType]] field that extracts the key with which the
   object is defined in its parent structure. """
 
-  def __init__(self):
+  def __init__(self, serialize=False):
     super(ObjectKeyField, self).__init__()
     self.required = True
-    self.derived = True
+    self.derived = not serialize
     self.datatype = StringType()
 
   def get_default_value(self):
     raise NotImplementedError
 
   def extract_kwargs(self, mapper, struct_cls, location, kwargs, handled_keys):
-    assert self.name not in kwargs, (self, struct_cls, location)
-    kwargs[self.name] = location.key
+    if not self.derived and self.name in locator.value:
+      handled_keys.add(self.name)
+      kwargs[self.name] = locator.value[self.name]
+    else:
+      assert self.name not in kwargs, (self, object_cls, locator)
+      kwargs[self.name] = locator.key
 
 
 class WildcardField(StructField):
@@ -274,7 +279,7 @@ class MetadataField(Field):
   @staticmethod
   def default_metadata_getter(location, handled_keys):
     value = getattr(location.value, '__metadata__', None)
-    if not isinstance(value, Mapping):
+    if not isinstance(value, abc.Mapping):
       value = None
     return value
 
