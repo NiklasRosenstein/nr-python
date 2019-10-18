@@ -28,6 +28,10 @@ from nr.types.singletons import NotSet
 from nr.types.stream import Stream
 from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional
+from .. import get_type_mapper
+from ..core.datatypes import ObjectType, StringType
+from ..core.errors import ExtractTypeError, ExtractValueError
+from ..core.interfaces import IDataType
 
 
 def with_instance_index(
@@ -60,9 +64,17 @@ class StructField(object):
 
   classdef.comparable('__class__ name datatype required')
 
-  def __init__(self, name, datatype, required, options=None):
+  def __init__(self, name, datatype, required, options=None, mapper=None):
+    assert name is None or isinstance(name, str), repr(name)
     if type(self) == StructField:
       raise RuntimeError('StructField cannot be instantiated directly.')
+    if not IDataType.provided_by(datatype):
+      if not mapper:
+        raise RuntimeError('StructField(datatype) = {!r} parameter does not '
+                           'implement IDataType and must therefore be '
+                           'converted with an ITypeMapper, but no mapper '
+                           'was provided.'.format(datatype))
+      datatype = mapper.adapt(datatype)
     # type: (Optional[str], Any, bool, Optional[dict])
     self.name = name
     self.datatype = datatype
@@ -125,35 +137,44 @@ class ObjectKeyField(StructField):
   """ This is a [[StringType]] field that extracts the key with which the
   object is defined in its parent structure. """
 
-  def __init__(self, serialize=False):
-    super(ObjectKeyField, self).__init__()
-    self.required = True
-    self.derived = not serialize
-    self.datatype = StringType()
+  def __init__(self, name=None, serialize=False, required=True, options=None):
+    super(ObjectKeyField, self).__init__(name, StringType(), required, options)
+    self.serialize = serialize
+
+  def is_derived(self):
+    return not self.serialize
 
   def get_default_value(self):
     raise NotImplementedError
 
   def extract_kwargs(self, mapper, struct_cls, location, kwargs, handled_keys):
-    if not self.derived and self.name in locator.value:
+    if self.serialize and self.name in location.value:
       handled_keys.add(self.name)
-      kwargs[self.name] = locator.value[self.name]
+      kwargs[self.name] = location.value[self.name]
     else:
-      assert self.name not in kwargs, (self, object_cls, locator)
-      kwargs[self.name] = locator.key
+      assert self.name not in kwargs, (self, object_cls, location)
+      kwargs[self.name] = location.ident
 
 
 class WildcardField(StructField):
   """ This field consumes all extranous fields in a nested structure when an
   object is extracted and puts them into a map. """
 
-  def __init__(self, value_type, only_matching_types=False):
-    super(WildcardField, self).__init__()
-    self.required = False
-    self.derived = True
-    self.value_type = translate_field_type(value_type)
-    self.datatype = DictType(self.value_type)
-    self.only_matching_types = only_matching_types
+  REPORT = 'report'  #: default
+  IGNORE = 'ignore'
+  IGNORE_AND_CONSUME = 'ignore_consume'
+
+  def __init__(self, value_type, options=None, name=None, mapper=None,
+               invalid_keys=REPORT):
+    mapper = mapper or get_type_mapper(_stackdepth=1)
+    value_type = mapper.adapt(value_type)
+    super(WildcardField, self).__init__(name,
+      ObjectType(value_type), False, options, mapper)
+    self.value_type = value_type
+    self.invalid_keys = invalid_keys
+
+  def is_derived(self):
+    return False
 
   def get_default_value(self):
     return {}
@@ -164,14 +185,17 @@ class WildcardField(StructField):
     for key, value in six.iteritems(location.value):
       if key in handled_keys:
         continue
-      if self.only_matching_types:
-        try:
-          value = location.advance(key, value, self.value_type).extract()
-        except ExtractTypeError:
-          continue
-      else:
-        value = location.advance(key, value, self.value_type).extract()
-      result[key] = value
+      try:
+        sub_location = location.sub(key, value, self.value_type)
+        value = mapper.deserialize(sub_location)
+        result[key] = value
+      except ExtractTypeError:
+        if self.invalid_keys == self.IGNORE:
+          pass
+        elif self.invalid_keys == self.IGNORE_AND_CONSUME:
+          handled_keys.add(key)
+        else:
+          raise
     handled_keys.update(result)
     kwargs[self.name] = result
 
@@ -180,8 +204,7 @@ class Field(StructField):
   """ This is the standard field. """
 
   def __init__(self, datatype, nullable=False, required=None,
-               default=NotSet, name=None, options=None):
-    super(Field, self).__init__(name, datatype, required, options)
+               default=NotSet, name=None, options=None, mapper=None):
     if default is None:
       nullable = True
     if required is None:
@@ -189,12 +212,11 @@ class Field(StructField):
         required = True
       else:
         required = False
-    self.datatype = datatype  # TODO (@nrosenstein): Use an ITypeMapper
+    if not IDataType.provided_by(datatype):
+      datatype = (mapper or get_type_mapper(_stackdepth=1)).adapt(datatype)
+    super(Field, self).__init__(name, datatype, required, options)
     self.nullable = nullable
-    self.required = required
     self.default = default
-    assert name is None or isinstance(name, str), repr(name)
-    self.name = name
 
   def __repr__(self):
     return 'Field(datatype={!r}, nullable={!r}, default={!r}, name={!r})'\
@@ -212,8 +234,8 @@ class Field(StructField):
     key = self.options.get('json_key', self.name)
     if key not in location.value:
       if self.required:
-        raise ExtractValueError(location, "missing member \"{}\" for object "
-          " of type \"{}\"".format(key, struct_cls.__name__))
+        raise ExtractValueError(location, "missing member \"{}\" for {} object"
+                                .format(key, struct_cls.__name__))
       return
     value = location.value[key]
     if self.nullable and value is None:
@@ -240,21 +262,23 @@ class MetadataField(Field):
     *key* argument).
 
   The `metadata_getter` must be a function with the signature
-  `(location: Locator, handled_keys: Set[str]) -> Optional[Any]`.
+  `(location: Location, handled_keys: Set[str]) -> Optional[Any]`.
 
   The `getter` must be a function with the signature
   `(metadata: Any) -> Union[Any, NotSet]`.
   """
 
   def __init__(self, datatype, default=None, name=None, key=None,
-               metadata_getter=None, getter=None):
+               metadata_getter=None, getter=None, mapper=None):
     super(MetadataField, self).__init__(
       datatype=datatype, nullable=True, required=False,
-      default=default, name=name)
-    self.derived = True
+      default=default, name=name, mapper=mapper or get_type_mapper(_stackdepth=1))
     self.key = key
     self.metadata_getter = metadata_getter
     self.getter = getter
+
+  def is_derived(self):
+    return True
 
   def extract_kwargs(self, mapper, struct_cls, location, kwargs, handled_keys):
     assert self.name not in kwargs, (self, struct_cls, location)

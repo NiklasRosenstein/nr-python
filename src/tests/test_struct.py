@@ -374,6 +374,30 @@ class TestStruct(object):
     assert deserialize(self.mapper, data, Test).meta == 'bar'
     assert deserialize(self.mapper, data, Test).value == 42
 
+  def test_wildcard_field(self):
+    class SomeTypeConfig(Struct):
+      type = Field(str)
+      options = WildcardField(str)
+
+    x = SomeTypeConfig('foo', options=dict(message='Hello {}', name='Peter'))
+    assert x.type == 'foo'
+    assert x.options['message'] == 'Hello {}'
+    assert x.options['name'] == 'Peter'
+
+    y = deserialize(self.mapper, {'type': 'foo', 'message': 'Hello {}', 'name': 'Peter'}, SomeTypeConfig)
+    assert x == y
+
+  def test_objectkey_field(self):
+    class Item(Struct):
+      name = ObjectKeyField()
+      value = Field(int)
+    class Config(Struct):
+      items = WildcardField(Item)
+
+    x = Config(items={'a': Item('a', 42), 'b': Item('b', 99)})
+    y = deserialize(self.mapper, {'a': {'value': 42}, 'b': {'value': 99}}, Config)
+    assert x == y
+
   def test_custom_collection(self):
 
     class Items(CustomCollection, list):
@@ -381,6 +405,8 @@ class TestStruct(object):
       def join(self):
         return ','.join(self)
 
+    from nr.types.struct.struct.struct import _CustomCollectionMeta
+    assert type(Items) == _CustomCollectionMeta
     assert Items.datatype == CollectionType(StringType(), Items)
 
     class Data(Struct):

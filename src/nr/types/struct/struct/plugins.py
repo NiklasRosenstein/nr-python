@@ -132,10 +132,14 @@ class StructConverter(object):
     return obj
 
   def serialize(self, mapper, location):
+    struct_cls = location.datatype.struct_cls
     if not isinstance(location.value, struct_cls):
       raise ExtractTypeError(location)
     result = {}
     for name, field in struct_cls.__fields__.items():
+      if field.is_derived():
+        continue
       value = getattr(location.value, name)
-      result[field.name] = location.advance(name, value, field.datatype).store()
+      sub_location = location.sub(name, value, field.datatype)
+      result[field.name] = mapper.serialize(sub_location)
     return result

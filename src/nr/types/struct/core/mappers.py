@@ -33,7 +33,7 @@ class BaseTypeMapper(object):
     self.adapters = list(adapters)
 
   def __repr__(self):
-    return '{!r}(adapters={!r})'.format(type(self).__name__, self.adapters)
+    return '{}(adapters={!r})'.format(type(self).__name__, self.adapters)
 
   def adapt(self, py_type_def):  # type: (Any) -> IDataType
     """
@@ -87,7 +87,7 @@ class BaseObjectMapper(object):
     self.converters = list(converters)
 
   def __repr__(self):
-    return '{!r}(converters={!r})'.format(type(self).__name__, self.converters)
+    return '{}(converters={!r})'.format(type(self).__name__, self.converters)
 
   def get_converter_for_datatype(self, datatype):  # type: (IDataType) -> IConverter
     """ Returns the first [[IConverter]] matching the specified datatype. """

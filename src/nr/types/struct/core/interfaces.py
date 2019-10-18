@@ -231,6 +231,10 @@ class ITypeDefAdapter(Interface):
       *py_type_def* to an [[IDataType]].
     """
 
+  @default
+  def __repr__(self):
+    return type(self).__name__
+
 
 class IObjectMapper(Interface):
   """
@@ -263,6 +267,10 @@ class IConverter(Interface):
 
   def serialize(self, mapper, locator):  # type: (IObjectMapper, Locator) -> Any
     pass
+
+  @default
+  def __repr__(self):
+    return type(self).__name__
 
 
 __all__ = [

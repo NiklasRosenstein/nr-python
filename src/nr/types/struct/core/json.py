@@ -223,6 +223,7 @@ class ObjectConverter(object):
 
   def serialize(self, mapper, location):
     result = self.json_type()
+    value_type = location.datatype.value_type
     for key in location.value:
       item_location = location.sub(key, location.value[key], value_type)
       result[key] = mapper.serialize(item_location)

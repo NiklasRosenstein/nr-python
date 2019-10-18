@@ -1,7 +1,21 @@
 # Changelog
 
-### v3.2.0 (unreleased)
+### v4.0.0 (unreleased)
 
+* `nr.types.struct`
+  * Renamed from `nr.types.structured`
+  * Partial rewrite and full restructure
+  * `Object` renamed `Struct`
+  * `Collection` renamed to `CustomCollection`
+  * `ObjectType` renamed to `StructType`
+  * `ArrayType` renamed to `CollectionType`
+  * `DictType` renamed to `ObjectType`
+  * Introduced concept of mapper objects (`ITypeMapper` and `IObjectMapper`)
+    * Type mappers can be configured globally with
+      `set_type_mapper(module, mapper)` and `set_default_type_mapper()`.
+    * `get_type_mapper(module, _stackdepth=0)` performs debug logs with a
+      stacktrace to make debugging easier.
+  * Note that only `Field` and `MetadataField`
 * `nr.types.interface`
   * Fix static attribute assignment
   * Deprecated `staticattr()` in favor of new `attr(..., static=True)`

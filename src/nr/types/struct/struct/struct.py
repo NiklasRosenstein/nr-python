@@ -21,9 +21,9 @@
 
 import six
 
+from .. import get_type_mapper
 from ..core.datatypes import CollectionType
 from .fields import FieldSpec
-from .globals import get_type_mapper
 
 
 class _StructMeta(type):
@@ -52,10 +52,6 @@ class _StructMeta(type):
         fields = FieldSpec.from_list_def(self.__annotations__)
     else:
       fields = FieldSpec.from_class_members(self)
-
-    mapper = get_type_mapper(self.__module__)
-    for field in fields.values():
-      field.datatype = mapper.adapt(field.datatype)
 
     # Give new fields (non-inherited ones) a chance to propagate their
     # name (eg. to datatypes, this is mainly used to automatically generate
@@ -178,20 +174,20 @@ class Struct(object):
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
 
-class _CustomCollectionClass(type):
+class _CustomCollectionMeta(type):
 
   def __new__(cls, name, bases, attrs):
     item_type = attrs.get('item_type', object)
     mapper = get_type_mapper(attrs['__module__'])
     attrs['item_type'] = mapper.adapt(item_type)
-    return super(_CustomCollectionClass, cls).__new__(cls, name, bases, attrs)
+    return super(_CustomCollectionMeta, cls).__new__(cls, name, bases, attrs)
 
   @property
   def datatype(cls):  # type: () -> IDataType
     return CollectionType(cls.item_type, cls)
 
 
-@six.add_metaclass(_CustomCollectionClass)
+@six.add_metaclass(_CustomCollectionMeta)
 class CustomCollection(object):
   """ The base class for defining a custom collection of items. Using this
   class allows you to define an array/list datatype while adding any
