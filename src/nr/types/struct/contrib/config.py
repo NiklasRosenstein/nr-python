@@ -303,3 +303,12 @@ def load_configurable(import_spec, config, base_interface=None, mapper=None):
     return cls(config)
   except TypeError as exc:
     raise TypeError('{}: {}'.format(import_spec, exc))
+
+
+__all__ = [
+  'Preprocessor',
+  'preprocess',
+  'IConfigurable',
+  'import_configurable',
+  'load_configurable'
+]
