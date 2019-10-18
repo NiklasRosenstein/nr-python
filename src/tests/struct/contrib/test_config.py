@@ -67,3 +67,11 @@ def test_configurable():
   obj = load_configurable(qualname, {'value': 42})
   assert isinstance(obj, ATestConfigurable)
   assert obj.config.value == 42
+
+  class Test(Struct):
+    x = Field(IConfigurable)
+
+  payload = {'x': {'class': qualname, 'value': 42}}
+  obj = deserialize(JsonObjectMapper(), payload, Test)
+  assert obj == Test(ATestConfigurable(ATestConfigurable.Config(42)))
+  assert serialize(JsonObjectMapper(), obj, Test) == payload

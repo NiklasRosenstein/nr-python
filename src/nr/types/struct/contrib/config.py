@@ -75,10 +75,17 @@ data = preprocessor(data)
 """
 
 import copy
+import importlib
 import re
 import six
 
 from nr.types import abc
+from nr.types.collections import LambdaDict
+from nr.types.interface import Interface, attr, implements
+from nr.types.struct import DefaultTypeMapper, ExtractTypeError, \
+  ExtractValueError, InvalidTypeDefinitionError, IConverter, IDataType, \
+  ITypeDefAdapter, JsonObjectMapper, Struct, UnionType, deserialize
+from nr.types.utils import classdef
 
 
 class Preprocessor(dict):
@@ -176,3 +183,123 @@ def preprocess(data, init_variables=None, config_key='config', regex=None):
   preprocessor = Preprocessor(init_variables, regex=regex)
   preprocessor.flat_update(preprocessor(data.pop(config_key, {})))
   return preprocessor(data)
+
+
+class IConfigurable(Interface):
+  """ Instances of this class can be loaded with [[load_configurable()]].
+  Implementations must accept a single argument in their constructor, which
+  is an instance of the class returned by [[get_configuration_model()]].
+  """
+
+  config = attr()  # Automatically set by load_configurable()
+
+  @classmethod
+  def get_configuration_model(cls):  # type: () -> Type[Struct]
+    pass
+
+
+@DefaultTypeMapper.register()
+@implements(ITypeDefAdapter)
+class IConfigurableAdapter(object):
+
+  def adapt(self, mapper, py_type_def):
+    if isinstance(py_type_def, type) and issubclass(py_type_def, IConfigurable):
+      return IConfigurableType(py_type_def)
+    raise InvalidTypeDefinitionError(py_type_def)
+
+
+@implements(IDataType)
+class IConfigurableType(object):
+
+  classdef.comparable(['import_spec_key', 'base_interface'])
+
+  def __init__(self, base_interface=None, import_spec_key='class', nested=False):
+    assert isinstance(import_spec_key, str), type(import_spec_key)
+    self.base_interface = base_interface
+    self.import_spec_key = import_spec_key
+    self.nested = nested
+
+  def check_value(self, py_value):
+    return py_value
+
+
+@JsonObjectMapper.register()
+@implements(IConverter)
+class IConfigurableConverter(object):
+
+  def accept(self, datatype):
+    return type(datatype) == IConfigurableType
+
+  def deserialize(self, mapper, location):
+    if not isinstance(location.value, abc.Mapping):
+      raise ExtractTypeError(location)
+
+    datatype = location.datatype
+    if datatype.import_spec_key not in location.value:
+      raise ExtractValueError(location, 'missing key {!r}'.format(key))
+
+    import_spec = location.value[datatype.import_spec_key]
+    cls = import_configurable(import_spec)
+    union_type = UnionType(
+      types={import_spec: cls.get_configuration_model()},
+      type_key=datatype.import_spec_key,
+      nested=datatype.nested)
+    config = mapper.deserialize(location.replace(datatype=union_type))
+    return load_configurable(cls, config, datatype.base_interface)
+
+  def serialize(self, mapper, location):
+    if not IConfigurable.provided_by(location.value):
+      raise ExtractTypeError(location)
+
+    datatype = location.datatype
+    key = datatype.import_spec_key
+    import_spec = type(location.value).__module__ + ':' + \
+      type(location.value).__name__
+
+    union_type = UnionType(
+      types={import_spec: location.value.get_configuration_model()},
+      type_key=datatype.import_spec_key,
+      nested=datatype.nested)
+
+    data = mapper.serialize(location.replace(value=location.value.config, datatype=union_type))
+    return data
+
+
+def import_configurable(import_spec, base_interface=None):
+  module, name = import_spec.rpartition(':')[::2]
+  module = importlib.import_module(module)
+  cls = getattr(module, name)
+
+  if base_interface and not base_interface.implemented_by(cls):
+    raise RuntimeError('{!r} does not implemented {}'.format(
+      import_spec, base_interface.__name__))
+
+  return cls
+
+
+def load_configurable(import_spec, config, base_interface=None, mapper=None):
+  """ Loads a "Configurable" from an import specification (of the syntax
+  `<module>:<member>`). Before the loaded implementation is instantiated,
+  the function will first ensure it implements the *base_interface* (if
+  provided) and then extract the configuration from the model provided
+  by [[Configurable.get_configuration_model()]] with the provided *options*.
+  """
+
+  if not isinstance(import_spec, type):
+    cls = import_configurable(import_spec, base_interface)
+  else:
+    cls = import_spec
+    if base_interface and not base_interface.implemented_by(cls):
+      raise RuntimeError('{!r} does not implemented {}'.format(
+        import_spec, base_interface.__name__))
+
+  if mapper is None:
+    mapper = JsonObjectMapper()
+
+  if not isinstance(config, cls.get_configuration_model()):
+    config = deserialize(mapper, config, cls.get_configuration_model())
+
+  try:
+    return cls(config)
+  except TypeError as exc:
+    raise TypeError('{}: {}'.format(import_spec, exc))
