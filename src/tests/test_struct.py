@@ -430,15 +430,27 @@ class TestStruct(object):
 
   def test_union_type(self):
     class Integer(Struct):
+      __union_type_name__ = 'int'
       value = Field(int)
     class String(Struct):
+      __union_type_name__ = 'string'
       value = Field(str)
+
     datatype = UnionType({'int': Integer, 'string': String})
+    assert datatype == UnionType([Integer, String])
+
     assert deserialize(self.mapper, {'type': 'int', 'value': 42}, datatype) == Integer(42)
     assert deserialize(self.mapper, {'type': 'string', 'value': 'foo'}, datatype) == String('foo')
     with pytest.raises(ExtractTypeError):
       deserialize(self.mapper, {'type': 'int', 'value': 'foo'}, datatype)
 
+    assert serialize(self.mapper, Integer(42), datatype) == {'type': 'int', 'value': 42}
+    with pytest.raises(ExtractTypeError) as excinfo:
+      serialize(self.mapper, 42, datatype)
+    assert str(excinfo.value) == 'error in extract of value $: expected {Integer|String}, got int'
+
+    from typing import Union
+    assert datatype == DefaultTypeMapper().adapt(Union[Integer, String])
 
 @pytest.mark.skip()
 class CurrentlyDisabledTests(object):

@@ -288,4 +288,26 @@ class UnionConverter(object):
     return mapper.deserialize(location)
 
   def serialize(self, mapper, location):
-    raise NotImplementedError
+    datatype = location.datatype
+    value = location.value
+    try:
+      type_name, struct_type = next((k, v) for k, v in datatype.types.items()
+                                    if v == type(value))
+    except StopIteration:
+      try:
+        datatype.check_value(value)  # reuse error message thrown here
+      except TypeError as exc:
+        raise ExtractTypeError(location, exc)
+      else:
+        raise RuntimeError('expected UnionType.check_value() to raise')
+
+    if datatype.nested:
+      struct_type = StructType(struct_type)
+      location = location.sub(type_key, location.value, struct_type)
+    else:
+      struct_type = StructType(struct_type, ignore_keys=[datatype.type_key])
+      location = location.replace(datatype=struct_type)
+
+    result = {datatype.type_key: type_name}
+    result.update(mapper.serialize(location))
+    return result
