@@ -265,10 +265,10 @@ class IConverter(Interface):
   def accept(self, datatype):  # type: (IDataType) -> Any
     pass
 
-  def deserialize(self, mapper, locator):  # type: (IObjectMapper, Locator) -> Any
+  def deserialize(self, mapper, location):  # type: (IObjectMapper, Location) -> Any
     pass
 
-  def serialize(self, mapper, locator):  # type: (IObjectMapper, Locator) -> Any
+  def serialize(self, mapper, location):  # type: (IObjectMapper, Location) -> Any
     pass
 
   @default
