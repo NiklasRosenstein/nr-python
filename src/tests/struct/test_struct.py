@@ -349,8 +349,8 @@ class TestStruct(object):
 
     # Test read function that doesn't add to handled_keys.
 
-    def metadata_getter(locator, handled_keys):
-      return locator.value.get('_metadata', {})
+    def metadata_getter(location, handled_keys):
+      return location.value.get('_metadata', {})
 
     Test.__fields__['meta'].metadata_getter = metadata_getter
     data = {'_metadata': {'meta': 'bar'}, 'value': 42}
@@ -364,9 +364,9 @@ class TestStruct(object):
 
     # Test read function that _does_ add to handled_keys.
 
-    def metadata_getter(locator, handled_keys):
+    def metadata_getter(location, handled_keys):
       handled_keys.add('_metadata')  # allow even in _strict mode
-      return locator.value.get('_metadata', {})
+      return location.value.get('_metadata', {})
 
     Test.__fields__['meta'].metadata_getter = metadata_getter
     Test.Meta.strict = True
@@ -452,6 +452,7 @@ class TestStruct(object):
     from typing import Union
     assert datatype == DefaultTypeMapper().adapt(Union[Integer, String])
 
+
 @pytest.mark.skip()
 class CurrentlyDisabledTests(object):
 
@@ -500,13 +501,13 @@ class CurrentlyDisabledTests(object):
       children = Field([ForwardDecl('Node')], default=list)
     _test_forward_decl_node(Node)
 
-  def test_extract_custom_locator():
+  def test_extract_custom_location():
     data = {'a': {'b': 42}}
-    locator = Locator.proxy(['a', 'b'])
-    assert extract(locator.resolve(data), IntegerType(), locator) == 42
+    location = location.proxy(['a', 'b'])
+    assert extract(location.resolve(data), IntegerType(), location) == 42
     with pytest.raises(ExtractTypeError):
-      extract(locator.resolve(data), StringType(), locator)
-    assert extract(locator.resolve(data), StringType(strict=False), locator) == '42'
+      extract(location.resolve(data), StringType(), location)
+    assert extract(location.resolve(data), StringType(strict=False), location) == '42'
 
   def test_inline_object_def_constructible():
     class MyObject(Object):
