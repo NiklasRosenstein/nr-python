@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from nr.types.utils.typing import is_generic, get_generic_args
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 def test_is_generic():
@@ -31,6 +31,11 @@ def test_is_generic():
     assert is_generic(List, List)
     assert not is_generic(List, Dict)
     assert not is_generic(List[str], Dict)
+
+    assert is_generic(Union)
+    assert is_generic(Union, Union)
+    assert not is_generic(Union, Dict)
+    assert is_generic(Union[int, str], Union)
 
 
 def test_get_generic_args():

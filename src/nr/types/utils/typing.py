@@ -55,6 +55,7 @@ def is_generic(
     return True
   if not isinstance(generic_types, (list, tuple)):
     generic_types = (generic_types,)
+
   def eq(a, b):
     # NOTE (@NiklasRosenstein): Due to a bug in Python 3.6, comparing
     #   typing.Union without args with another type causes a RecursionError.
@@ -64,6 +65,7 @@ def is_generic(
     elif b is typing.Union:
       return False
     return a == b
+
   for gtype in generic_types:
     if eq(x, gtype) or eq(x.__origin__, gtype):
       return True
