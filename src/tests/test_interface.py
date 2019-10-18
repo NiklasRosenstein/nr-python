@@ -275,7 +275,7 @@ def test_attr_default():
 def test_staticattr_default():
 
   class IFoo(Interface):
-    x = staticattr(24)
+    x = attr(int, 24, static=True)
 
   @implements(IFoo)
   class Bar(object):
@@ -290,7 +290,7 @@ def test_staticattr_default():
 def test_staticattr_override():
 
   class IFoo(Interface):
-    x = staticattr(24)
+    x = attr(int, 24, static=True)
 
   @implements(IFoo)
   class Bar(object):

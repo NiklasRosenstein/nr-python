@@ -21,7 +21,7 @@
 
 from .. import get_type_mapper
 from ..core.interfaces import Location
-from .struct import CustomCollection, Struct
+from .struct import *
 from .fields import *
 from .plugins import StructType
 
@@ -41,9 +41,7 @@ def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
 
 
 __all__ = [
-  'CustomCollection',
-  'Struct',
   'deserialize',
   'serialize',
   'StructType'
-] + fields.__all__
+] + struct.__all__ + fields.__all__

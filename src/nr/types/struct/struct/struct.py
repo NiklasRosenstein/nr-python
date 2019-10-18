@@ -21,6 +21,7 @@
 
 import six
 
+from nr.types import abc
 from .. import get_type_mapper
 from ..core.datatypes import CollectionType
 from .fields import FieldSpec
@@ -215,4 +216,25 @@ class CustomCollection(object):
   """
 
 
-__all__ = ['Struct', 'CustomCollection']
+def create_struct_class(name, fields, base=None, mixins=()):
+  """
+  Creates a new [[Struct]] subclass with the specified fields. The fields must
+  be a dictionary of bound [[Field]] objects or a dictionary of unbound ones.
+  """
+
+  if not isinstance(fields, abc.Mapping):
+    assert all(field.name is not None for field in fields), fields
+    fields = {field.name: field for field in fields}
+
+  if base is None:
+    base = Struct
+
+  for key, value in six.iteritems(fields):
+    if not isinstance(key, str):
+      raise TypeError('class member name must be str, got {}'
+                      .format(type(key).__name__))
+
+  return type(name, (base,) + mixins, fields)
+
+
+__all__ = ['Struct', 'CustomCollection', 'create_struct_class']

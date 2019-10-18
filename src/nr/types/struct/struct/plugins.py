@@ -34,7 +34,7 @@ from . import CustomCollection, Struct
 class StructType(object):
   """ Represents the datatype for a [[Struct]] subclass. """
 
-  classdef.hashable_on(['struct_cls'])
+  classdef.comparable(['struct_cls'])
 
   def __init__(self, struct_cls):
     assert isinstance(struct_cls, type), struct_cls
