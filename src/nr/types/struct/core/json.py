@@ -96,10 +96,13 @@ class IntegerConverter(object):
     return type(datatype) == IntegerType
 
   def deserialize(self, mapper, location):
-    return location.value
+    try:
+      return location.datatype.check_value(location.value)
+    except TypeError as exc:
+      raise ExtractTypeError(location, exc)
 
   def serialize(self, mapper, location):
-    return location.value
+    return self.deserialize(mapper, location)
 
 
 @JsonObjectMapper.register()
