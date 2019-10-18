@@ -155,6 +155,11 @@ class Location(object):
   def sub(self, ident, value, datatype):
     return Location(self, ident, value, datatype)
 
+  def replace(self, **kwargs):
+    for key in ('parent', 'ident', 'value', 'datatype'):
+      kwargs.setdefault(key, getattr(self, key))
+    return Location(**kwargs)
+
 
 class IDataType(Interface):
   """
