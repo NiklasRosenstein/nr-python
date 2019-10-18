@@ -428,16 +428,20 @@ class TestStruct(object):
     assert type(datatype) == StructType
     assert sorted(datatype.struct_cls.__fields__.keys()) == ['a', 'b']
 
+  def test_union_type(self):
+    class Integer(Struct):
+      value = Field(int)
+    class String(Struct):
+      value = Field(str)
+    datatype = UnionType({'int': Integer, 'string': String})
+    assert deserialize(self.mapper, {'type': 'int', 'value': 42}, datatype) == Integer(42)
+    assert deserialize(self.mapper, {'type': 'string', 'value': 'foo'}, datatype) == String('foo')
+    with pytest.raises(ExtractTypeError):
+      deserialize(self.mapper, {'type': 'int', 'value': 'foo'}, datatype)
+
 
 @pytest.mark.skip()
 class CurrentlyDisabledTests(object):
-
-  def test_union_type(self):
-    datatype = UnionType({'int': IntegerType(), 'string': StringType()})
-    assert deserialize(self.mapper, {'type': 'int', 'int': 42}, datatype) == UnionWrap(IntegerType(), 42)
-    assert deserialize(self.mapper, {'type': 'string', 'string': 'foo'}, datatype) == UnionWrap(StringType(), 'foo')
-    with pytest.raises(ExtractValueError):
-      deserialize(self.mapper, {'type': 'int', 'string': 'foo'}, datatype)
 
   def _test_forward_decl_node(Node):
     payload = {

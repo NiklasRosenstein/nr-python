@@ -23,7 +23,7 @@ from .. import get_type_mapper
 from ..core.interfaces import Location
 from .struct import *
 from .fields import *
-from .plugins import StructType
+from .plugins import StructType, UnionType
 
 
 def deserialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
@@ -43,5 +43,6 @@ def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
 __all__ = [
   'deserialize',
   'serialize',
-  'StructType'
+  'StructType',
+  'UnionType',
 ] + struct.__all__ + fields.__all__
