@@ -124,7 +124,10 @@ class StructConverter(object):
             struct_cls.__name__, remaining_keys))
 
     obj = object.__new__(struct_cls)
-    obj.__location__ = location
+
+    if mapper.get_option('track_location', False):
+      obj.__location__ = location
+
     try:
       obj.__init__(**kwargs)
     except TypeError as exc:

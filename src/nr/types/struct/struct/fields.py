@@ -285,7 +285,7 @@ class MetadataField(Field):
 
     metadata_getter = self.metadata_getter
     if metadata_getter is None:
-      metadata_getter = location.options.get('metadata_getter', None)
+      metadata_getter = mapper.get_option('metadata_getter', None)
     if metadata_getter is None:
       metadata_getter = self.default_metadata_getter
 

@@ -215,6 +215,8 @@ class CustomCollection(object):
   ```
   """
 
+  __location__ = None
+
 
 def create_struct_class(name, fields, base=None, mixins=()):
   """

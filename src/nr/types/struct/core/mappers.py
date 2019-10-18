@@ -81,13 +81,15 @@ class BaseObjectMapper(object):
   [[ITypeDefAdapter]] and [[IConverter]] implements. Alternatively, it can
   be subclassed and then used with the [[converter()]] decorator. """
 
-  def __init__(self, converters=None):  # type: (Iterable[IConverter])
+  def __init__(self, converters=None, options=None):  # type: (Iterable[IConverter])
     if converters is None:
       converters = [x() for x in getattr(self, 'REGISTERED_CONVERTERS', [])]
     self.converters = list(converters)
+    self.options = options or {}
 
   def __repr__(self):
-    return '{}(converters={!r})'.format(type(self).__name__, self.converters)
+    return '{}(converters={!r}, options={!r})'.format(
+      type(self).__name__, self.converters, self.options)
 
   def get_converter_for_datatype(self, datatype):  # type: (IDataType) -> IConverter
     """ Returns the first [[IConverter]] matching the specified datatype. """
@@ -96,6 +98,9 @@ class BaseObjectMapper(object):
       if converter.accept(datatype):
         return converter
     raise RuntimeError('unsupported datatype {}'.format(datatype))  # TODO: Proper error type
+
+  def get_option(self, key, default=None):
+    return self.options.get(key, default)
 
   def deserialize(self, location):
     converter = self.get_converter_for_datatype(location.datatype)

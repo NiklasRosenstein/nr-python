@@ -42,8 +42,6 @@ class JsonObjectMapper(BaseObjectMapper):
 @implements(IConverter)
 class AnyConverter(object):
 
-  namespace = 'json'
-
   def accept(self, datatype):
     return type(datatype) == AnyType
 
@@ -57,8 +55,6 @@ class AnyConverter(object):
 @JsonObjectMapper.register()
 @implements(IConverter)
 class BooleanConverter(object):
-
-  namespace = 'json'
 
   def accept(self, datatype):
     return type(datatype) == BooleanType
@@ -78,8 +74,6 @@ class BooleanConverter(object):
 @implements(IConverter)
 class StringConverter(object):
 
-  namespace = 'json'
-
   def accept(self, datatype):
     return type(datatype) == StringType
 
@@ -98,8 +92,6 @@ class StringConverter(object):
 @implements(IConverter)
 class IntegerConverter(object):
 
-  namespace = 'json'
-
   def accept(self, datatype):
     return type(datatype) == IntegerType
 
@@ -113,8 +105,6 @@ class IntegerConverter(object):
 @JsonObjectMapper.register()
 @implements(IConverter)
 class DecimalConverter(object):
-
-  namespace = 'json'
 
   def __init__(self, supports_decimal=False, as_string=False):
     super(DecimalConverter, self).__init__()
@@ -146,8 +136,6 @@ class CollectionConverter(object):
   unordered, the values will be sorted by their hash.
   """
 
-  namespace = 'json'
-
   def __init__(self, json_type=list):
     super(CollectionConverter, self).__init__()
     self.json_type = json_type
@@ -173,6 +161,9 @@ class CollectionConverter(object):
     py_type = location.datatype.py_type
     if not isinstance(py_type, type) or not isinstance(result, py_type):
       result = py_type(result)
+
+    if mapper.get_option('track_location', False) and hasattr(result, '__location__'):
+      result.__location__ = location
 
     return result
 
@@ -201,8 +192,6 @@ class CollectionConverter(object):
 @JsonObjectMapper.register()
 @implements(IConverter)
 class ObjectConverter(object):
-
-  namespace = 'json'
 
   def __init__(self, json_type=OrderedDict):
     super(ObjectConverter, self).__init__()
