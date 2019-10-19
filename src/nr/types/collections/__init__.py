@@ -219,6 +219,39 @@ class ObjectFromDict(object):
       return '<ObjectFromDict {!r}>'.format(self.__mapping)
 
 
+class LambdaDict(abc.MutableMapping):
+
+  def __init__(self, getter, setter=None, deleter=None, length=None, iterate=None):
+    self._getter = getter
+    self._setter = setter
+    self._deleter = deleter
+    self._length = length
+    self._iterate = iterate
+
+  def __getitem__(self, key):
+    return self._getter(key)
+
+  def __setitem__(self, key, value):
+    if self._setter is None:
+      raise RuntimeError('__setitem__() not configured')
+    self._setter(key, value)
+
+  def __delitem__(self, key):
+    if self._deleter is None:
+      raise RuntimeError('__delitem__() not configured')
+    self._deleter(key, value)
+
+  def __len__(self):
+    if self._length is None:
+      raise RuntimeError('__len__() not configured')
+    self._length()
+
+  def __iter__(self):
+    if self._iterate is None:
+      raise RuntimeError('__iter__() not configured')
+    self._iterate()
+
+
 class ChainDict(abc.MutableMapping):
   """
   A dictionary that wraps a list of dictionaries. The dictionaries passed
@@ -499,6 +532,7 @@ __all__ = [
   'OrderedSet',
   'ObjectAsDict',
   'ObjectFromDict',
+  'LambdaDict',
   'ChainDict',
   'HashDict',
   'ValueIterableDict',

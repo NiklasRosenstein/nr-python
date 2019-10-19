@@ -29,9 +29,10 @@ import six
 import sys
 import types
 
+from deprecated import deprecated
 from nr.types.collections import OrderedSet
 from nr.types.singletons import NotSet
-from nr.types.meta import InlineMetaclassBase
+from nr.types.meta import InlineMetaclassBase, copy_class
 
 
 class Decoration(object):
@@ -506,7 +507,9 @@ class Implementation(InlineMetaclassBase):
       for member in interface.members():
         if isinstance(member, Method) and member.name not in attrs and member.impl:
           attrs[member.name] = member.impl
-        elif isinstance(member, Attribute) and member.static and member.default is not NotSet:
+        elif (isinstance(member, Attribute) and member.static and
+              member.default is not NotSet and member.name not in attrs and
+              not any(hasattr(x, member.name) for x in bases)):
           attrs[member.name] = member.make_default()
 
     self = type.__new__(cls, name, bases, attrs)
@@ -599,28 +602,29 @@ class ConflictingInterfacesError(RuntimeError):
     return '\n'.join(lines)
 
 
-def implements(*interfaces):
+def implements(*interfaces, **kwargs):
   """
   Decorator for a class to mark it as implementing the specified *interfaces*.
   Note that this will effectively create a copy of the wrapped class that
   inherits from the #Implementation class.
   """
 
+  resolve_metaclass_conflict = kwargs.pop('resolve_metaclass_conflict', True)
+  for key in kwargs:
+    raise TypeError('unexpected keyword argument {}'.format(key))
+
   def decorator(cls):
-    attrs = vars(cls).copy()
-    attrs.pop('__weakref__', None)
-    attrs.pop('__dict__', None)
-    attrs['__implements__'] = interfaces
     if cls.__bases__ == (object,):
       bases = (Implementation,)
     else:
       bases = cls.__bases__ + (Implementation,)
-    return type(cls.__name__, bases, attrs)
+    return copy_class(cls, bases, update_attrs={'__implements__': interfaces},
+      resolve_metaclass_conflict=resolve_metaclass_conflict)
 
   return decorator
 
 
-def attr(type=None, default=NotSet):
+def attr(type=None, default=NotSet, static=False):
   """
   Declare an unnamed attribute that will be bound when the interface is
   constructed. The result of this function must be assigned to a member
@@ -632,9 +636,10 @@ def attr(type=None, default=NotSet):
   *Changed in 2.5.0*: Added *default* parameter.
   """
 
-  return Attribute(None, None, type, default, False)
+  return Attribute(None, None, type, default, static)
 
 
+@deprecated('use attr(..., static=True) instead')
 def staticattr(value):
   """
   Assign a static attribute to the interface. This static attribute will carry

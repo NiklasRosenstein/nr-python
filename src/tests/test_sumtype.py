@@ -1,6 +1,6 @@
 
 from nr.types.sumtype import Constructor, Sumtype, member_of
-from nr.types.structured import Field, FieldSpec, Object
+from nr.types.struct import Field, FieldSpec, Struct
 
 
 def test_sumtypes():
@@ -80,7 +80,7 @@ def test_sumtype_default():
 
 def test_constructor_variants():
 
-  class MyObject(Object):
+  class MyObject(Struct):
     member1 = Field(int)
     member2 = Field(float, default=0.0)
 
@@ -137,7 +137,7 @@ def test_readme_example():
     ])
     # 3)
     @Constructor
-    class Duration(Object):
+    class Duration(Struct):
       value = Field(int, default=3600)
       def to_hours(self):
         return self.value / 3600.0

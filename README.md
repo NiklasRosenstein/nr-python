@@ -22,7 +22,7 @@ __Table of Contents__
 * `nr.types.proxy` &ndash; Eager and lazy object proxies.
 * `nr.types.singletons` &ndash; Provides singletons like `NotSet`.
 * `nr.types.stream` &ndash; Streaming iterators in Python.
-* `nr.types.structured` &ndash; Data-model description library.
+* `nr.types.struct` &ndash; Data-model description library.
 * `nr.types.sumtype` &ndash; Allows you to create sumtypes in Python.
 * `nr.types.utils` &ndash; More generic utilities.
   * `nr.types.utils.classdef` &ndash; Helpers for writing class definitions.

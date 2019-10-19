@@ -19,33 +19,17 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types.structured import *
-from nr.types.structured.utils.yaml import load as load_yaml_with_metadata
+from .datatypes import *
+from .adapters import DefaultTypeMapper
+from .errors import *
+from .interfaces import *
+from .mappers import *
+from .json import JsonObjectMapper
 
-
-def test_add_origin_metadata_field():
-
-  @utils.add_origin_metadata_field()
-  class Item(Object):
-    name = Field(str)
-
-  class Config(Object):
-    items = Field([Item])
-
-  yaml_data = '''
-    items:
-      - name: foo
-      - name: bar
-      - name: baz
-  '''
-
-  data = load_yaml_with_metadata(yaml_data, filename='foobar.yaml')
-  obj = extract(data, Config)
-
-  assert obj.items[0].origin.filename == 'foobar.yaml'
-  assert obj.items[1].origin.filename == 'foobar.yaml'
-  assert obj.items[2].origin.filename == 'foobar.yaml'
-
-  assert obj.items[0].origin.lineno == 3
-  assert obj.items[1].origin.lineno == 4
-  assert obj.items[2].origin.lineno == 5
+__all__ = (
+  datatypes.__all__ +
+  errors.__all__ +
+  interfaces.__all__ +
+  mappers.__all__ +
+  ['DefaultTypeMapper', 'JsonObjectMapper']
+)

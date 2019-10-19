@@ -19,35 +19,29 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-"""
-Some common utility functions for working with the [[nr.types.structured]]
-module.
-"""
-
-from ..object import Field, MetadataField, Object
-
-
-class OriginInfo(Object):
-  filename = Field(str)
-  lineno = Field(int)
+from .. import get_type_mapper
+from ..core.interfaces import Location
+from .struct import *
+from .fields import *
+from .plugins import StructType
 
 
-def add_origin_metadata_field(field_name='origin'):
-  """
-  A decorator for [[Object]] subclasses that adds an "origin" metadata field
-  that extracts a "filename" and "lineno" key from the metadata (if present).
-  """
-
-  def getter(metadata):
-    return OriginInfo(metadata.get('filename'), metadata.get('lineno'))
-
-  def decorator(object_cls):
-    object_cls.__fields__.update([
-      MetadataField(OriginInfo, getter=getter, name=field_name)
-    ])
-    return object_cls
-
-  return decorator
+def deserialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
+  if type_mapper is None:
+    type_mapper = get_type_mapper(None, _stackdepth + 1)
+  datatype = type_mapper.adapt(py_type_def)
+  return mapper.deserialize(Location(None, None, data, datatype))
 
 
-__all__ = ['add_origin_metadata_field']
+def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
+  if type_mapper is None:
+    type_mapper = get_type_mapper(None, _stackdepth + 1)
+  datatype = type_mapper.adapt(py_type_def)
+  return mapper.serialize(Location(None, None, data, datatype))
+
+
+__all__ = [
+  'deserialize',
+  'serialize',
+  'StructType',
+] + struct.__all__ + fields.__all__

@@ -1,5 +1,41 @@
 # Changelog
 
+### v4.0.0 (unreleased)
+
+* `nr.types.interface`
+  * Fix static attribute assignment
+  * Deprecated `staticattr()` in favor of new `attr(..., static=True)`
+  * `@implements()` now uses `copy_class()` to copy the decorated class
+    because `copy_class()` supports resolving metaclass conflicts
+* `nr.types.generic`
+  * Updated `is_generic()` to support `typing.Union`, including workarounds
+    for possible `RecursionError` on Python 3.6/3.7 when comparing for
+    equality as well as changes to `typing.Union` in 3.7+
+* `nr.types.meta`
+  * Add `copy_class()`
+  * Add `get_conflicting_metaclasses()`
+  * Add `resolve_metaclass_conflict()`
+* `nr.types.stream`
+  * Change interface of `unique(iterable, key=None)` to
+    `unique(iterable, key=None, skipset=None)`
+* `nr.types.struct`
+  * Renamed from `nr.types.structured`
+  * Partial rewrite and full restructure
+  * `Object` renamed `Struct`
+  * `Collection` renamed to `CustomCollection`
+  * `ObjectType` renamed to `StructType`
+  * `ArrayType` renamed to `CollectionType`
+  * `DictType` renamed to `ObjectType`
+  * Introduced concept of mapper objects (`ITypeMapper` and `IObjectMapper`)
+    * Type mappers can be configured globally with
+      `set_type_mapper(module, mapper)` and `set_default_type_mapper()`.
+    * `get_type_mapper(module, _stackdepth=0)` performs debug logs with a
+      stacktrace to make debugging easier.
+  * Note that only `Field` and `MetadataField`
+  * Removed contents from `nr.types.struct.utils` (`OriginInfo`, `@add_origin_metadata_field()`)
+  * Rename `nr.types.struct.utils` to `nr.types.struct.contrib`
+  * Add `nr.types.struct.contrib.config` module
+
 ### v3.1.0 (2019-09-27)
 
 * Add `nr.types.persist` module

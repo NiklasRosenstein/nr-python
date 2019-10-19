@@ -49,16 +49,34 @@ def is_generic(
   ```
   """
 
-  if not hasattr(x, '__origin__') or not hasattr(x, '__args__'):
+  has_special_form = hasattr(typing, '_SpecialForm')
+  is_special_form = has_special_form and isinstance(x, typing._SpecialForm)
+
+  if (not hasattr(x, '__origin__') or not hasattr(x, '__args__')) and \
+      not is_special_form:
     return False
   if generic_types is None:
     return True
   if not isinstance(generic_types, (list, tuple)):
     generic_types = (generic_types,)
+
+  def eq(a, b):
+    # NOTE (@NiklasRosenstein): Due to a bug in Python 3.6, comparing
+    #   typing.Union without args with another type causes a RecursionError.
+    #   See https://bugs.python.org/issue29246
+    if a is typing.Union:
+      return b is typing.Union
+    elif b is typing.Union:
+      return False
+    return a == b
+
+  if is_special_form and generic_types:
+    return x in generic_types
+
   for gtype in generic_types:
-    if x == gtype or x.__origin__ == gtype:
+    if eq(x, gtype) or eq(x.__origin__, gtype):
       return True
-    if gtype.__origin__ is not None and x.__origin__ == gtype.__origin__:
+    if getattr(gtype, '__origin__', None) is not None and eq(x.__origin__, gtype.__origin__):
       return True
   return False
 

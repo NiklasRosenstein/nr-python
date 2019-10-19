@@ -19,6 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from nr.types.stream import chain, unique
+
+
 def get_staticmethod_func(cm):
   """
   Returns the function wrapped by the #staticmethod *cm*.
@@ -104,3 +107,72 @@ class InlineMetaclass(type):
 # be subclasses to inherit the metaclass functionality. We do
 # this for Python 2/3 compatibility.
 InlineMetaclassBase = InlineMetaclass('InlineMetaclassBase', (), {})
+
+
+def copy_class(cls, new_bases=None, new_name=None, update_attrs=None,
+               resolve_metaclass_conflict=False):
+  """ Creates a copy of the class *cls*, optionally with new bases and a
+  new class name. Additional attributes may be added with the *update_attrs*
+  argument, which may be a dictionary or a callable that accepts the original
+  attributes and returns the new attributes.
+
+  If the *new_bases* would result in a metaclass conflict, and
+  *resolve_metaclass_conflict* is set to True, [[get_noconflict_metaclass()]]
+  is used to construct a new metaclass that resolves the conflict.
+
+  Alternatively, *resolve_metaclass_conflict* may also be a callable with
+  the same interface as [[get_noconflict_metaclass()]]. """
+
+  attrs = vars(cls).copy()
+  attrs.pop('__weakref__', None)
+  attrs.pop('__dict__', None)
+
+  if callable(update_attrs):
+    attrs = update_attrs(attrs)
+  elif update_attrs:
+    attrs.update(update_attrs)
+
+  if resolve_metaclass_conflict is True:
+    resolve_metaclass_conflict = globals()['resolve_metaclass_conflict']
+
+  if new_bases is None:
+    new_bases = cls.__bases__
+    metaclass = type(cls)
+  elif resolve_metaclass_conflict and get_conflicting_metaclasses((), new_bases):
+    metaclass = resolve_metaclass_conflict((), new_bases)
+  else:
+    metaclass = type(cls)
+
+  return metaclass(new_name or cls.__name__, new_bases, attrs)
+
+
+def get_conflicting_metaclasses(metaclasses=(), bases=()):
+  """ Checks if any of classes in *metaclasses* are conflicting (or any of
+  the metaclasses of *bases*). Returns a list of conflicting metaclasses. """
+
+  metaclasses = tuple(unique(chain(metaclasses, map(type, bases))))
+  conflicts = []
+  for x in metaclasses:
+    for y in metaclasses:
+      if x is y: continue
+      if not (issubclass(x, y) or issubclass(y, x)):
+        if x not in conflicts:
+          conflicts.append(x)
+        if y not in conflicts:
+          conflicts.append(y)
+  return conflicts
+
+
+def resolve_metaclass_conflict(metaclasses=(), bases=(), _cache={}):
+  """ Resolves a metaclass conflict for the specified *bases*. Note that this
+  will not check if there is a conflict and simply produce a new metaclass
+  that combines the metaclasses of *metaclasses* or *bases*. """
+
+  metaclasses = tuple(unique(chain(metaclasses, map(type, bases))))
+  if metaclasses in _cache:
+    return _cache[metaclasses]
+
+  name = '_' + '_'.join(x.__name__ for x in metaclasses)
+  result = type(name, metaclasses, {})
+  _cache[metaclasses] = result
+  return result

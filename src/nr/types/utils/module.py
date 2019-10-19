@@ -111,3 +111,13 @@ def make_callable(module_name, target):
     getattr(module, '__path__', None),
     module,
     target)
+
+
+def get_calling_module_name(depth=0):
+  """ Returns the name of the calling module. """
+
+  frame = sys._getframe(depth + 1)
+  try:
+    return frame.f_globals.get('__name__', frame.f_code.co_name)
+  finally:
+    del frame

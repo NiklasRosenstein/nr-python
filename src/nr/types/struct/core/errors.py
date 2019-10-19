@@ -19,14 +19,15 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+
 class ExtractError(Exception):
 
-  def __init__(self, locator, message=None):  # type: (Locator, Optional[str]) -> None
-    self.locator = locator
+  def __init__(self, location, message=None):  # type: (Location, Optional[str])
+    self.location = location
     self.message = message
 
   def __str__(self):
-    result = 'error in extract of value {}'.format(self.locator)
+    result = 'error in extract of value {}'.format(self.location.path)
     if self.message:
       result += ': ' + str(self.message)
     return result
@@ -34,12 +35,12 @@ class ExtractError(Exception):
 
 class ExtractTypeError(ExtractError):
 
-  def __init__(self, locator, message=None):
+  def __init__(self, location, message=None):  # type: (Location, Optional[str])
     if message is None:
-      expected = locator.datatype().human_readable()
-      got = type(locator.value()).__name__
+      expected = location.datatype.to_human_readable()
+      got = type(location.value).__name__
       message = 'expected "{}", got "{}"'.format(expected, got)
-    super(ExtractTypeError, self).__init__(locator, message)
+    super(ExtractTypeError, self).__init__(location, message)
 
 
 class ExtractValueError(ExtractError):
@@ -53,9 +54,6 @@ class InvalidTypeDefinitionError(Exception):
 
   def __str__(self):
     return repr(self.py_type_def)
-
-
-from .locator import Locator
 
 
 __all__ = [

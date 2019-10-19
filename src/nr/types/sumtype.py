@@ -69,17 +69,17 @@ accepts
 * multiple arguments of [[Field]] instances
 * a dictionary, mapping each member name of a [[Field]] object
 * a list of [[Field]] or string members
-* a single [[Object]] subclass
+* a single [[Struct]] subclass
 
 Last but not least, a [[Constructor]] can be subclassed, in which case you
-declare the members of the constructor the same way you do for [[Object]]s in
+declare the members of the constructor the same way you do for [[Struct]]s in
 the [[nr.types.structured]] module.
 
 ```py
-from nr.types.structured import Field, Object
+from nr.types.structured import Field, Struct
 from nr.types.sumtype import Constructor, Sumtype
 
-class MyObject(Object):
+class MyObject(Struct):
   member1 = Field(int)
   member2 = Field(float, default=0.0)
 
@@ -110,7 +110,7 @@ class TestSumtype(Sumtype):
 """
 
 from nr.types.meta import InlineMetaclassBase
-from nr.types.structured import Object, Field, FieldSpec, IFieldDescriptor, create_object_class
+from nr.types.struct import Struct, Field, FieldSpec, StructField, create_struct_class
 from six import iteritems
 from six.moves import zip
 from .meta import InlineMetaclassBase
@@ -119,10 +119,10 @@ import types
 import six
 
 
-class Constructor(Object):
+class Constructor(Struct):
   """
   Represents a constructor for a sumtype. Constructors basically wrap an
-  [[Object]]. Constructors are declared as class-level members of a
+  [[Struct]]. Constructors are declared as class-level members of a
   [[Sumtype]] subclass.
   """
 
@@ -146,13 +146,13 @@ class Constructor(Object):
 
     # Parameters:
 
-    object_cls: An [[Object]] subclass.
+    object_cls: An [[Struct]] subclass.
     fields: Fields for a new object class. If a string is specified, it will
       be split by whitespace or commas to generate the list version. If a list
       is specified, every member will be turned into a [[Field]] accepting any
       Python object. A dictionary will be treated as the members of an
-      [[Object]] subclass.
-    mixins: The mixins for creating the Object class.
+      [[Struct]] subclass.
+    mixins: The mixins for creating the Struct class.
     """
 
     if type(self) != Constructor:
@@ -167,7 +167,7 @@ class Constructor(Object):
       for item in field_names:
         if isinstance(item, str):
           fields[item] = Field(object)
-        elif IFieldDescriptor.provided_by(item):
+        elif isinstance(item, StructField):
           if not item.name:
             raise ValueError('found unnamed field: {!r}'.format(item))
           fields[item.name] = item
@@ -176,8 +176,8 @@ class Constructor(Object):
     if len(args) == 1 and isinstance(args[0], type):  # NOTE: constructor 1
       raise_kwargs()
       object_cls = args[0]
-      if not issubclass(object_cls, Object):
-        raise TypeError('expected Object subclass')
+      if not issubclass(object_cls, Struct):
+        raise TypeError('expected Struct subclass')
 
     elif len(args) == 1 and isinstance(args[0], (dict, list, str)):  # NOTE: constructor 2
       mixins = kwargs.pop('mixins', ())
@@ -192,13 +192,13 @@ class Constructor(Object):
         fields = build_fields(value)
       else:
         fields = value
-      object_cls = create_object_class('_Temporary', fields, mixins=mixins)
+      object_cls = create_struct_class('_Temporary', fields, mixins=mixins)
 
     else:  # NOTE: constructor 3
       mixins = kwargs.pop('mixins', ())
       raise_kwargs()
       fields = build_fields(args)
-      object_cls = create_object_class('_Temporary', fields, mixins=mixins)
+      object_cls = create_struct_class('_Temporary', fields, mixins=mixins)
 
     self.object_cls = object_cls
 
@@ -251,7 +251,7 @@ class member_of(object):
       c.add_member(self.name, self.value)
 
 
-class _SumtypeMeta(type(Object)):
+class _SumtypeMeta(type(Struct)):
 
   def __new__(cls, name, bases, attrs):
     subtype = super(_SumtypeMeta, cls).__new__(cls, name, bases, attrs)
@@ -326,7 +326,7 @@ class Sumtype(object):
   def __new__(cls, *args, **kwargs):
     if hasattr(cls, '__constructor__'):
       # This is acually trying to construct from a constructor.
-      assert issubclass(cls, Object)
+      assert issubclass(cls, Struct)
       obj = object.__new__(cls)
       obj.__init__(*args, **kwargs)
       return obj

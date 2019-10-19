@@ -20,11 +20,9 @@
 # IN THE SOFTWARE.
 
 """
-Provides a [[YamlLineNumberLoaderMixin]] that augements Yaml sets, lists and
-dicts with a `__metadata__` attribute which in turn contains a "filename" and
-"lineno" key.
+Utilities for loading YAML.
 
-Note that using this module requires PyYaml installed.
+* [[load_with_line_numbers()]]
 """
 
 from __future__ import absolute_import
@@ -108,12 +106,16 @@ class YamlLineNumberLoaderMixin(object):
     data.update(value)
 
 
-def load(_data=None, *args, **kwargs):
-  """
-  Loads Yaml data from a file or Python object. The Yaml loader will be mixed
-  with the [[YamlLineNumberLoaderMixin]]. The Yaml loader defaults to the
-  [[yaml.SafeLoader]].
-  """
+def load_with_line_numbers(_data=None, *args, **kwargs):
+  """ Loads YAML data from a file, adding line numbers to every type of
+  collection returned from the loader (sets, lists and dicts). The specified
+  YAML loader will be with the [[YamlLineNumberLoaderMixin]] class. The
+  default loader is [[yaml.SafeLoader]].
+
+  This works well with the JSON deserializer option `track_location` which
+  adds the `__location__` field to deserialized struct and custom collections,
+  then allowing you to retrieve the filename and line number from the
+  [[Location.value]]. """
 
   loader_cls = kwargs.pop('Loader', yaml.SafeLoader)
   filename = kwargs.pop('filename', None)

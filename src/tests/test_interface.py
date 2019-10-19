@@ -275,7 +275,7 @@ def test_attr_default():
 def test_staticattr_default():
 
   class IFoo(Interface):
-    x = staticattr(24)
+    x = attr(int, 24, static=True)
 
   @implements(IFoo)
   class Bar(object):
@@ -285,6 +285,37 @@ def test_staticattr_default():
   assert Bar.x == 24
   assert Bar().x == 24
   assert 'x' not in vars(Bar())
+
+
+def test_staticattr_override():
+
+  class IFoo(Interface):
+    x = attr(int, 24, static=True)
+
+  @implements(IFoo)
+  class Bar(object):
+    x = 42
+
+  class Foo(Bar):
+    x = 99
+
+  class Spam(Bar):
+    pass
+
+  assert hasattr(Bar, 'x')
+  assert Bar.x == 42
+  assert Bar().x == 42
+  assert 'x' not in vars(Bar())
+
+  assert hasattr(Foo, 'x')
+  assert Foo.x == 99
+  assert Foo().x == 99
+  assert 'x' not in vars(Foo())
+
+  assert hasattr(Spam, 'x')
+  assert Spam.x == 42
+  assert Spam().x == 42
+  assert 'x' not in vars(Spam())
 
 
 def test_staticattr_for_classmethod():
@@ -541,3 +572,31 @@ def test_readme_compound():
   assert IFoo.provided_by(Foo())
   assert list(IFoo.implementations()) == [Foo]
   assert Foo(42).x == 42
+
+
+def test_implements_metaclass_conflict():
+  from nr.types.struct import Field, Struct
+  class MyInterface(Interface):
+    def foo(self):
+      pass
+
+  with pytest.raises(TypeError) as excinfo:
+    @implements(MyInterface, resolve_metaclass_conflict=False)
+    class MyImpl(Struct):
+      pass
+  assert 'metaclass conflict' in str(excinfo.value).lower()
+
+  with pytest.raises(ImplementationError) as excinfo:
+    @implements(MyInterface, resolve_metaclass_conflict=True)
+    class MyImpl(Struct):
+      pass
+  assert 'does not meet requirements of interface MyInterface' in str(excinfo.value)
+
+  @implements(MyInterface)
+  class MyImpl(Struct):
+    a = Field(int)
+    def foo(self):
+      return self.a * 2
+
+  assert MyImpl.__fields__
+  assert MyImpl(42).foo() == 84
