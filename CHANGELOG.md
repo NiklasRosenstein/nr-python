@@ -2,6 +2,13 @@
 
 ### v4.0.0 (unreleased)
 
+* `nr.types.interface`
+  * Fix static attribute assignment
+  * Deprecated `staticattr()` in favor of new `attr(..., static=True)`
+* `nr.types.meta`
+  * Add `copy_class()`
+  * Add `get_conflicting_metaclasses()`
+  * Add `resolve_metaclass_conflict()`
 * `nr.types.struct`
   * Renamed from `nr.types.structured`
   * Partial rewrite and full restructure
@@ -16,9 +23,6 @@
     * `get_type_mapper(module, _stackdepth=0)` performs debug logs with a
       stacktrace to make debugging easier.
   * Note that only `Field` and `MetadataField`
-* `nr.types.interface`
-  * Fix static attribute assignment
-  * Deprecated `staticattr()` in favor of new `attr(..., static=True)`
 
 ### v3.1.0 (2019-09-27)
 
