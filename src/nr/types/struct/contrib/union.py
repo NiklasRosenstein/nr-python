@@ -331,7 +331,8 @@ class UnionConverter(object):
         message = str(exc)
       else:
         message = 'expected {{{}}}, got {}'.format(
-          '|'.join(x.get_type_name() for x in members), type(value).__name__)
+          '|'.join(sorted(x.get_type_name() for x in members)),
+          type(value).__name__)
       raise ExtractTypeError(location, message)
 
     if datatype.nested:

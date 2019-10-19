@@ -1,6 +1,11 @@
 # Changelog
 
-### v4.0.0 (unreleased)
+### v4.0.1 (2019-10-20)
+
+* Unittest hotfix for the `nr.types.struct.contrib.union` module (sorted
+  type names in error message).
+
+### v4.0.0 (2019-10-20)
 
 * `nr.types.interface`
   * Fix static attribute assignment
