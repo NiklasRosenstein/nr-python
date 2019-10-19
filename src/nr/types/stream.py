@@ -121,15 +121,17 @@ class Stream(object):
     return cls(x for x in iterable if cond(x, *a, **kw))
 
   @_dualmethod
-  def unique(cls, iterable, key=None):
+  def unique(cls, iterable, key=None, skipset=None):
     """
     Yields unique items from *iterable* whilst preserving the original order.
+    If *skipset* is specified, it must be a set of items to skip in the first
+    place (ie. items to exclude from the returned stream).
     """
 
     if key is None:
       key = lambda x: x
     def generator():
-      seen = set()
+      seen = skipset or set()
       seen_add = seen.add
       for item in iterable:
         key_val = key(item)

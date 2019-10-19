@@ -37,6 +37,7 @@ def test_filter():
 def test_unique():
   values = [1, 5, 6, 5, 3, 8, 1, 3, 9, 0]
   assert list(Stream.unique(values)) == [1, 5, 6, 3, 8, 9, 0]
+  assert list(Stream.unique(values, skipset=set([5, 3, 9]))) == [1, 6, 8, 0]
 
 
 def test_chunks():

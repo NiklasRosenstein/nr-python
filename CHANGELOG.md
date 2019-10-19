@@ -11,6 +11,9 @@
   * Add `copy_class()`
   * Add `get_conflicting_metaclasses()`
   * Add `resolve_metaclass_conflict()`
+* `nr.types.stream`
+  * Change interface of `unique(iterable, key=None)` to
+    `unique(iterable, key=None, skipset=None)`
 * `nr.types.struct`
   * Renamed from `nr.types.structured`
   * Partial rewrite and full restructure
