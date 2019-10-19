@@ -36,6 +36,9 @@ class _StructMeta(type):
   """
 
   def __init__(self, name, bases, attrs):
+    mapper = attrs.get('__type_mapper__', None)
+    mapper = mapper or get_type_mapper(attrs.get('__module__'))
+
     # Collect inherited fields.
     parent_fields = FieldSpec()
     for base in bases:
@@ -45,14 +48,16 @@ class _StructMeta(type):
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level [[Field]] objects.
     if hasattr(self, '__fields__') and not isinstance(self.__fields__, FieldSpec):
-      fields = FieldSpec.from_list_def(self.__fields__)
+      fields = FieldSpec.from_list_def(self.__fields__, mapper)
     elif hasattr(self, '__annotations__'):
       if isinstance(self.__annotations__, dict):
-        fields = FieldSpec.from_annotations(self)
+        fields = FieldSpec.from_annotations(self, mapper)
       else:
-        fields = FieldSpec.from_list_def(self.__annotations__)
+        fields = FieldSpec.from_list_def(self.__annotations__, mapper)
     else:
       fields = FieldSpec.from_class_members(self)
+      if not fields and hasattr(self, '__fields__'):
+        fields = self.__fields__
 
     # Give new fields (non-inherited ones) a chance to propagate their
     # name (eg. to datatypes, this is mainly used to automatically generate

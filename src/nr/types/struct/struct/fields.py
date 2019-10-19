@@ -348,7 +348,7 @@ class FieldSpec(object):
     self._fields_indexable = fields
 
   @classmethod
-  def from_annotations(cls, obj_class):
+  def from_annotations(cls, obj_class, mapper=None):
     """ Compiles a [[FieldSpec]] object from the class member annotations in
     the class *obj_class*. The annotation value is the field's datatype.
     If a value is assigned to the class member, it acts as the default value
@@ -367,7 +367,8 @@ class FieldSpec(object):
         datatype=wrapped_type or datatype,
         nullable=nullable,
         default=default,
-        name=name)
+        name=name,
+        mapper=mapper)
       fields.append(field)
     return cls(fields)
 
@@ -389,7 +390,7 @@ class FieldSpec(object):
     return cls(fields)
 
   @classmethod
-  def from_list_def(cls, list_def):
+  def from_list_def(cls, list_def, mapper=None):
     """ Compiles a FieldSpec from a list of tuples. Every tuple must have at
     least two elements, the first defining the name of the field, the second
     the type. An optional third field in the tuple may be used to specify
@@ -402,7 +403,7 @@ class FieldSpec(object):
       elif isinstance(item, tuple):
         name, datatype = item[:2]
         default = item[2] if len(item) > 2 else NotSet
-        field = Field(datatype, default=default, name=name)
+        field = Field(datatype, default=default, name=name, mapper=mapper)
         fields.append(field)
       elif isinstance(item, StructField):
         if not item.name:
