@@ -49,7 +49,11 @@ def is_generic(
   ```
   """
 
-  if not hasattr(x, '__origin__') or not hasattr(x, '__args__'):
+  has_special_form = hasattr(typing, '_SpecialForm')
+  is_special_form = has_special_form and isinstance(x, typing._SpecialForm)
+
+  if (not hasattr(x, '__origin__') or not hasattr(x, '__args__')) and \
+      not is_special_form:
     return False
   if generic_types is None:
     return True
@@ -66,10 +70,13 @@ def is_generic(
       return False
     return a == b
 
+  if is_special_form and generic_types:
+    return x in generic_types
+
   for gtype in generic_types:
     if eq(x, gtype) or eq(x.__origin__, gtype):
       return True
-    if gtype.__origin__ is not None and eq(x.__origin__, gtype.__origin__):
+    if getattr(gtype, '__origin__', None) is not None and eq(x.__origin__, gtype.__origin__):
       return True
   return False
 
