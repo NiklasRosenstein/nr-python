@@ -32,7 +32,7 @@ import types
 from deprecated import deprecated
 from nr.types.collections import OrderedSet
 from nr.types.singletons import NotSet
-from nr.types.meta import InlineMetaclassBase
+from nr.types.meta import InlineMetaclassBase, copy_class
 
 
 class Decoration(object):
@@ -602,23 +602,24 @@ class ConflictingInterfacesError(RuntimeError):
     return '\n'.join(lines)
 
 
-def implements(*interfaces):
+def implements(*interfaces, **kwargs):
   """
   Decorator for a class to mark it as implementing the specified *interfaces*.
   Note that this will effectively create a copy of the wrapped class that
   inherits from the #Implementation class.
   """
 
+  resolve_metaclass_conflict = kwargs.pop('resolve_metaclass_conflict', True)
+  for key in kwargs:
+    raise TypeError('unexpected keyword argument {}'.format(key))
+
   def decorator(cls):
-    attrs = vars(cls).copy()
-    attrs.pop('__weakref__', None)
-    attrs.pop('__dict__', None)
-    attrs['__implements__'] = interfaces
     if cls.__bases__ == (object,):
       bases = (Implementation,)
     else:
       bases = cls.__bases__ + (Implementation,)
-    return type(cls.__name__, bases, attrs)
+    return copy_class(cls, bases, update_attrs={'__implements__': interfaces},
+      resolve_metaclass_conflict=resolve_metaclass_conflict)
 
   return decorator
 

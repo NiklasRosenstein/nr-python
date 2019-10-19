@@ -5,6 +5,8 @@
 * `nr.types.interface`
   * Fix static attribute assignment
   * Deprecated `staticattr()` in favor of new `attr(..., static=True)`
+  * `@implements()` now uses `copy_class()` to copy the decorated class
+    because `copy_class()` supports resolving metaclass conflicts
 * `nr.types.meta`
   * Add `copy_class()`
   * Add `get_conflicting_metaclasses()`
