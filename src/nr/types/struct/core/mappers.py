@@ -27,13 +27,15 @@ from .interfaces import IConverter, IDataType, IObjectMapper, ITypeMapper, IType
 @implements(ITypeMapper)
 class BaseTypeMapper(object):
 
-  def __init__(self, adapters=None):  # type: (Iterable[ITypeDefAdapter])
+  def __init__(self, adapters=None, fallback=None):  # type: (Iterable[ITypeDefAdapter])
     if adapters is None:
       adapters = [x() for x in getattr(self, 'REGISTERED_ADAPTERS', [])]
     self.adapters = list(adapters)
+    self.fallback = fallback
 
   def __repr__(self):
-    return '{}(adapters={!r})'.format(type(self).__name__, self.adapters)
+    return '{}(adapters={!r}, fallback={!r})'.format(
+      type(self).__name__, self.adapters, self.fallback)
 
   def adapt(self, py_type_def):  # type: (Any) -> IDataType
     """
@@ -50,6 +52,8 @@ class BaseTypeMapper(object):
         return adapter.adapt(self, py_type_def)
       except InvalidTypeDefinitionError:
         pass
+    if self.fallback:
+      return self.fallback
     raise InvalidTypeDefinitionError(py_type_def)
 
   @classmethod
