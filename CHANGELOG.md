@@ -7,6 +7,10 @@
   * Deprecated `staticattr()` in favor of new `attr(..., static=True)`
   * `@implements()` now uses `copy_class()` to copy the decorated class
     because `copy_class()` supports resolving metaclass conflicts
+* `nr.types.generic`
+  * Updated `is_generic()` to support `typing.Union`, including workarounds
+    for possible `RecursionError` on Python 3.6/3.7 when comparing for
+    equality as well as changes to `typing.Union` in 3.7+
 * `nr.types.meta`
   * Add `copy_class()`
   * Add `get_conflicting_metaclasses()`
@@ -28,6 +32,9 @@
     * `get_type_mapper(module, _stackdepth=0)` performs debug logs with a
       stacktrace to make debugging easier.
   * Note that only `Field` and `MetadataField`
+  * Removed contents from `nr.types.struct.utils` (`OriginInfo`, `@add_origin_metadata_field()`)
+  * Rename `nr.types.struct.utils` to `nr.types.struct.contrib`
+  * Add `nr.types.struct.contrib.config` module
 
 ### v3.1.0 (2019-09-27)
 
