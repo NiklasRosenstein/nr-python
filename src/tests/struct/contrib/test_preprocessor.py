@@ -4,7 +4,7 @@ import yaml
 
 from nr.types.interface import implements
 from nr.types.struct import JsonObjectMapper, Struct, Field, deserialize, serialize
-from nr.types.struct.contrib.config import Preprocessor, preprocess, IConfigurable, load_configurable
+from nr.types.struct.contrib.preprocessor import Preprocessor, preprocess
 from nr.types.utils import classdef
 
 
@@ -44,34 +44,3 @@ def test_preprocessor_e2e():
   )
 
   assert data == {'runtime': {'media': {'path': '/opt/app/data/media'}}}
-
-
-@implements(IConfigurable)
-class ATestConfigurable(object):
-
-  classdef.comparable(['config'])
-
-  class Config(Struct):
-    value = Field(int)
-
-  def __init__(self, config):
-    self.config = config
-
-  @classmethod
-  def get_configuration_model(cls):
-    return cls.Config
-
-
-def test_configurable():
-  qualname = __name__ + ':' + 'ATestConfigurable'
-  obj = load_configurable(qualname, {'value': 42})
-  assert isinstance(obj, ATestConfigurable)
-  assert obj.config.value == 42
-
-  class Test(Struct):
-    x = Field(IConfigurable)
-
-  payload = {'x': {'class': qualname, 'value': 42}}
-  obj = deserialize(JsonObjectMapper(), payload, Test)
-  assert obj == Test(ATestConfigurable(ATestConfigurable.Config(42)))
-  assert serialize(JsonObjectMapper(), obj, Test) == payload
