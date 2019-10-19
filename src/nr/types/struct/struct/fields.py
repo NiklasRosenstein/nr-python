@@ -31,7 +31,19 @@ from nr.types.utils.typing import extract_optional
 from .. import get_type_mapper
 from ..core.datatypes import ObjectType, StringType
 from ..core.errors import ExtractTypeError, ExtractValueError
-from ..core.interfaces import IDataType
+from ..core.interfaces import IDataType, Location
+
+
+class DeserializeDefault(object):
+  """ A useful class for [[Field.default]]. """
+
+  def __init__(self, value, mapper):
+    self.value = value
+    self.mapper = mapper
+
+  def deserialize(self, datatype):
+    location = Location(None, 'default', self.value, datatype)
+    return self.mapper.deserialize(location)
 
 
 def with_instance_index(
@@ -225,6 +237,8 @@ class Field(StructField):
   def get_default_value(self):
     if self.default is NotSet:
       raise RuntimeError('Field({!r}).default is NotSet'.format(self.name))
+    if isinstance(self.default, DeserializeDefault):
+      return self.default.deserialize(self.datatype)
     if callable(self.default):
       return self.default()
     return self.default
@@ -448,6 +462,7 @@ class FieldSpec(object):
 
 
 __all__ = [
+  'DeserializeDefault',
   'StructField',
   'ObjectKeyField',
   'WildcardField',
