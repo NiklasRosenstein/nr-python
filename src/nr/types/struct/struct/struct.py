@@ -142,7 +142,10 @@ class Struct(object):
     for field, arg in zip(self.__fields__.values(), args):
       if field.name in kwargs:
         raise TypeError('duplicate arguments for "{}"'.format(field.name))
+      try:
       kwargs[field.name] = field.datatype.check_value(arg)
+      except TypeError as exc:
+        raise TypeError('{}.{}: {}'.format(type(self).__name__, field.name, exc))
 
     # Extract all fields.
     handled_keys = set()
