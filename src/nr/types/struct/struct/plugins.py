@@ -240,7 +240,7 @@ class UnionType(object):
   def check_value(self, py_value):
     if not any(isinstance(py_value, x) for x in self.types.values()):
       raise TypeError('expected {{{}}}, got {}'.format(
-        '|'.join(x.__name__ for x in self.types.values()),
+        '|'.join(sorted(x.__name__ for x in self.types.values())),
         type(py_value).__name__))
     return py_value
 
