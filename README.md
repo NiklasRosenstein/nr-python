@@ -19,6 +19,8 @@ __Table of Contents__
 * `nr.types.interface` &ndash; Programming against interfaces in Python,
   inspired by Zope.
 * `nr.types.meta` &ndash; Useful metaclasses.
+* `nr.types.persist` &ndash; Simple `Persistable` class which is useful in
+  quick scripts that need to cache some data.
 * `nr.types.proxy` &ndash; Eager and lazy object proxies.
 * `nr.types.singletons` &ndash; Provides singletons like `NotSet`.
 * `nr.types.stream` &ndash; Streaming iterators in Python.
@@ -28,6 +30,7 @@ __Table of Contents__
   * `nr.types.utils.classdef` &ndash; Helpers for writing class definitions.
   * `nr.types.utils.funcdef` &ndash; Helper for writing functions.
   * `nr.types.utils.function` &ndash; Utilities for function objects.
+  * `nr.types.utils.logging` &ndash; Currently only provides a `DeferredMessage` class.
   * `nr.types.utils.module` &ndash; Utilities for module objects.
   * `nr.types.utils.typing` &ndash; Utilities for objects from the `typing` module.
 
