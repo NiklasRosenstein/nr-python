@@ -73,7 +73,8 @@ class StringType(object):
       return py_value
     else:
       if self.strict:
-        raise TypeError('expected string')
+        raise TypeError('expected string, got {}'.format(
+          type(py_value).__name__))
       return str(py_value)
 
 
