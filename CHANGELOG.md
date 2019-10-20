@@ -1,5 +1,10 @@
 # Changelog
 
+### v4.0.2 (2019-10-21)
+
+* `nr.types.struct.create_struct_class()` now uses `FieldSpec.from_list_def()`
+  and no longer requires a list of `StructField` objects
+
 ### v4.0.1 (2019-10-20)
 
 * Unittest hotfix for the `nr.types.struct.contrib.union` module (sorted

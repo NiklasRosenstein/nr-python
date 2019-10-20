@@ -226,15 +226,20 @@ class CustomCollection(object):
   __location__ = None
 
 
-def create_struct_class(name, fields, base=None, mixins=()):
+def create_struct_class(name, fields, base=None, mixins=(), mapper=None):
   """
   Creates a new [[Struct]] subclass with the specified fields. The fields must
   be a dictionary of bound [[Field]] objects or a dictionary of unbound ones.
   """
 
-  if not isinstance(fields, abc.Mapping):
-    assert all(field.name is not None for field in fields), fields
-    fields = {field.name: field for field in fields}
+  if isinstance(fields, str):
+    if ',' in fields:
+      fields = [x.strip() for x in fields.split(',')]
+    else:
+      fields = fields.split()
+
+  mapper = mapper or get_type_mapper(_stackdepth=1)
+  fields = FieldSpec.from_list_def(fields, mapper)
 
   if base is None:
     base = Struct
@@ -244,7 +249,7 @@ def create_struct_class(name, fields, base=None, mixins=()):
       raise TypeError('class member name must be str, got {}'
                       .format(type(key).__name__))
 
-  return type(name, (base,) + mixins, fields)
+  return type(name, (base,) + mixins, {'__fields__': fields})
 
 
 __all__ = ['Struct', 'CustomCollection', 'create_struct_class']
