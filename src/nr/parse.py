@@ -42,13 +42,13 @@ import re
 import string
 import sys
 
-from nr.types.record import create_record
+from nr.types.struct import create_struct_class
 
 eof = 'eof'
 string_types = (str,) if sys.version_info[0] == 3 else (str, unicode)
 
-Cursor = create_record('Cursor', 'index lineno colno')
-Token = create_record('Token', 'type cursor value string_repr')
+Cursor = create_struct_class('Cursor', 'index lineno colno')
+Token = create_struct_class('Token', 'type cursor value string_repr')
 
 
 class Scanner(object):

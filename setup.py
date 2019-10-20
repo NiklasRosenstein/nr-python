@@ -21,5 +21,5 @@ setuptools.setup(
   license = 'MIT',
   packages = setuptools.find_packages('src'),
   package_dir = {'': 'src'},
-  install_requires = ['nr.types>=2.0.1']
+  install_requires = ['nr.types>=4.0.2,<5.0.0']
 )
