@@ -95,6 +95,10 @@ class ObjectTranslator(object):
     # {<type>}
     elif isinstance(py_type_def, set) and len(py_type_def) == 1:
       return ObjectType(mapper.adapt(next(iter(py_type_def))))
+    # {'value_type': <type>}
+    elif isinstance(py_type_def, dict) and len(py_type_def) == 1 and \
+        'value_type' in py_type_def:
+      return ObjectType(mapper.adapt(py_type_def['value_type']))
     # dict
     elif py_type_def is dict:
       return ObjectType(AnyType())
