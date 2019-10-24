@@ -150,9 +150,6 @@ class TestCore(object):
     assert isinstance(self.type_mapper.adapt({str}), ObjectType)
     assert isinstance(self.type_mapper.adapt({str}).value_type, StringType)
 
-    with pytest.raises(InvalidTypeDefinitionError):
-      self.type_mapper.adapt([str, str])
-
     assert isinstance(self.type_mapper.adapt(StringType), StringType)
 
     with pytest.raises(TypeError):

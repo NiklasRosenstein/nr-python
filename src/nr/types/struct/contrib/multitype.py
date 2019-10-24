@@ -22,15 +22,17 @@
 from nr.types.interface import implements
 from nr.types.utils import classdef
 
-from ..core.errors import ExtractTypeError
-from ..core.interfaces import IDataType, IConverter
+from ..core.adapters import DefaultTypeMapper
+from ..core.errors import ExtractTypeError, InvalidTypeDefinitionError
+from ..core.interfaces import IDataType, IConverter, ITypeDefAdapter
 from ..core.json import JsonObjectMapper
 
 
 @implements(IDataType)
 class MultiType(object):
   """ Represents a collection of datatypes. Uses the first type of the list
-  of types that successfully serializes/deserializes. """
+  of types that successfully serializes/deserializes. Multi types can be
+  defined conveniently using tuples. """
 
   classdef.comparable(['types'])
 
@@ -45,6 +47,16 @@ class MultiType(object):
       except TypeError as exc:
         errors.append(exc)
     raise TypeError(errors)
+
+
+@DefaultTypeMapper.register()
+@implements(ITypeDefAdapter)
+class MultiTypeAdapter(object):
+
+  def adapt(self, mapper, py_type_def):
+    if isinstance(py_type_def, tuple):
+      return MultiType([mapper.adapt(x) for x in py_type_def])
+    raise InvalidTypeDefinitionError(py_type_def)
 
 
 @JsonObjectMapper.register()
@@ -72,6 +84,7 @@ class MultiTypeConverter(object):
 
   def serialize(self, mapper, location):
     return self._do(mapper, location, 'serialize')
+
 
 
 __all__ = ['MultiType']

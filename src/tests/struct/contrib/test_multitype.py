@@ -12,6 +12,9 @@ def test_multitype():
     ObjectType(CollectionType(StringType()))
   ]))
 
+  py_type_def = [(str, {'value_type': [str]})]
+  assert get_type_mapper().adapt(py_type_def) == datatype
+
   payload = ['a', 'b', {'c': ['e', 'f']}]
   assert deserialize(JsonObjectMapper(), payload, datatype) == payload
   assert serialize(JsonObjectMapper(), payload, datatype) == payload

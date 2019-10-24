@@ -215,35 +215,12 @@ class UnionType(object):
     someField: value
   ```
 
-  The name of types wrapped by the UnionType can be specified in multiple
-  ways. The most common way is to specify a mapping as a parameter to the
-  UnionType constructor.
+  The [[StandardTypeResolver]] is used in the usual case.
 
-  ```py
-  UnionType({
-    "onePossibleUnionType": StructOne,
-    "another": StructTwo
-  })
-  ```
-
-  Alternatively, a list of [[Struct]] implementations may be passed, in which
-  case the name of the type in the union is derived first from the class-level
-  `__union_type_name__` attribute or the class name.
-
-  ```py
-  UnionType([StructOne, StructTwo])
-  ```
-
-  The [[UnionAdapter]] provides support for declaring unions using typing
-  annotations. Note that the same rules for deriving the type name apply as
-  for the option where a list is passed to the UnionType constructor.
-
-  ```py
-  Union[StructOne, StructTwo]
-  ```
-
-  > Note: If the *types* parameter is a mapping, it is used as-is. This allows
-  > for very dynamic union type resolving.
+  Union type can be conveniently defined using lists with more than one item,
+  the [[typing.Union]] type or dictionaries. In case of a dictionary, the
+  union type name is defined in the dictionary key. Otherwise, it is read
+  from the `__union_type_name__` or classname.
   """
 
   classdef.comparable(['type_resolver', 'type_key', 'nested'])
@@ -283,6 +260,8 @@ class UnionAdapter(object):
       union_types = get_generic_args(py_type_def)
       if all(issubclass(x, Struct) for x in union_types):
         return UnionType(union_types)
+    elif isinstance(py_type_def, list) and len(py_type_def) > 1:
+      return UnionType([mapper.adapt(x) for x in py_type_def])
     raise InvalidTypeDefinitionError(py_type_def)
 
 
