@@ -30,29 +30,7 @@ from ..core.adapters import DefaultTypeMapper
 from ..core.errors import ExtractTypeError, ExtractValueError, InvalidTypeDefinitionError
 from ..core.interfaces import IConverter, IDataType, ITypeDefAdapter
 from ..core.json import JsonObjectMapper
-from . import CustomCollection, Struct
-
-
-@implements(IDataType)
-class StructType(object):
-  """ Represents the datatype for a [[Struct]] subclass. """
-
-  classdef.comparable(['struct_cls', 'ignore_keys'])
-
-  def __init__(self, struct_cls, ignore_keys=None):
-    assert isinstance(struct_cls, type), struct_cls
-    assert issubclass(struct_cls, Struct), struct_cls
-    self.struct_cls = struct_cls
-    self.ignore_keys = ignore_keys or []
-
-  def propagate_field_name(self, name):
-    if self.struct_cls.__name__ == InlineStructAdapter.GENERATED_TYPE_NAME:
-      self.struct_cls.__name__ = name
-
-  def check_value(self, py_value):
-    if not isinstance(py_value, self.struct_cls):
-      raise TypeError('expected {} instance, got {}'.format(
-        self.struct_cls.__name__, type(py_value).__name__))
+from . import CustomCollection, Struct, StructType
 
 
 @DefaultTypeMapper.register()
@@ -134,11 +112,9 @@ class InlineStructAdapter(object):
   ```
   """
 
-  GENERATED_TYPE_NAME = '_InlineStructAdapter__generated'
-
   def adapt(self, mapper, py_type_def):
     if isinstance(py_type_def, dict):
-      return StructType(type(self.GENERATED_TYPE_NAME, (Struct,), py_type_def))
+      return StructType(type(StructType._INLINE_GENERATED_TYPENAME, (Struct,), py_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
 

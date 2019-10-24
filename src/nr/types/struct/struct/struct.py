@@ -22,9 +22,34 @@
 import six
 
 from nr.types import abc
+from nr.types.interface import implements
+from nr.types.utils import classdef
 from .. import get_type_mapper
-from ..core.datatypes import CollectionType
-from .fields import FieldSpec
+from ..core.datatypes import IDataType, CollectionType
+from .fields import Field, FieldSpec
+
+
+@implements(IDataType)
+class StructType(object):
+  """ Represents the datatype for a [[Struct]] subclass. """
+
+  classdef.comparable(['struct_cls', 'ignore_keys'])
+  _INLINE_GENERATED_TYPENAME = '_InlineStructAdapter__generated'
+
+  def __init__(self, struct_cls, ignore_keys=None):
+    assert isinstance(struct_cls, type), struct_cls
+    assert issubclass(struct_cls, Struct), struct_cls
+    self.struct_cls = struct_cls
+    self.ignore_keys = ignore_keys or []
+
+  def propagate_field_name(self, name):
+    if self.struct_cls.__name__ == self._INLINE_GENERATED_TYPENAME:
+      self.struct_cls.__name__ = name
+
+  def check_value(self, py_value):
+    if not isinstance(py_value, self.struct_cls):
+      raise TypeError('expected {} instance, got {}'.format(
+        self.struct_cls.__name__, type(py_value).__name__))
 
 
 class _StructMeta(type):
@@ -79,9 +104,8 @@ class _StructMeta(type):
   def __getattr__(self, name):
     field = self.__fields__.get(name)
     if field is not None:
-      value = field.get_class_member_value(self)
-      if value is not NotSet:
-        return value
+      if isinstance(field, Field) and isinstance(field.datatype, StructType):
+        return field.datatype.struct_cls
     raise AttributeError(name)
 
 
@@ -252,4 +276,4 @@ def create_struct_class(name, fields, base=None, mixins=(), mapper=None):
   return type(name, (base,) + mixins, {'__fields__': fields})
 
 
-__all__ = ['Struct', 'CustomCollection', 'create_struct_class']
+__all__ = ['StructType', 'Struct', 'CustomCollection', 'create_struct_class']
