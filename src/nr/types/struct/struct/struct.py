@@ -263,12 +263,15 @@ def create_struct_class(name, fields, base=None, mixins=(), mapper=None):
       fields = fields.split()
 
   mapper = mapper or get_type_mapper(_stackdepth=1)
-  fields = FieldSpec.from_list_def(fields, mapper)
+  if isinstance(fields, abc.Mapping):
+    fields = FieldSpec.from_dict(fields)
+  else:
+    fields = FieldSpec.from_list_def(fields, mapper)
 
   if base is None:
     base = Struct
 
-  for key, value in six.iteritems(fields):
+  for key, value in fields.items():
     if not isinstance(key, str):
       raise TypeError('class member name must be str, got {}'
                       .format(type(key).__name__))

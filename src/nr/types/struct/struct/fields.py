@@ -348,6 +348,23 @@ class FieldSpec(object):
     self._fields_indexable = fields
 
   @classmethod
+  def from_dict(cls, fields_dict, mapper=None):
+    """ Compiles a [[FieldSpec]] from a dictionary that is expected to consist
+    of only field definitions. Adapts Python type definitions to standard
+    [[Field]] objects. [[StructField]]s in this dictionary that don't have a
+    name will be assigned the name of their associated key. """
+
+    fields = []
+    for key, value in six.iteritems(fields_dict):
+      if not isinstance(value, StructField):
+        raise TypeError('expected StructField, key {!r} got {}'.format(
+          key, type(value).__name__))
+      if not value.name:
+        value.name = key
+      fields.append(value)
+    return cls(fields)
+
+  @classmethod
   def from_annotations(cls, obj_class, mapper=None):
     """ Compiles a [[FieldSpec]] object from the class member annotations in
     the class *obj_class*. The annotation value is the field's datatype.
@@ -395,6 +412,8 @@ class FieldSpec(object):
     least two elements, the first defining the name of the field, the second
     the type. An optional third field in the tuple may be used to specify
     the field default value. """
+
+    assert not isinstance(list_def, abc.Mapping), "did not expect a mapping"
 
     fields = []
     for item in list_def:
