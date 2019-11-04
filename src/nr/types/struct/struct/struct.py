@@ -166,6 +166,9 @@ class Struct(object):
     for field, arg in zip(self.__fields__.values(), args):
       if field.name in kwargs:
         raise TypeError('duplicate arguments for "{}"'.format(field.name))
+      if arg is None and field.nullable:
+        kwargs[field.name] = None
+        continue
       try:
         kwargs[field.name] = field.datatype.check_value(arg)
       except TypeError as exc:

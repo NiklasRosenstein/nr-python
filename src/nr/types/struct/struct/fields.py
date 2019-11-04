@@ -76,7 +76,8 @@ class StructField(object):
 
   classdef.comparable('__class__ name datatype required')
 
-  def __init__(self, name, datatype, required, options=None, mapper=None):
+  def __init__(self, name, datatype, required, nullable=False,
+               options=None, mapper=None):
     assert name is None or isinstance(name, str), repr(name)
     if type(self) == StructField:
       raise RuntimeError('StructField cannot be instantiated directly.')
@@ -91,6 +92,7 @@ class StructField(object):
     self.name = name
     self.datatype = datatype
     self.required = required
+    self.nullable = nullable
     self.options = options or {}
 
   def get_priority(self):  # type: () -> int
@@ -149,8 +151,10 @@ class ObjectKeyField(StructField):
   """ This is a [[StringType]] field that extracts the key with which the
   object is defined in its parent structure. """
 
-  def __init__(self, name=None, serialize=False, required=True, options=None):
-    super(ObjectKeyField, self).__init__(name, StringType(), required, options)
+  def __init__(self, name=None, serialize=False, nullable=False,
+               required=True, options=None):
+    super(ObjectKeyField, self).__init__(
+      name, StringType(), required, nullable, options)
     self.serialize = serialize
 
   def is_derived(self):
@@ -176,12 +180,12 @@ class WildcardField(StructField):
   IGNORE = 'ignore'
   IGNORE_AND_CONSUME = 'ignore_consume'
 
-  def __init__(self, value_type, options=None, name=None, mapper=None,
-               invalid_keys=REPORT):
+  def __init__(self, value_type, nullable=False, options=None, name=None,
+               mapper=None, invalid_keys=REPORT):
     mapper = mapper or get_type_mapper(_stackdepth=1)
     value_type = mapper.adapt(value_type)
     super(WildcardField, self).__init__(name,
-      ObjectType(value_type), False, options, mapper)
+      ObjectType(value_type), False, nullable, options, mapper)
     self.value_type = value_type
     self.invalid_keys = invalid_keys
 
@@ -226,8 +230,7 @@ class Field(StructField):
         required = False
     if not IDataType.provided_by(datatype):
       datatype = (mapper or get_type_mapper(_stackdepth=1)).adapt(datatype)
-    super(Field, self).__init__(name, datatype, required, options)
-    self.nullable = nullable
+    super(Field, self).__init__(name, datatype, required, nullable, options)
     self.default = default
 
   def __repr__(self):
