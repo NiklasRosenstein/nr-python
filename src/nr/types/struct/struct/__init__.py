@@ -25,23 +25,4 @@ from .struct import *
 from .fields import *
 from .plugins import StructType
 
-
-def deserialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
-  if type_mapper is None:
-    type_mapper = get_type_mapper(None, _stackdepth + 1)
-  datatype = type_mapper.adapt(py_type_def)
-  return mapper.deserialize(Location(None, None, data, datatype))
-
-
-def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
-  if type_mapper is None:
-    type_mapper = get_type_mapper(None, _stackdepth + 1)
-  datatype = type_mapper.adapt(py_type_def)
-  return mapper.serialize(Location(None, None, data, datatype))
-
-
-__all__ = [
-  'deserialize',
-  'serialize',
-  'StructType',
-] + struct.__all__ + fields.__all__
+__all__ = ['StructType'] + struct.__all__ + fields.__all__

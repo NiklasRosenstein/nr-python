@@ -77,9 +77,22 @@ def get_type_mapper(module=None, _stackdepth=0):  # type: (Optional[str], int) -
   return mapper
 
 
+def deserialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
+  # type: (IObjectMapper, Any, Any, Optional[ITypeMapper], int) -> Any
+  if type_mapper is None:
+    type_mapper = get_type_mapper(None, _stackdepth + 1)
+  datatype = type_mapper.adapt(py_type_def)
+  return mapper.deserialize(Location(None, None, data, datatype))
+
+
+def serialize(mapper, data, py_type_def, type_mapper=None, _stackdepth=0):
+  # type: (IObjectMapper, Any, Any, Optional[ITypeMapper], int) -> Any
+  if type_mapper is None:
+    type_mapper = get_type_mapper(None, _stackdepth + 1)
+  datatype = type_mapper.adapt(py_type_def)
+  return mapper.serialize(Location(None, None, data, datatype))
+
+
 from .struct import *
 
-__all__ = (
-  core.__all__ +
-  struct.__all__
-)
+__all__ = core.__all__ + struct.__all__ + ['deserialize', 'serialize']

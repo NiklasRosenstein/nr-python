@@ -26,6 +26,7 @@ from .interfaces import *
 from .mappers import *
 from .json import JsonObjectMapper
 
+
 __all__ = (
   datatypes.__all__ +
   errors.__all__ +
