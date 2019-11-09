@@ -49,11 +49,12 @@ class Proxy(object):
   __slots__ = ("__local", "__dict__", "__name__", "__wrapped__")
   __is_proxy__ = True
 
-  def __init__(self, local, name=None, lazy=False):
+  def __init__(self, local, name=None, lazy=False, deref=False):
     object.__setattr__(self, "_Proxy__local", local)
     object.__setattr__(self, "_Proxy__lazy", lazy)
     object.__setattr__(self, "_Proxy__cache", None)
     object.__setattr__(self, "__name__", name)
+    object.__setattr__(self, "_Proxy__deref", deref)
     if callable(local) and not hasattr(local, "__release_local__"):
       # "local" is a callable that is not an instance of Local or
       # LocalManager: mark it as a wrapped function.
@@ -123,6 +124,12 @@ class Proxy(object):
     def __delslice__(self, i, j):
       del self._get_current_object()[i:j]
 
+  def __call__(self, *a, **kw):
+    if self.__deref:
+      return self._get_current_object()
+    else:
+      return self._get_current_object()(*a, **kw)
+
   __setattr__ = lambda x, n, v: setattr(x._get_current_object(), n, v)
   __delattr__ = lambda x, n: delattr(x._get_current_object(), n)
   __str__ = lambda x: str(x._get_current_object())
@@ -134,7 +141,6 @@ class Proxy(object):
   __ge__ = lambda x, o: x._get_current_object() >= o
   __cmp__ = lambda x, o: cmp(x._get_current_object(), o)  # noqa
   __hash__ = lambda x: hash(x._get_current_object())
-  __call__ = lambda x, *a, **kw: x._get_current_object()(*a, **kw)
   __len__ = lambda x: len(x._get_current_object())
   __getitem__ = lambda x, i: x._get_current_object()[i]
   __iter__ = lambda x: iter(x._get_current_object())
@@ -183,7 +189,14 @@ class Proxy(object):
   __class__ = property(lambda x: type(x._get_current_object()))
 
 
-def proxy_decorator(proxy_cls=None, name=None, lazy=False):
+def proxy_deref(proxy):
+  if not isinstance(proxy, Proxy):
+    raise RuntimeError('expected Proxy object, got {}'.format(
+      type(proxy).__name__))
+  return proxy._get_current_object()
+
+
+def proxy_decorator(proxy_cls=None, name=None, lazy=False, deref=False):
   """
   Decorator for converting function declarations into [[Proxy]] objects.
   """
@@ -192,7 +205,7 @@ def proxy_decorator(proxy_cls=None, name=None, lazy=False):
     proxy_cls = Proxy
 
   def decorator(func):
-    return proxy_cls(func, name or func.__name__, lazy)
+    return proxy_cls(func, name or func.__name__, lazy, deref)
 
   return decorator
 
