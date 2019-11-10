@@ -1,0 +1,9 @@
+*.egg-info
+.eggs
+.pytest_cache
+.venv*
+dist
+
+# Coverage
+.coverage
+htmlcov
