@@ -52,3 +52,22 @@ def resolve_metaclass_conflict(metaclasses=(), bases=(), _cache={}):
   result = type(name, metaclasses, {})
   _cache[metaclasses] = result
   return result
+
+
+def deconflict_bases(*bases):  # type: (Tuple[Type]) -> Tuple[Type]
+  """ If the metaclasses of *bases* conflict, the conflict will be resolved
+  and a new parent class will be created. Otherwise, *bases* is returned as
+  is. Example usage:
+
+  ```python
+  class MyClass(*deconflict_bases(BaseclassA, BaseclassB)):
+    # ...
+  ``` """
+
+  if not get_conflicting_metaclasses(bases=bases):
+    return bases
+
+  metaclass = resolve_metaclass_conflict(bases=bases)
+  name = 'deconflict_' + '_'.join(map(lambda x: x.__name__, bases))
+  parent_cls = metaclass(name, bases, {})
+  return (parent_cls,)
