@@ -19,6 +19,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .copy import copy_class
-from .deconflict import resolve_metaclass_conflict
-from .inline import InlineMetaclass, InlineMetaclassBase
+__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
+__version__ = '0.9.0.dev0'

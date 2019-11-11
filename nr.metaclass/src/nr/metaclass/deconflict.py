@@ -19,14 +19,21 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.stream import chain, unique
+
+def _unique_and_chain(*iterables):
+  seen = set()
+  for iterable in iterables:
+    for value in iterable:
+      if value not in seen:
+        seen.add(value)
+        yield value
 
 
 def get_conflicting_metaclasses(metaclasses=(), bases=()):
   """ Checks if any of classes in *metaclasses* are conflicting (or any of
   the metaclasses of *bases*). Returns a list of conflicting metaclasses. """
 
-  metaclasses = tuple(unique(chain(metaclasses, map(type, bases))))
+  metaclasses = tuple(_unique_and_chain(metaclasses, map(type, bases)))
   conflicts = []
   for x in metaclasses:
     for y in metaclasses:
@@ -44,7 +51,7 @@ def resolve_metaclass_conflict(metaclasses=(), bases=(), _cache={}):
   will not check if there is a conflict and simply produce a new metaclass
   that combines the metaclasses of *metaclasses* or *bases*. """
 
-  metaclasses = tuple(unique(chain(metaclasses, map(type, bases))))
+  metaclasses = tuple(_unique_and_chain(metaclasses, map(type, bases)))
   if metaclasses in _cache:
     return _cache[metaclasses]
 
