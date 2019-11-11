@@ -1,5 +1,5 @@
 
-from nr.types.collections._ordereddict import OrderedDict
+from nr.collections.ordereddict import OrderedDict
 
 
 def test_order():
