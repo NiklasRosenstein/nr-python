@@ -28,7 +28,7 @@ import itertools
 import six
 
 from nr.types.abc import Mapping
-from nr.types.singletons import NotSet
+from nr.singleton import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
 _slice = slice
@@ -343,6 +343,13 @@ class Stream(object):
   @_dualmethod
   def sort(cls, iterable, reverse=False):
     return cls.sortby(iterable, lambda x: x, reverse)
+
+  @_dualmethod
+  def reduce(cls, iterable, function, initial=NotSet):
+    if initial is NotSet:
+      return functools.reduce(function, iterable)
+    else:
+      return functools.reduce(function, iterable, NotSet)
 
 
 def _expose_members():
