@@ -1,5 +1,5 @@
 
-from nr.types import generic
+from nr.collections import generic
 
 
 def test_generic_param():
