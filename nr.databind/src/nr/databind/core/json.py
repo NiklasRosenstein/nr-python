@@ -27,7 +27,7 @@ import decimal
 import six
 
 from nr.types.collections import OrderedDict
-from nr.types.interface import implements
+from nr.interface import implements
 from .mappers import BaseObjectMapper
 from .errors import ExtractTypeError
 from .interfaces import IConverter

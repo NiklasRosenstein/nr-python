@@ -22,7 +22,7 @@
 import typing
 
 from nr.types import abc
-from nr.types.interface import implements
+from nr.interface import implements
 from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
 

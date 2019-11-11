@@ -4,8 +4,9 @@ package:
   license: MIT
 
 requirements:
-  python: ^2.7|^3.4
-  test:
+  - python ^2.7|^3.4
+  - nr.interface ^1.0.0
+  - test:
     - pytest
     - PyYAML
 

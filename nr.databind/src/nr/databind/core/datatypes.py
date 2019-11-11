@@ -28,7 +28,7 @@ import decimal
 import six
 
 from nr.types import abc
-from nr.types.interface import implements
+from nr.interface import implements
 from nr.types.utils import classdef
 from .interfaces import IDataType
 

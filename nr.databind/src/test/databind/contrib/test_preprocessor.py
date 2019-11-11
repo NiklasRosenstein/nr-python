@@ -2,7 +2,7 @@
 import textwrap
 import yaml
 
-from nr.types.interface import implements
+from nr.interface import implements
 from nr.databind import JsonObjectMapper, Struct, Field, deserialize, serialize
 from nr.databind.contrib.preprocessor import Preprocessor, preprocess
 from nr.types.utils import classdef

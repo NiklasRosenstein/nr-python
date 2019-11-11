@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types.interface import implements
+from nr.interface import implements
 from nr.types.utils import classdef
 
 from ..core.adapters import DefaultTypeMapper

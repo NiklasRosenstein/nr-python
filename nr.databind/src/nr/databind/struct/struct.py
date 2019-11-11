@@ -22,7 +22,7 @@
 import six
 
 from nr.types import abc
-from nr.types.interface import implements
+from nr.interface import implements
 from nr.types.utils import classdef
 from .. import get_type_mapper
 from ..core.datatypes import IDataType, CollectionType

@@ -24,7 +24,7 @@
 import typing
 
 from nr.types import abc
-from nr.types.interface import Interface, implements
+from nr.interface import Interface, implements
 from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
 

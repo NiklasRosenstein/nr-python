@@ -24,8 +24,8 @@ import six
 
 from nr.types import abc
 from nr.types.collections import OrderedDict
-from nr.types.singletons import NotSet
-from nr.types.stream import Stream
+from nr.singleton import NotSet
+from nr.stream import Stream
 from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional
 from .. import get_type_mapper

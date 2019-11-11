@@ -22,7 +22,7 @@
 import decimal
 import typing
 
-from nr.types.interface import implements
+from nr.interface import implements
 from nr.types.utils.typing import is_generic, get_generic_args
 from .errors import InvalidTypeDefinitionError
 from .mappers import BaseTypeMapper

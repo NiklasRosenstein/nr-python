@@ -21,7 +21,7 @@
 
 import string
 
-from nr.types.interface import Interface, attr, default
+from nr.interface import Interface, attr, default
 from nr.types.utils import classdef
 from .errors import InvalidTypeDefinitionError
 
