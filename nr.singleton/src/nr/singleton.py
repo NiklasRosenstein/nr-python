@@ -19,11 +19,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-"""
-Provides the [[NotSet]] singleton, which is used in places where [[None]] is
-an acceptable value with different behavior than if the value is "not set".
-"""
-
 
 class NotSetType(object):  # doc: ignore
 
