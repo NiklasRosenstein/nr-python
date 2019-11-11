@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types.utils.typing import is_generic, get_generic_args
+from nr.util.typing import is_generic, get_generic_args
 from typing import List, Dict, Union
 
 

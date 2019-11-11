@@ -23,9 +23,9 @@
 Provides some fancy tools to augment module objects.
 """
 
+from nr.singleton import NotSet
 import sys
 import types
-from nr.singleton import NotSet
 
 
 class _InheritableModuleTypeClass(type):

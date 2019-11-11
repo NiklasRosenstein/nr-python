@@ -24,7 +24,6 @@ Utilities for working with the Python [[typing]] module.
 """
 
 from __future__ import absolute_import
-
 import typing
 
 

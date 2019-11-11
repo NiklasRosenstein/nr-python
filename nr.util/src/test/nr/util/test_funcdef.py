@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 import pytest
-from nr.types.utils.funcdef import raise_kwargs
+from nr.util.funcdef import raise_kwargs
 
 
 def test_raise_kwargs():

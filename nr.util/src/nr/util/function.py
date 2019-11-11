@@ -24,9 +24,9 @@ Provides tools for working with Python function objects, most prominently the
 [[copy_function()]] function.
 """
 
+from nr.collections import abc
 import functools
 import types
-from nr.collections import abc
 
 
 def make_closure_cell(x):
