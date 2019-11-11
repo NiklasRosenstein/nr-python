@@ -29,9 +29,10 @@ import six
 import sys
 import types
 
-from nr.metaclass import InlineMetaclassBase, copy_class
+from nr.collections import OrderedSet
+from nr.metaclass.copy import copy_class
+from nr.metaclass.inline import InlineMetaclassBase
 from nr.singleton import NotSet
-from nr.types.collections import OrderedSet
 
 
 class Decoration(object):

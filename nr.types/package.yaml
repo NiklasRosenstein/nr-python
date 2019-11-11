@@ -1,0 +1,14 @@
+package:
+  name: nr.types
+  description: Useful datatypes and add-ons for built-in types.
+  license: MIT
+
+requirements:
+  - python ^2.7|^3.4
+  - PyYAML
+  - test:
+    - pytest
+    - pytest-cov
+
+publish:
+  - layout: pypi

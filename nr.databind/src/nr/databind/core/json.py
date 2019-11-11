@@ -26,7 +26,7 @@ Converts from and to JSON like nested structures.
 import decimal
 import six
 
-from nr.types.collections import OrderedDict
+from nr.collections import OrderedDict
 from nr.interface import implements
 from .mappers import BaseObjectMapper
 from .errors import ExtractTypeError

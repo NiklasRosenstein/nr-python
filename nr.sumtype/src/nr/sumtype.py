@@ -19,7 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.metaclass import copy_class, InlineMetaclassBase
+from nr.metaclass.copy import copy_class
+from nr.metaclass.inline import InlineMetaclassBase
 from nr.stream import Stream
 import collections
 import re

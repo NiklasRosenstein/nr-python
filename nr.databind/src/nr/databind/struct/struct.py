@@ -21,7 +21,7 @@
 
 import six
 
-from nr.types import abc
+from nr.collections import abc
 from nr.interface import implements
 from nr.types.utils import classdef
 from .. import get_type_mapper

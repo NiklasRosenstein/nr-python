@@ -26,7 +26,7 @@ Provides tools for working with Python function objects, most prominently the
 
 import functools
 import types
-from nr.types import abc
+from nr.collections import abc
 
 
 def make_closure_cell(x):

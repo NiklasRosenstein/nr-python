@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types import abc
+from nr.collections import abc
 from nr.proxy import Proxy, proxy_decorator, make_proxy_class
 
 

@@ -3,12 +3,11 @@ import pytest
 import types
 
 from numbers import Number
-from nr.types import stream
-from nr.types.stream import Stream
+from nr.stream import Stream
 
 
 def test_stream_module_members():
-  assert stream.flatmap([1, 2, 3], lambda x: [x, x+1]).collect() == [1, 2, 2, 3, 3, 4]
+  assert Stream.flatmap([1, 2, 3], lambda x: [x, x+1]).collect() == [1, 2, 2, 3, 3, 4]
 
 
 def test_getitem():
@@ -126,12 +125,12 @@ def test_next():
   values = [4, 2, 1]
   assert Stream.next(values) == 4
 
-  stream = Stream(values)
-  assert stream.next() == 4
-  assert stream.next() == 2
-  assert stream.next() == 1
+  s = Stream(values)
+  assert s.next() == 4
+  assert s.next() == 2
+  assert s.next() == 1
   with pytest.raises(StopIteration):
-    stream.next()
+    s.next()
 
 
 def test_length():

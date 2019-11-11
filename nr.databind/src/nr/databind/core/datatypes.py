@@ -27,7 +27,7 @@ object.
 import decimal
 import six
 
-from nr.types import abc
+from nr.collections import abc
 from nr.interface import implements
 from nr.types.utils import classdef
 from .interfaces import IDataType

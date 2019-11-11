@@ -86,7 +86,7 @@ import copy
 import re
 import six
 
-from nr.types import abc
+from nr.collections import abc
 
 
 class Preprocessor(dict):

@@ -22,8 +22,7 @@
 import functools
 import six
 
-from nr.types import abc
-from nr.types.collections import OrderedDict
+from nr.collections import abc, OrderedDict
 from nr.singleton import NotSet
 from nr.stream import Stream
 from nr.types.utils import classdef

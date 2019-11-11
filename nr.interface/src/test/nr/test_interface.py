@@ -1,7 +1,7 @@
 
+from nr.interface import *
 import pytest
 import six
-from nr.types.interface import *
 
 
 def test_constructed():
@@ -575,7 +575,7 @@ def test_readme_compound():
 
 
 def test_implements_metaclass_conflict():
-  from nr.types.struct import Field, Struct
+  from nr.databind import Field, Struct
   class MyInterface(Interface):
     def foo(self):
       pass
