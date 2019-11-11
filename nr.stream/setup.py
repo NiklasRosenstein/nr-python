@@ -6,5 +6,5 @@ setup(
   version='0.9.0.dev0',
   packages=find_packages('src', exclude=['test*']),
   package_dir={'': 'src'},
-  install_requires=['six']
+  install_requires=['six', 'nr.collections']
 )
