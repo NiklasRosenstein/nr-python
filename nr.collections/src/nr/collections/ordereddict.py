@@ -19,9 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+""" An ordered dictionary implementation. Some older Python versions don't
+have it in the standard library, which is why this is useful. """
+
+from .abc import MutableMapping
 import six
 
-from nr.types.abc import MutableMapping
+__all__ = ['OrderedDict']
 
 
 class OrderedDict(MutableMapping):

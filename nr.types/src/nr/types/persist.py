@@ -26,7 +26,7 @@ This module focuses on tools for persistable program state.
 from nr.fs import isfile, remove, atomic_file
 
 from nr.types.interface import Interface, implements
-from nr.types.singletons import NotSet
+from nr.singleton import NotSet
 
 
 class IPersister(Interface):
