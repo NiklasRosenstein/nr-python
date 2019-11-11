@@ -1,6 +1,6 @@
 
 from dateutil.parser import parse as dateutil_parse
-from nr.date import JAVA_OFFSET_DATETIME
+from nr.parsing.date import JAVA_OFFSET_DATETIME
 
 DATES_TO_TEST = [
     ('2019-03-12T10:22-0400',     '2019-03-12T10:22:00.0-04:00'),

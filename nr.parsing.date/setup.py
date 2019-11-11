@@ -3,14 +3,14 @@ import io
 import re
 import setuptools
 
-with io.open('src/nr/date.py', encoding='utf8') as fp:
+with io.open('src/nr/parsing/date.py', encoding='utf8') as fp:
   version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
 setuptools.setup(
-  name = 'nr.date',
+  name = 'nr.parsing.date',
   version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',

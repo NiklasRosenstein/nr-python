@@ -1,4 +1,4 @@
-# nr.date
+# nr.parsing.date
 
 This package provides a fast parser for fixed format date strings with 
 support for timezone offsets. The goal of this package is to
