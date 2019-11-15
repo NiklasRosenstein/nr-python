@@ -23,7 +23,7 @@ import functools
 import six
 
 from nr.collections import abc, OrderedDict
-from nr.singleton import NotSet
+from nr.commons.notset import NotSet
 from nr.stream import Stream
 from nr.types.utils import classdef
 from nr.types.utils.typing import extract_optional

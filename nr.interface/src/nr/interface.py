@@ -32,7 +32,7 @@ import types
 from nr.collections import OrderedSet
 from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
-from nr.singleton import NotSet
+from nr.commons.notset import NotSet
 
 
 class Decoration(object):

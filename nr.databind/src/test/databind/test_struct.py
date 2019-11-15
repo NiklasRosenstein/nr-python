@@ -24,7 +24,7 @@ import pytest
 import six
 import sys
 import textwrap
-from nr.singleton import NotSet
+from nr.commons.notset import NotSet
 from nr.databind import *
 
 

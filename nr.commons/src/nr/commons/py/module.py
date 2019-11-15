@@ -23,7 +23,7 @@
 Provides some fancy tools to augment module objects.
 """
 
-from nr.singleton import NotSet
+from nr.commons.notset import NotSet
 import sys
 import types
 

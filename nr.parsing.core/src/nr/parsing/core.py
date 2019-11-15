@@ -21,7 +21,7 @@
 
 """
 This is a simple library to tokenize and parse languages ranging from simple
-to complex grammatics and semantics. It has been developed specifically for
+to complex grammars and semantics. It has been developed specifically for
 the recursive decent parser technique, although it might work well with other
 parsing techniques as well.
 
@@ -35,7 +35,7 @@ stream of #Token#s using a set of #Rule#s.
 """
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '1.1.1'
+__version__ = '0.9.0'
 
 import collections
 import os

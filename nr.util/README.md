@@ -1,3 +1,0 @@
-# nr.utils
-
-Various utilities.

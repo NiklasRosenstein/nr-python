@@ -1,5 +1,5 @@
 
-from nr.util.function import copy_function
+from nr.commons.py.function import copy_function
 import pytest
 
 

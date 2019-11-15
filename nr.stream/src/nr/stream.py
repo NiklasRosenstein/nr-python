@@ -28,7 +28,7 @@ import itertools
 import six
 
 from nr.collections.abc import Mapping
-from nr.singleton import NotSet
+from nr.commons.notset import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
 _slice = slice
