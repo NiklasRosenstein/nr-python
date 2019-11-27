@@ -4,6 +4,23 @@ import pytest
 import six
 
 
+def test_function_spec():
+  a = FunctionSpec(args=['a', 'b'], varkw='kwargs', kwonlyargs=['c'])
+
+  c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=['c'])
+  assert c.conformity_check(a) is None
+
+  c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=[])
+  assert c.conformity_check(a) == "missing kwonlyargs ({'c'})"
+
+  c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', kwonlyargs=['c'])
+  assert c.conformity_check(a) == "extranous positional arguments do not have default values (extranous arguments are ['d'])"
+
+  a.kwonlydefaults = {'c': 42}
+  c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=['c'])
+  assert c.conformity_check(a) == "missing kwonlydefaults ({'c'})"
+
+
 def test_constructed():
 
   class Constructed(Exception):
@@ -600,3 +617,64 @@ def test_implements_metaclass_conflict():
 
   assert MyImpl.__fields__
   assert MyImpl(42).foo() == 84
+
+
+def test_conflicting_interfaces():
+
+  class A(Interface):
+    def method(self):
+      pass
+  class B(Interface):
+    def method(self):
+      pass
+  @implements(A, B)
+  class C(object):
+    def method(self):
+      pass
+
+  class A(Interface):
+    def method(self, arg):
+      pass
+  class B(Interface):
+    def method(self):
+      pass
+  with pytest.raises(ConflictingInterfacesError):
+    @implements(A, B)
+    class C(object):
+      def method(self):
+        pass
+
+
+def test_deconflicting_interfaces():
+  class IMethod(Interface):
+    def method(self):
+      pass
+
+  class A(IMethod):
+    def a(self):
+      pass
+
+  class B(IMethod):
+    @default
+    def method(self):
+      pass
+    def b(self):
+      pass
+
+  @implements(A, B)
+  class C(object):
+    def a(self):
+      pass
+    def b(self):
+      pass
+
+  class D(Interface):
+    def method(self):
+      pass
+
+  @implements(A, D)
+  class E(object):
+    def method(self):
+      pass
+    def a(self):
+      pass

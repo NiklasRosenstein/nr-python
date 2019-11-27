@@ -20,10 +20,21 @@
 # IN THE SOFTWARE.
 
 __all__ = [
-  'Interface', 'Implementation', 'ImplementationError', 'ConflictingInterfacesError',
-  'is_interface', 'implements', 'attr', 'staticattr', 'default', 'final', 'override'
+  'FunctionSpec',
+  'Interface',
+  'Implementation',
+  'ImplementationError',
+  'ConflictingInterfacesError',
+  'is_interface',
+  'implements',
+  'attr',
+  'staticattr',
+  'default',
+  'final',
+  'override'
 ]
 
+import inspect
 import itertools
 import six
 import sys
@@ -33,6 +44,98 @@ from nr.collections import OrderedSet
 from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
 from nr.commons.notset import NotSet
+
+
+class FunctionSpec(object):
+  """ Represents a function argument specification. This is a re-implementation
+  of the #inspect.FulLArgSpec class (as it is not available in all Python 2).
+  """
+
+  def __init__(self,
+      args=None,            # type: Optional[List[str]]
+      varargs=None,         # type: Optional[str]
+      varkw=None,           # type: Optional[str]
+      defaults=None,        # type: Optional[List[Any]]
+      kwonlyargs=None,      # type: Optional[List[str]]
+      kwonlydefaults=None,  # type: Optional[Dict[str, Any]]
+      annotations=None      # type: Optional[Dict[str, Any]]
+      ):
+    self.args = args or []
+    self.varargs = varargs
+    self.varkw = varkw
+    self.defaults = defaults or []
+    self.kwonlyargs = kwonlyargs or []
+    self.kwonlydefaults = kwonlydefaults or {}
+    self.annotations = annotations or {}
+
+  def __eq__(self, other):
+    if type(other) != type(self):
+      return False
+    for key in ('args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
+                'kwonlydefaults', 'annotations'):
+      if getattr(self, key) != getattr(other, key):
+        return False
+    return True
+
+  def __ne__(self, other):
+    return not (self == other)
+
+  @classmethod
+  def from_function(cls, func):
+    """ Reads the signature of a function using #inspect.getfullargspec()
+    (or #inspect.getargspec() depending on which is available). If *func*
+    is a #classmethod or #staticmethod, it is first unwrapped. """
+
+    if isinstance(func, (classmethod, staticmethod)):
+      func = func.__func__
+
+    if hasattr(inspect, 'getfullargspec'):
+      argspec = inspect.getfullargspec(func)
+      return cls(argspec.args, argspec.varargs, argspec.varkw,
+        list(argspec.defaults or []), argspec.kwonlyargs, argspec.kwonlydefaults,
+        argspec.annotations)
+    else:
+      argspec = inspect.getargspec(func)
+      return cls(argspec.args, argspec.varargs, argspec.keywords,
+        list(args.defaults or []))
+
+  def conformity_check(self, other):  # type: (FunctionSpec) -> Optional[str]
+    """ Checks if *self* conforms with the *other* function spec. The spec
+    is conformant with another spec if it satisfies the minimum requirements
+    imposed by *other*.
+
+    Returns a messages that describe why *self* is not a conformant of
+    *other*. If None is returned, *self* is conformant. """
+
+    # Check if overlapping positional arguments are the same.
+    overlapping_args = self.args[:len(other.args)]
+    if overlapping_args != other.args:
+      return 'overlapping positional argument names do not match '\
+        '({!r} != {!r})'.format(overlapping_args, other.args)
+
+    # Check that additional positional arguments have default values.
+    if len(self.defaults) < (len(self.args) - len(other.args)):
+      return 'extranous positional arguments do not have default values '\
+        '(extranous arguments are {!r})'.format(self.args[len(other.args):])
+
+    # Check varargs/kwargs.
+    if self.varargs is None and other.varargs is not None:
+      return 'does not implement varargs'
+    if self.varkw is None and other.varkw is not None:
+      return 'does not implement varkw'
+
+    # Check kwonlyargs.
+    a = set(self.kwonlyargs)
+    b = set(other.kwonlyargs)
+    if not b.issubset(a):
+      return 'missing kwonlyargs ({!r})'.format(b - a)
+
+    # Check kwonlydefaults.
+    missing_defaults = {k for k in other.kwonlydefaults if k not in self.kwonlydefaults}
+    if missing_defaults:
+      return 'missing kwonlydefaults ({!r})'.format(missing_defaults)
+
+    return None
 
 
 class Decoration(object):
@@ -108,9 +211,10 @@ class Method(_Member):
   *Changed in 2.5.0*: Added *static* argument and member.
   """
 
-  def __init__(self, interface, name, impl=None, final=False, hidden=False,
-               static=False):
+  def __init__(self, interface, name, argspec, impl=None, final=False,
+               hidden=False, static=False):
     super(Method, self).__init__(interface, name)
+    self.argspec = argspec
     self.impl = impl
     self.final = final
     self.hidden = hidden
@@ -130,6 +234,12 @@ class Method(_Member):
     if self.impl:
       return self.impl(*a, **kw)
     return None
+
+  def __eq__(self, other):
+    if type(other) == type(self):
+      return (self.argspec, self.final, self.hidden, self.static) == \
+        (other.argspec, other.final, other.hidden, other.static)
+    return False
 
   @classmethod
   def is_candidate(cls, name, value):
@@ -154,7 +264,8 @@ class Method(_Member):
       # of potential overrides by the implementation.
       impl = value if props.is_default or hidden else None
       static = isinstance(value, (staticmethod, classmethod))
-      return Method(interface, name, impl, props.is_final, hidden, static)
+      spec = FunctionSpec.from_function(value)
+      return Method(interface, name, spec, impl, props.is_final, hidden, static)
     return None
 
 
@@ -408,7 +519,7 @@ def get_conflicting_members(a, b):
       bm = b[am.name]
     except KeyError:
       continue
-    if am is not bm:
+    if am != bm:
       conflicts.append(am.name)
 
   return conflicts

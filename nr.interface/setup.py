@@ -6,5 +6,5 @@ setup(
   version='0.9.0.dev0',
   packages=find_packages('src', exclude=['test*']),
   package_dir={'': 'src'},
-  install_requires=['six', 'nr.metaclass', 'nr.commons', 'nr.types']
+  install_requires=['six', 'nr.commons', 'nr.collections', 'nr.metaclass']
 )
