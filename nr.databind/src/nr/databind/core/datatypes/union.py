@@ -28,11 +28,12 @@ from nr.interface import Interface, implements
 from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
 
-from ..core.adapters import DefaultTypeMapper
-from ..core.errors import ExtractTypeError, ExtractValueError, InvalidTypeDefinitionError
-from ..core.interfaces import IConverter, IDataType, ITypeDefAdapter
-from ..core.json import JsonObjectMapper
+from ..errors import InvalidTypeDefinitionError
+from ..interfaces import IDataType
 from ..struct import Struct, StructType
+
+__all__ = ['IUnionTypeMember', 'IUnionTypeResolver', 'StandardTypeResolver',
+           'EntrypointTypeResolver', 'UnionType']
 
 
 class UnknownUnionTypeError(Exception):
@@ -235,6 +236,16 @@ class UnionType(object):
     self.type_key = type_key
     self.nested = nested
 
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if is_generic(py_type_def, typing.Union):
+      union_types = get_generic_args(py_type_def)
+      if all(issubclass(x, Struct) for x in union_types):
+        return UnionType(union_types)
+    elif isinstance(py_type_def, list) and len(py_type_def) > 1:
+      return UnionType([recursive(x) for x in py_type_def])
+    raise InvalidTypeDefinitionError(py_type_def)
+
   def check_value(self, py_value):
     try:
       members = list(self.type_resolver.members())
@@ -249,85 +260,3 @@ class UnionType(object):
         '|'.join(sorted(x.get_name() for x in members)),
         type(py_value).__name__))
     return py_value
-
-
-@DefaultTypeMapper.register()
-@implements(ITypeDefAdapter)
-class UnionAdapter(object):
-
-  def adapt(self, mapper, py_type_def):
-    if is_generic(py_type_def, typing.Union):
-      union_types = get_generic_args(py_type_def)
-      if all(issubclass(x, Struct) for x in union_types):
-        return UnionType(union_types)
-    elif isinstance(py_type_def, list) and len(py_type_def) > 1:
-      return UnionType([mapper.adapt(x) for x in py_type_def])
-    raise InvalidTypeDefinitionError(py_type_def)
-
-
-@JsonObjectMapper.register()
-@implements(IConverter)
-class UnionConverter(object):
-
-  def accept(self, datatype):
-    return type(datatype) == UnionType
-
-  def deserialize(self, mapper, location):
-    if not isinstance(location.value, abc.Mapping):
-      raise ExtractTypeError(location)
-
-    datatype = location.datatype  # type: UnionType
-    type_key = datatype.type_key
-    if type_key not in location.value:
-      raise ExtractValueError(location,
-        'required key "{}" not found'.format(type_key))
-
-    type_name = location.value[type_key]
-    try:
-      member = datatype.type_resolver.resolve(type_name)
-    except UnknownUnionTypeError:
-      raise ExtractValueError(location,
-        'unknown union type: "{}"'.format(type_name))
-
-    if datatype.nested:
-      struct_type = StructType(member.get_struct())
-      location = location.sub(type_key, location.value[type_key], struct_type)
-    else:
-      struct_type = StructType(member.get_struct(), ignore_keys=[type_key])
-      location = location.replace(datatype=struct_type)
-
-    return mapper.deserialize(location)
-
-  def serialize(self, mapper, location):
-    datatype = location.datatype
-    value = location.value
-    try:
-      member = datatype.type_resolver.reverse(value)
-    except UnknownUnionTypeError as exc:
-      try:
-        members = datatype.type_resolver.members()
-      except NotImplementedError:
-        message = str(exc)
-      else:
-        message = 'expected {{{}}}, got {}'.format(
-          '|'.join(sorted(x.get_type_name() for x in members)),
-          type(value).__name__)
-      raise ExtractTypeError(location, message)
-
-    if datatype.nested:
-      struct_type = StructType(member.get_struct())
-      location = location.sub(type_key, location.value, struct_type)
-    else:
-      struct_type = StructType(member.get_struct(), ignore_keys=[datatype.type_key])
-      location = location.replace(datatype=struct_type)
-
-    result = {datatype.type_key: member.get_name()}
-    result.update(mapper.serialize(location))
-    return result
-
-
-__all__ = [
-  'IUnionTypeMember',
-  'IUnionTypeResolver',
-  'UnionType',
-]

@@ -20,17 +20,18 @@
 # IN THE SOFTWARE.
 
 from .datatypes import *
-from .adapters import DefaultTypeMapper
 from .errors import *
+from .location import *
 from .interfaces import *
-from .mappers import *
-from .json import JsonObjectMapper
+from .collection import *
+from .struct import *
 
 
 __all__ = (
   datatypes.__all__ +
   errors.__all__ +
+  location.__all__ +
   interfaces.__all__ +
-  mappers.__all__ +
-  ['DefaultTypeMapper', 'JsonObjectMapper']
+  collection.__all__ +
+  struct.__all__
 )

@@ -26,11 +26,14 @@ object.
 
 import decimal
 import six
+import typing
 
 from nr.collections import abc
+from nr.commons.py.typing import is_generic
 from nr.interface import implements
 from nr.types.utils import classdef
-from .interfaces import IDataType
+from ..interfaces import IDataType
+from ..errors import InvalidTypeDefinitionError
 
 
 @implements(IDataType)
@@ -41,6 +44,12 @@ class AnyType(object):
   """
 
   classdef.comparable([])
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is object:
+      return cls()
+    raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
     return py_value
@@ -53,6 +62,12 @@ class BooleanType(object):
 
   def __init__(self, strict=True):
     self.strict = strict
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is bool:
+      return BooleanType()
+    raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
     if self.strict and not isinstance(py_value, bool):
@@ -67,6 +82,12 @@ class StringType(object):
 
   def __init__(self, strict=True):
     self.strict = strict
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is str:
+      return StringType()
+    raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
     if isinstance(py_value, six.string_types):
@@ -85,6 +106,12 @@ class IntegerType(object):
 
   def __init__(self, strict=True):
     self.strict = strict
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is int:
+      return IntegerType()
+    raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
     if isinstance(py_value, six.integer_types):
@@ -131,6 +158,12 @@ class DecimalType(object):
       raise RuntimeError('python_type is invalid: {!r}'.format(
         self.python_type))
 
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def in (float, decimal.Decimal):
+      return DecimalType(py_type_def)
+    raise InvalidTypeDefinitionError(py_type_def)
+
   def check_value(self, py_value):
     if not isinstance(py_value, self.accepted_input_types):
       raise TypeError('expected {}'.format(
@@ -151,6 +184,38 @@ class CollectionType(object):
   def __init__(self, item_type, py_type=list):
     self.item_type = item_type
     self.py_type = py_type
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    from ..collection import Collection
+    # []
+    if isinstance(py_type_def, list) and len(py_type_def) == 0:
+      return cls(AnyType())
+    # [<type>]
+    elif isinstance(py_type_def, list) and len(py_type_def) == 1:
+      return cls(recursive(py_type_def[0]))
+    # list
+    elif py_type_def is list:
+      return cls(AnyType())
+    # set
+    elif py_type_def is set:
+      return cls(AnyType(), py_type=set)
+    # typing.List
+    elif is_generic(py_type_def, typing.List):
+      item_type_def = get_generic_args(py_type_def)[0]
+      if isinstance(item_type_def, typing.TypeVar):
+        item_type_def = object
+      return cls(recursive(item_type_def))
+    # typing.Set
+    elif is_generic(py_type_def, typing.Set):
+      item_type_def = get_generic_args(py_type_def)[0]
+      if isinstance(item_type_def, typing.TypeVar):
+        item_type_def = object
+      return cls(recursive(item_type_def), py_type=set)
+    # nr.databind.core.collection.Collection
+    elif isinstance(py_type_def, type) and issubclass(py_type_def, Collection):
+      return py_type_def.datatype
+    raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value, _convert=True):
     if isinstance(py_value, six.string_types) \
@@ -175,6 +240,31 @@ class ObjectType(object):
     self.value_type = value_type
     self.py_type = py_type
 
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    # {}
+    if isinstance(py_type_def, dict) and len(py_type_def) == 0:
+      return cls(AnyType())
+    # {<type>}
+    elif isinstance(py_type_def, set) and len(py_type_def) == 1:
+      return cls(recursive(next(iter(py_type_def))))
+    # {'value_type': <type>}
+    elif isinstance(py_type_def, dict) and len(py_type_def) == 1 and \
+        'value_type' in py_type_def:
+      return cls(recursive(py_type_def['value_type']))
+    # dict
+    elif py_type_def is dict:
+      return cls(AnyType())
+    # typing.Dict
+    elif is_generic(py_type_def, typing.Dict):
+      key_type_def, value_type_def = get_generic_args(py_type_def)
+      if not isinstance(key_type_def, typing.TypeVar) and key_type_def is not str:
+        raise InvalidTypeDefinitionError(py_type_def)
+      if isinstance(value_type_def, typing.TypeVar):
+        value_type_def = object
+      return cls(recursive(value_type_def))
+    raise InvalidTypeDefinitionError(py_type_def)
+
   def check_value(self, py_value, _convert=False):
     if not isinstance(py_value, abc.Mapping):
       raise TypeError('expected a mapping')
@@ -182,6 +272,79 @@ class ObjectType(object):
         not isinstance(py_value, self.py_type)):
       py_value = self.py_type(py_value)
     return py_value
+
+
+@implements(IDataType)
+class PythonClassType(object):
+  """ A wrapper for Python type object's when they don't fit into any of the
+  other types. The adapter for this datatype takes the lowest priority and
+  only applies to custom defined types (not built-in types). """
+
+  classdef.comparable(['cls'])
+  priority = -1000
+
+  def __init__(self, cls):
+    assert isinstance(cls, type)
+    self.cls = cls
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if isinstance(py_type_def, type) and py_type_def.__module__ not in (
+        'builtin', '__builtin__'):
+      return cls(py_type_def)
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  def check_value(self, py_value):
+    if not isinstance(py_value, self.ls):
+      raise TypeError('expected {} instance, got {}'.format(
+        self.cls.__name__, type(py_value).__name__))
+    return py_value
+
+
+@implements(IDataType)
+class MultiType(object):
+  """ Represents a collection of datatypes. Uses the first type of the list
+  of types that successfully serializes/deserializes. Multi types can be
+  defined conveniently using tuples. """
+
+  classdef.comparable(['types'])
+
+  def __init__(self, types):
+    self.types = types
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if isinstance(py_type_def, tuple):
+      return MultiType([recursive(x) for x in py_type_def])
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  def check_value(self, py_value):
+    errors = []
+    for datatype in self.types:
+      try:
+        return datatype.check_value(py_value)
+      except TypeError as exc:
+        errors.append(exc)
+    raise TypeError(errors)
+
+
+def translate_type_def(py_type_def, fallback=None):
+  if IDataType.provided_by(py_type_def):
+    return py_type_def
+  elif isinstance(py_type_def, type) and IDataType.implemented_by(py_type_def):
+    return py_type_def()
+  for adapter in sorted(IDataType.implementations(), key=lambda x: -x.priority):
+    try:
+      return adapter.from_typedef(translate_type_def, py_type_def)
+    except InvalidTypeDefinitionError:
+      pass
+  if fallback:
+    return fallback
+  raise InvalidTypeDefinitionError(py_type_def)
+
+
+from .union import UnionType
+from .struct import StructType
 
 
 __all__ = [
@@ -192,4 +355,8 @@ __all__ = [
   'DecimalType',
   'CollectionType',
   'ObjectType',
+  'PythonClassType',
+  'UnionType',
+  'StructType',
+  'translate_type_def'
 ]

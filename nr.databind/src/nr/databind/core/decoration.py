@@ -19,18 +19,26 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .core import *
-from .mapper import *
-import contextlib
-import logging
-import sys
-import traceback
 
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.9.0.dev0'
+class Decoration(object):
+  """ A decoration is an object that adds behavior to a class or field.
+  Specific decorations may be used to decorate functions that serve special
+  purposes for the deserializer/serializer or to add properties to a struct
+  field. """
 
+  @classmethod
+  def all(cls, values):
+    """ Yields all items in the iterable *values* that are instances of the
+    decoration. """
 
-__all__ = (
-  core.__all__ +
-  mapper.__all__
-)
+    for value in values:
+      if isinstance(value, cls):
+        yield value
+
+  @classmethod
+  def first(cls, values, fallback=None):
+    """ Returns the first value from the iterable *values* that is an instance
+    of the decoration. If there is no such value, *fallback* is returned
+    instead."""
+
+    return next(cls.all(values), fallback)

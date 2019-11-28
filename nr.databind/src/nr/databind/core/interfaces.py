@@ -24,6 +24,7 @@ import string
 from nr.interface import Interface, attr, default
 from nr.types.utils import classdef
 from .errors import InvalidTypeDefinitionError
+from .location import Location
 
 try:
   from inspect import getfullargspec as getargspec
@@ -31,148 +32,23 @@ except ImportError:
   from inspect import getargspec
 
 
-class Path(object):
-  """
-  Represents a chain of location identifiers.
-  """
-
-  ROOT_ELEMENT = '$'
-  ALLOWED_KEY_CHARS = string.ascii_letters + string.digits + '_-'
-
-  def __init__(self, items):
-    self.items = tuple(items)
-
-  def __iter__(self):
-    return iter(self.items)
-
-  def __len__(self):
-    return len(self.items)
-
-  def __getitem__(self, index):
-    return self.items[index]
-
-  def __str__(self):
-    """
-    Constructs a dotted representation of a path.
-    """
-
-    def generate():
-      yield Path.ROOT_ELEMENT
-      for key in self.items:
-        if isinstance(key, int):
-          yield '[{}]'.format(key)
-        else:
-          escaped_key = str(key)
-          if '"' in escaped_key:
-            escaped_key = escaped_key.replace('"', '\\"')
-          if any(c not in Path.ALLOWED_KEY_CHARS for c in escaped_key):
-            escaped_key = '"' + escaped_key + '"'
-          yield '.' + escaped_key
-
-    return ''.join(generate())
-
-  def to_location(self, value, datatype):
-    """
-    Creates a new chain of [[Location]] objects of this path. All locations
-    except for the final one contain no value or datatype.
-    """
-
-    parent = None
-    for item in self.items[:-1]:
-      parent = Location(parent, item, None, None)
-    return Location(parent, self.items[-1] if self.items else None, value, datatype)
-
-  def resolve(self, value): # type: (Union[List, Dict]) -> Any
-    """
-    Returns the value at this path by subsequently accessing every item in
-    the path in *value* and its child nested structures.
-
-    Example:
-
-    ```py
-    path = Path(['a', 1, 'foo'])
-    data = {'a': [{'foo': 1}, {'foo': 2}]}
-    assert path.resolve(data) == 2
-    ```
-    """
-
-    for item in self.items:
-      try:
-        value = value[item]
-      except KeyError as exc:
-        raise KeyError(str(self))
-      except IndexError as exc:
-        raise IndexError('{} at {}'.format(exc, self))
-    return value
-
-
-class Location(object):
-  """
-  Represents a location in a nested data structure. It's basically a tuple
-  of a parent location, an identifier, a value and a [[IDataType]]. Locations
-  are constructed for recursive serialization/deserialization in [[IConverter]]
-  implementations.
-
-  An identifier can be a string or integer.
-  """
-
-  def __init__(self, parent, ident, value, datatype):
-    # type: (Location, Optional[str], Any, Optional[IDataType])
-    if parent and not isinstance(parent, Location):
-      raise TypeError('expected Location for argument parent, got {}'.format(
-        type(parent).__name__))
-
-    if ident is None:
-      if parent is not None:
-        raise RuntimeError('Location.ident can only be none without parent')
-
-    self.parent = parent
-    self.ident = ident
-    self.value = value
-    self.datatype = datatype
-    self._path = None
-
-  def __repr__(self):
-    return '<Location at {} of {}>'.format(self.path, self.datatype)
-
-  @property
-  def path(self):  # type: () -> Path
-    if self._path is not None:
-      return self._path
-    def generator(location):
-      while location:
-        if location.is_root:
-          break
-        yield location.ident
-        location = location.parent
-    self._path = Path(reversed(tuple(generator(self))))
-    return self._path
-
-  @property
-  def is_root(self):
-    return self.ident is None and self.parent is None
-
-  def sub(self, ident, value, datatype):
-    return Location(self, ident, value, datatype)
-
-  def replace(self, **kwargs):
-    for key in ('parent', 'ident', 'value', 'datatype'):
-      kwargs.setdefault(key, getattr(self, key))
-    return Location(**kwargs)
-
-
 class IDataType(Interface):
-  """
-  Interface for datatypes. A datatype usually has a one to one mapping with
-  a Python type. The serialization/deserialization of the type to other realms
-  is handled by the [[IConverter]] interface.
+  """ Interface for datatypes. A datatype usually has a one to one mapping
+  with a Python type. The serialization/deserialization of the type to other
+  realms is handled by the #IDeserializer and #ISerializer interfaces.
 
   Datatypes must be comparable. The default string representation is derived
   from the constructor arguments. Datatypes may also provide a more easily
-  readable representation with [[to_human_readable()]].
-  """
+  readable representation with #to_human_readable().
+
+  A datatype also describes how it can be created from a more Pythonic
+  description via the #from_typedef() function.
+
+  To implement an #IDataType, it is recommendable to use
+  #classdef.comparable(). """
 
   classdef.comparable([])  # adds __hash__, __eq__, __ne__ to the interface
+  priority = attr(int, default=0, static=True)
 
   @default
   def __repr__(self):
@@ -191,97 +67,65 @@ class IDataType(Interface):
 
   @default
   def propagate_field_name(self, name):  # type: (str) -> None
-    """
-    This method is called when the datatype instance is attached to a field
-    in an object. The name of the field is passed to this method. This is
-    used for the inline object definition.
-    """
+    """ This method is called when the datatype instance is attached to a
+    field in an object. The name of the field is passed to this method. This
+    is used for the inline object definition. """
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):  # type: (Callable, Any) -> IDataType
+    # raises: InvalidTypeDefinitionError
+    """ Convert the datatype from a pure Python description. Raise an
+    #InvalidTypeDefinitionError if the *py_type_def* cannot be translated to
+    this datatype. """
 
   def check_value(self, py_value):  # type: (Any) -> Any
-    """
-    This method returns *py_value*, or an adaptation of *py_value*, if it
+    """ This method returns *py_value*, or an adaptation of *py_value*, if it
     matches the datatype. If it doesn't, a [[TypeError]] with the reason is
     raised.
 
-    raises TypeError: If the *py_value* doesn't match this datatype.
-    """
+    raises TypeError: If the *py_value* doesn't match this datatype. """
 
 
-class ITypeMapper(Interface):
-  """
-  The type mapper is an interface for an object that controls the adaptation
-  of Python type definitions to [[IDataType]]s. This is usually implemented
-  as a collection of [[ITypeDefAdapter]] objects.
-  """
+class IDeserializeContext(Interface):
+  """ Context for deserializing values. """
 
-  def adapt(self, py_type_def):  # type: (Any) -> IDataType
-    # raises: InvalidTypeDefinitionError
+  def deserialize(self, value, datatype, key=None):  # type: (Any, IDataType, Optional[str])
     pass
 
 
-class ITypeDefAdapter(Interface):
-  """
-  Adapts a Python type definition to an [[IDataType]].
-  """
+class ISerializeContext(Interface):
+  """ Context for serializing values. """
 
-  priority = attr(int, default=0)
+  def serialize(self, value, datatype, key=None):  # type: (Any, IDataType, Optional[str])
+    pass
 
-  def adapt(self, mapper, py_type_def):  # type: (ITypeMapper, Any) -> IDataType
-    """
-    raises InvalidTypeDefinitionError: If the object is unable to adapt the
-      *py_type_def* to an [[IDataType]].
-    """
+
+class IDeserializer(Interface):
+  """ Interface for deserializing values of a given #IDataType. """
 
   @default
   def __repr__(self):
     return type(self).__name__
 
-
-class IObjectMapper(Interface):
-  """
-  The object mapper controls how values and their associated data types are
-  serialized and deserialized. This is usually implemented as a collection of
-  [[IConverter]] instances.
-  """
-
-  def get_option(self, key, default=None):  # type: (str, Any) -> Any
-    pass
-
-  def deserialize(self, location):  # type: (Location) -> Any
-    pass
-
-  def serialize(self, location):  # type: (Location) -> Any
+  def deserialize(self, context, location):  # type: (IDeserializeContext, Location) -> Any
     pass
 
 
-class IConverter(Interface):
-  """
-  An interface that simply describes converting Python values of an
-  [[IDataType]] to another serialized form, and the reverse.
-  """
-
-  priority = attr(int, default=0)
-
-  def accept(self, datatype):  # type: (IDataType) -> Any
-    pass
-
-  def deserialize(self, mapper, location):  # type: (IObjectMapper, Location) -> Any
-    pass
-
-  def serialize(self, mapper, location):  # type: (IObjectMapper, Location) -> Any
-    pass
+class ISerializer(Interface):
+  """ Interface for serializing values of a given #IDataType. """
 
   @default
   def __repr__(self):
     return type(self).__name__
+
+  def serialize(self, context, location):  # type: (ISerializeContext, Location) -> Any
+    pass
 
 
 __all__ = [
-  'Path',
-  'Location',
   'IDataType',
-  'ITypeMapper',
-  'ITypeDefAdapter',
-  'IObjectMapper',
-  'IConverter'
+  'IDeserializeContext',
+  'ISerializeContext',
+  'IDeserializer',
+  'ISerializer',
 ]

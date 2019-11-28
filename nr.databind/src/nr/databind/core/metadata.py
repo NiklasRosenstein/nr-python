@@ -19,10 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .. import get_type_mapper
-from ..core.interfaces import Location
-from .struct import *
-from .fields import *
-from .plugins import StructType
+__all__ = ['DatabindMetadata']
 
-__all__ = ['StructType'] + struct.__all__ + fields.__all__
+
+class DatabindMetadata(object):
+
+  def __init__(self, location):
+    self.location = location
+
+  def __repr__(self):
+    return 'DatabindMetadata(location={!r})'.format(self.location)

@@ -19,37 +19,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+
 import six
 
+from .fields import *
+from ..datatypes import CollectionType, translate_type_def
+from ..metadata import DatabindMetadata
 from nr.collections import abc
+from nr.commons.notset import NotSet
+from nr.commons.py import classdef
 from nr.interface import implements
-from nr.types.utils import classdef
-from .. import get_type_mapper
-from ..core.datatypes import IDataType, CollectionType
-from .fields import Field, FieldSpec
 
-
-@implements(IDataType)
-class StructType(object):
-  """ Represents the datatype for a [[Struct]] subclass. """
-
-  classdef.comparable(['struct_cls', 'ignore_keys'])
-  _INLINE_GENERATED_TYPENAME = '_InlineStructAdapter__generated'
-
-  def __init__(self, struct_cls, ignore_keys=None):
-    assert isinstance(struct_cls, type), struct_cls
-    assert issubclass(struct_cls, Struct), struct_cls
-    self.struct_cls = struct_cls
-    self.ignore_keys = ignore_keys or []
-
-  def propagate_field_name(self, name):
-    if self.struct_cls.__name__ == self._INLINE_GENERATED_TYPENAME:
-      self.struct_cls.__name__ = name
-
-  def check_value(self, py_value):
-    if not isinstance(py_value, self.struct_cls):
-      raise TypeError('expected {} instance, got {}'.format(
-        self.struct_cls.__name__, type(py_value).__name__))
+__all__ = ['StructType', 'Struct', 'create_struct_class'] + fields.__all__
 
 
 class _StructMeta(type):
@@ -61,9 +42,6 @@ class _StructMeta(type):
   """
 
   def __init__(self, name, bases, attrs):
-    mapper = attrs.get('__type_mapper__', None)
-    mapper = mapper or get_type_mapper(attrs.get('__module__'))
-
     # Collect inherited fields.
     parent_fields = FieldSpec()
     for base in bases:
@@ -73,12 +51,12 @@ class _StructMeta(type):
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level [[Field]] objects.
     if hasattr(self, '__fields__') and not isinstance(self.__fields__, FieldSpec):
-      fields = FieldSpec.from_list_def(self.__fields__, mapper)
+      fields = FieldSpec.from_list_def(self.__fields__)
     elif hasattr(self, '__annotations__'):
       if isinstance(self.__annotations__, dict):
-        fields = FieldSpec.from_annotations(self, mapper)
+        fields = FieldSpec.from_annotations(self)
       else:
-        fields = FieldSpec.from_list_def(self.__annotations__, mapper)
+        fields = FieldSpec.from_list_def(self.__annotations__)
     else:
       fields = FieldSpec.from_class_members(self)
       if not fields and hasattr(self, '__fields__'):
@@ -109,8 +87,7 @@ class _StructMeta(type):
     raise AttributeError(name)
 
 
-@six.add_metaclass(_StructMeta)
-class Struct(object):
+class Struct(six.with_metaclass(_StructMeta)):
   """
   An object is comprised of field descriptors and metadata which are used to
   build the object from a nested structure. Objects can be defined in two
@@ -153,7 +130,7 @@ class Struct(object):
   """
 
   __fields__ = FieldSpec()
-  __location__ = None
+  __databind__ = None  # type: Optional[DatabindMetadata]
 
   def __init__(self, *args, **kwargs):
     argcount = len(args) + len(kwargs)
@@ -178,7 +155,7 @@ class Struct(object):
     handled_keys = set()
     for field in self.__fields__.values().sortby(lambda x: x.get_priority()):
       if field.name not in kwargs:
-        if field.required:
+        if field.default is NotSet:
           raise TypeError('missing required argument "{}"'.format(field.name))
         kwargs[field.name] = field.get_default_value()
       handled_keys.add(field.name)
@@ -210,50 +187,7 @@ class Struct(object):
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
 
-class _CustomCollectionMeta(type):
-
-  def __new__(cls, name, bases, attrs):
-    item_type = attrs.get('item_type', object)
-    mapper = get_type_mapper(attrs['__module__'])
-    attrs['item_type'] = mapper.adapt(item_type)
-    return super(_CustomCollectionMeta, cls).__new__(cls, name, bases, attrs)
-
-  @property
-  def datatype(cls):  # type: () -> IDataType
-    return CollectionType(cls.item_type, cls)
-
-
-@six.add_metaclass(_CustomCollectionMeta)
-class CustomCollection(object):
-  """ The base class for defining a custom collection of items. Using this
-  class allows you to define an array/list datatype while adding any
-  attributes or methods to it.
-
-  Subclassing [[CustomCollection]] must always be combined with an actual
-  collection implementation ([[list]], [[set]], [[collections.deque]], etc.)
-
-  Example:
-
-  ```py
-  from nr.type.structured import CustomCollection, CollectionType, StringType, deserialize
-
-  class Items(CustomCollection, list):
-    item_type = str
-
-    def do_stuff(self):
-      return ''.join(self)
-
-  assert Items.datatype == ArrayType(StringType())
-
-  items = extract(['a', 'b', 'c'], Items)
-  assert items.do_stuff() == 'abc'
-  ```
-  """
-
-  __location__ = None
-
-
-def create_struct_class(name, fields, base=None, mixins=(), mapper=None):
+def create_struct_class(name, fields, base=None, mixins=()):
   """
   Creates a new [[Struct]] subclass with the specified fields. The fields must
   be a dictionary of bound [[Field]] objects or a dictionary of unbound ones.
@@ -265,11 +199,10 @@ def create_struct_class(name, fields, base=None, mixins=(), mapper=None):
     else:
       fields = fields.split()
 
-  mapper = mapper or get_type_mapper(_stackdepth=1)
   if isinstance(fields, abc.Mapping):
     fields = FieldSpec.from_dict(fields)
   else:
-    fields = FieldSpec.from_list_def(fields, mapper)
+    fields = FieldSpec.from_list_def(fields)
 
   if base is None:
     base = Struct
@@ -282,4 +215,4 @@ def create_struct_class(name, fields, base=None, mixins=(), mapper=None):
   return type(name, (base,) + mixins, {'__fields__': fields})
 
 
-__all__ = ['StructType', 'Struct', 'CustomCollection', 'create_struct_class']
+from ..datatypes.struct import StructType
