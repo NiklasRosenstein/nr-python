@@ -1,9 +1,10 @@
+project:
+  name: nr-libs
+  version: 0.9.0
+
 packages:
   url: https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs
   license: MIT
   author:
     name: Niklas Rosenstein
     email: rosensteinniklas@gmail.com
-
-project-name: nr-libs
-package-versioning: independent
