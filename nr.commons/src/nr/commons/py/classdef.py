@@ -26,11 +26,20 @@ Utils for class definition.
 import sys
 
 
-def comparable(key_properties, _stackdepth=0, decorate=None):
+def _split_names(names):
+  if isinstance(names, str):
+    if ',' in names:
+      names = [x.strip() for x in names.split(',')]
+    else:
+      names = names.split()
+  return names
+
+
+def comparable(properties, _stackdepth=0, decorate=None):
   """
   Creates a `__hash__()`, `__eq__()` and `__ne__()` method in the callers
   frame. The functions will hash/compare based on the specified
-  *key_properties* (a whitespace/comma separate string or a list of attribute
+  *properties* (a whitespace/comma separate string or a list of attribute
   names).
 
   Optionally, the callers stackframe depth can be passed with the
@@ -38,25 +47,21 @@ def comparable(key_properties, _stackdepth=0, decorate=None):
   may be used to decorate the generated functions.
   """
 
+  properties = _split_names(properties)
+
   if decorate is None:
     def decorate(x):
       return x
 
-  if isinstance(key_properties, str):
-    if ',' in key_properties:
-      key_properties = [x.strip() for x in key_properties.split(',')]
-    else:
-      key_properties = key_properties.split()
-
   @decorate
   def __hash__(self):
-    return hash(tuple(getattr(self, k) for k in key_properties))
+    return hash(tuple(getattr(self, k) for k in properties))
 
   @decorate
   def __eq__(self, other):
     if type(self) != type(other):
       return False
-    for k in key_properties:
+    for k in properties:
       if getattr(self, k) != getattr(other, k):
         return False
     return True
@@ -65,7 +70,7 @@ def comparable(key_properties, _stackdepth=0, decorate=None):
   def __ne__(self, other):
     if type(self) != type(other):
       return True
-    for k in key_properties:
+    for k in properties:
       if getattr(self, k) != getattr(other, k):
         return True
     return False
@@ -76,11 +81,13 @@ def comparable(key_properties, _stackdepth=0, decorate=None):
   frame.f_locals['__ne__'] = __ne__
 
 
-def def_repr(properties, _stackdepth=0, decorate=None):
+def repr(properties, _stackdepth=0, decorate=None):
   """
   Defines a `__repr__()` function in the callers frame that renders a
   string of the format `ClassName(attr1="value1", ...)`.
   """
+
+  properties = _split_names(properties)
 
   if decorate is None:
     def decorate(x):
