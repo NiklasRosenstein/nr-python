@@ -237,10 +237,19 @@ class StructConverter(object):
     handled_keys.add(key)
 
   def deserialize(self, context, location):
+    # Check if there is a custom deserializer on the struct class.
+    struct_cls = location.datatype.struct_cls
+    deserializer = JsonDeserializer.for_class(struct_cls)
+    if deserializer:
+      try:
+        return deserializer.deserialize(context, location)
+      except NotImplementedError:
+        pass
+
+    # Otherwise, we expect a mapping.
     if not isinstance(location.value, abc.Mapping):
       raise SerializationTypeError(location)
 
-    struct_cls = location.datatype.struct_cls
     fields = struct_cls.__fields__
     strict = getattr(struct_cls.Meta, 'strict', False)
 
@@ -270,6 +279,15 @@ class StructConverter(object):
     struct_cls = location.datatype.struct_cls
     if not isinstance(location.value, struct_cls):
       raise SerializationTypeError(location)
+
+    # Check if there is a custom serializer on the struct class.
+    serializer = JsonSerializer.for_class(struct_cls)
+    if serializer:
+      try:
+        return serializer.serialize(context, location)
+      except NotImplementedError:
+        pass
+
     result = {}
     for name, field in struct_cls.__fields__.items():
       if field.is_derived():
