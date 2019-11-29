@@ -27,7 +27,7 @@ import sys
 import traceback
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.9.0.dev0'
+__version__ = '0.9.0'
 
 
 __all__ = (

@@ -23,16 +23,12 @@
 A fast date parser library with timezone offset support.
 """
 
-__version__ = '1.1.0'
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-
+from dateutil import tz
+from datetime import datetime, timedelta
 import importlib
 import io
 import os
 import warnings
-
-from dateutil import tz
-from datetime import datetime, timedelta
 
 # Python 2 compatibility
 try:
@@ -42,6 +38,9 @@ except NameError:
 	StringIO = io.StringIO
 
 re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))
+
+__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
+__version__ = '0.9.0'
 
 
 class BaseFormatOption(object):

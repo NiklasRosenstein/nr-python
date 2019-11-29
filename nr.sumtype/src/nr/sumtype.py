@@ -25,6 +25,9 @@ from nr.stream import Stream
 import collections
 import re
 
+__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
+__version__ = '0.9.0'
+
 
 class _RemoveMe(object):
   def __init__(self, value):

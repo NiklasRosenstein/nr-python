@@ -31,6 +31,9 @@ from nr.collections.abc import Mapping
 from nr.commons.notset import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
+__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
+__version__ = '0.9.0'
+
 _slice = slice
 _next = next
 _next_attr = 'next' if six.PY2 else '__next__'
