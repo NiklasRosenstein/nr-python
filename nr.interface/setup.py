@@ -1,10 +1,31 @@
 
-from setuptools import setup, find_packages
+import io
+import re
+import setuptools
+import sys
 
-setup(
-  name='nr.interface',
-  version='0.9.0.dev0',
-  packages=find_packages('src', exclude=['test*']),
-  package_dir={'': 'src'},
-  install_requires=['six', 'nr.commons', 'nr.collections', 'nr.metaclass']
+with io.open('src/nr/interface.py', encoding='utf8') as fp:
+  version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
+
+long_description = None
+
+requirements = ['nr.collections >=0.9.0,<1.0.0', 'nr.metaclass >=0.9.0,<1.0.0', 'nr.commons >=0.9.0,<1.0.0', 'six >=1.11.0,<2.0.0']
+
+setuptools.setup(
+  name = 'nr.interface',
+  version = version,
+  author = 'Niklas Rosenstein',
+  author_email = 'rosensteinniklas@gmail.com',
+  description = 'Interface definitions for Python.',
+  long_description = long_description,
+  long_description_content_type = 'text/plain',
+  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs',
+  license = 'MIT',
+  packages = setuptools.find_packages('src'),
+  package_dir = {'': 'src'},
+  include_package_data = False,
+  install_requires = requirements,
+  tests_require = [],
+  python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
+  entry_points = {}
 )
