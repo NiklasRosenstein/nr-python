@@ -34,7 +34,9 @@ class SerializationError(Exception):
     self.message = message
 
   def __str__(self):
-    result = 'error in extract of value {}'.format(self.location.path)
+    result = 'at {}'.format(self.location.path)
+    if self.location.filename:
+      result = 'in "{}": '.format(self.location.filename) + result
     if self.message:
       result += ': ' + str(self.message)
     return result

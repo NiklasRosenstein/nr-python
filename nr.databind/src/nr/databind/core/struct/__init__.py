@@ -34,12 +34,7 @@ __all__ = ['StructType', 'Struct', 'create_struct_class'] + fields.__all__
 
 
 class _StructMeta(type):
-  """ Private. Meta class for the [[Struct]] class. Handles the following
-  things for [[Struct]] subclasses:
-
-    * Processes the field declarations and sets `__fields__`
-    * Ensures `Meta` exists on the subclass
-  """
+  """ Private. Meta class for #Struct. """
 
   def __init__(self, name, bases, attrs):
     # Collect inherited fields.
@@ -73,11 +68,7 @@ class _StructMeta(type):
       if key in vars(self):
         delattr(self, key)
     self.__fields__ = fields
-
-    if not hasattr(self, 'Meta'):
-      class Meta:
-        pass
-      self.Meta = Meta
+    self.__decorations__ = []
 
   def __getattr__(self, name):
     field = self.__fields__.get(name)

@@ -60,15 +60,6 @@ class Path(object):
 
     return ''.join(generate())
 
-  def to_location(self, value, datatype):
-    """ Creates a new chain of #Location objects of this path. All locations
-    except for the final one contain no value or datatype. """
-
-    parent = None
-    for item in self._items[:-1]:
-      parent = Location(parent, item, None, None)
-    return Location(parent, self._items[-1] if self._items else None, value, datatype)
-
   def resolve(self, value): # type: (Union[List, Dict]) -> Any
     """ Returns the value at this path by subsequently accessing every item in
     the path in *value* and its child nested structures.
@@ -95,11 +86,12 @@ class Location(object):
   """ A container for the position of a value in a nested structure as well
   as the value itself and the expected datatype for that value. """
 
-  def __init__(self, value, datatype, path):
+  def __init__(self, value, datatype, path, filename):
     # type: (Any, IDataType, Path)
     self.value = value
     self.datatype = datatype
     self.path = path
+    self.filename = filename
 
   def __repr__(self):
     return '<Location at {} of {}>'.format(self.path, self.datatype)

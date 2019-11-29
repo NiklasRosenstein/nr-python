@@ -44,52 +44,6 @@ class IModule(Interface):
   def get_serializer(self, datatype):
     pass
 
-  @default
-  def get_deserialize_context(self):
-    return ModuleContext(self)
-
-  @default
-  def get_serialize_context(self):
-    return ModuleContext(self)
-
-
-@implements(IDeserializeContext, ISerializeContext)
-class ModuleContext(object):
-
-  def __init__(self, module):
-    self._module = module
-    self._path = []
-
-  @property
-  def path(self):
-    return Path(self._path[:])
-
-  @contextlib.contextmanager
-  def _put_key(self, key):
-    if key is not None:
-      self._path.append(key)
-    try:
-      yield
-    finally:
-      if key is not None:
-        assert self._path.pop() is key, key
-
-  def deserialize(self, value, datatype, key=None):
-    datatype = translate_type_def(datatype)
-    with self._put_key(key):
-      deserializer = self._module.get_deserializer(datatype)
-      if deserializer is None:
-        raise RuntimeError('unsupported datatype: {}'.format(datatype))
-      return deserializer.deserialize(self, Location(value, datatype, self.path))
-
-  def serialize(self, value, datatype, key=None):
-    datatype = translate_type_def(datatype)
-    with self._put_key(key):
-      serializer = self._module.get_serializer(datatype)
-      if serializer is None:
-        raise RuntimeError('unsupported datatype: {}'.format(datatype))
-      return serializer.serialize(self, Location(value, datatype, self.path))
-
 
 @implements(IModule)
 class SimpleModule(object):
@@ -173,7 +127,64 @@ class ModuleContainer(object):
     return None
 
 
+@implements(IDeserializeContext, ISerializeContext)
+class ModuleContext(object):
+
+  def __init__(self, module, path, filename):
+    # type: (IModule, Optional[list], Optional[str])
+    self._module = module
+    self._filename = [filename] if filename else []
+    self._path = list(path) if path else []
+
+  @property
+  def path(self):
+    return Path(self._path[:])
+
+  @property
+  def filename(self):
+    if self._filename:
+      return self._filename[-1]
+    return None
+
+  @contextlib.contextmanager
+  def _put_key(self, key, filename):
+    if key is not None:
+      self._path.append(key)
+    if filename is not None:
+      self._filename.append(filename)
+    try:
+      yield
+    finally:
+      if key is not None:
+        assert self._path.pop() is key, key
+      if filename is not None:
+        assert self._filename.pop() is filename, filename
+
+  def mklocation(self, value, datatype):
+    return Location(value, datatype, self.path, self.filename)
+
+  def deserialize(self, value, datatype, key=None, filename=None):
+    datatype = translate_type_def(datatype)
+    with self._put_key(key, filename):
+      deserializer = self._module.get_deserializer(datatype)
+      if deserializer is None:
+        raise RuntimeError('unsupported datatype: {}'.format(datatype))
+      return deserializer.deserialize(self, self.mklocation(value, datatype))
+
+  def serialize(self, value, datatype, key=None, filename=None):
+    datatype = translate_type_def(datatype)
+    with self._put_key(key, filename):
+      serializer = self._module.get_serializer(datatype)
+      if serializer is None:
+        raise RuntimeError('unsupported datatype: {}'.format(datatype))
+      return serializer.serialize(self, self.mklocation(value, datatype))
+
+
 class ObjectMapper(object):
+  """ The #ObjectMapper is a high-level entrypoint for the deserialization/
+  serialization process, dispatching the workload to a #ModuleContext. The
+  object mapper can be initialized from an argument list of #IModule objects.
+  """
 
   def __init__(self, *modules):
     self._modules = ModuleContainer(*modules)
@@ -183,10 +194,10 @@ class ObjectMapper(object):
     self._modules.register_module(module)
     module.setup_module()
 
-  def deserialize(self, value, datatype):
-    context = self._modules.get_deserialize_context()
+  def deserialize(self, value, datatype, path=None, filename=None):
+    context = ModuleContext(self._modules, path, filename)
     return context.deserialize(value, datatype)
 
-  def serialize(self, value, datatype):
-    context = self._modules.get_serialize_context()
+  def serialize(self, value, datatype, path=None, filename=None):
+    context = ModuleContext(self._modules, path, filename)
     return context.serialize(value, datatype)

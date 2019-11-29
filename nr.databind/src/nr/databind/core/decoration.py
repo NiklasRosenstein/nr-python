@@ -42,3 +42,34 @@ class Decoration(object):
     instead."""
 
     return next(cls.all(values), fallback)
+
+
+class ClassmethodDecoration(Decoration, classmethod):
+  """ A #decoration that is intended for decorating a method on a class. """
+
+  def __call__(self, *args, **kwargs):
+    return self.__func__(*args, **kwargs)
+
+  @classmethod
+  def find_in_class(cls, search_cls):
+    """ Searches for an instance of *cls* in the attributes of *search_cls*.
+    """
+
+    return cls.first(vars(search_cls).values())
+
+
+class ClassDecoration(Decoration):
+  """ A decoration for a class that will add itself to the classes'
+  `__decorations__` list. """
+
+  def __new__(cls, decorated_cls):
+    if not isinstance(decorated_cls, type):
+      raise TypeError('{}() must be used to decorate a class, got {}'
+        .format(type(self).__name__, type(decorated_cls).__name__))
+    self = object.__new__(cls)
+    self.__init__(decorated_cls)
+    decorated_cls.__decorations__.append(self)
+    return decorated_cls
+
+  def __init__(self, decorated_cls):
+    pass

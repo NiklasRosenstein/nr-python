@@ -30,13 +30,13 @@ from functools import partial
 from nr.commons.py import classdef
 from nr.collections import abc, OrderedDict
 from nr.interface import implements
+from .core import decoration
 from .core.interfaces import IDeserializer, ISerializer
 from .core.collection import Collection
 from .core.errors import SerializationTypeError, SerializationValueError
 from .core.datatypes import AnyType, BooleanType, StringType, IntegerType, \
   DecimalType, CollectionType, ObjectType, StructType, PythonClassType, \
   MultiType, UnionType
-from .core.decoration import Decoration
 from .core.metadata import DatabindMetadata
 from .mapper import SimpleModule
 
@@ -239,10 +239,10 @@ class StructConverter(object):
   def deserialize(self, context, location):
     # Check if there is a custom deserializer on the struct class.
     struct_cls = location.datatype.struct_cls
-    deserializer = JsonDeserializer.for_class(struct_cls)
+    deserializer = JsonDeserializer.find_in_class(struct_cls)
     if deserializer:
       try:
-        return deserializer.deserialize(context, location)
+        return deserializer(struct_cls, context, location)
       except NotImplementedError:
         pass
 
@@ -251,7 +251,7 @@ class StructConverter(object):
       raise SerializationTypeError(location)
 
     fields = struct_cls.__fields__
-    strict = getattr(struct_cls.Meta, 'strict', False)
+    strict = JsonStrict.first(struct_cls.__decorations__)
 
     kwargs = {}
     handled_keys = set(location.datatype.ignore_keys)
@@ -281,10 +281,10 @@ class StructConverter(object):
       raise SerializationTypeError(location)
 
     # Check if there is a custom serializer on the struct class.
-    serializer = JsonSerializer.for_class(struct_cls)
+    serializer = JsonSerializer.find_in_class(struct_cls)
     if serializer:
       try:
-        return serializer.serialize(context, location)
+        return serializer(struct_cls, context, location)
       except NotImplementedError:
         pass
 
@@ -305,21 +305,21 @@ class PythonClassConverter(object):
   the class does not support it. """
 
   def deserialize(self, context, location):
-    deserializer = JsonDeserializer.for_class(location.datatype.cls)
+    deserializer = JsonDeserializer.find_in_class(location.datatype.cls)
     if not deserializer:
       raise SerializationTypeError(location, 'No JsonDeserializer found '
         'on class {}'.format(location.datatype.cls.__name__))
-    return deserializer.deserialize(context, location)
+    return deserializer(location.datatype.cls, context, location)
 
   def serialize(self, context, location):
-    serializer = JsonSerializer.for_class(location.datatype.cls)
+    serializer = JsonSerializer.find_in_class(location.datatype.cls)
     if not serializer:
       raise SerializationTypeError(location, 'No JsonSerializer found '
         'on class {}'.format(location.datatype.cls.__name__))
     if not isinstance(location.value, location.datatype.cls):
       raise SerializationValueError(location, 'Expected {} instance, got {}'
         .format(location.datatype.cls.__name__, type(location.value).__name__))
-    return serializer.serialize(context, location)
+    return serializer(location.datatype.cls, context, location)
 
 
 @implements(IDeserializer, ISerializer)
@@ -406,7 +406,7 @@ class UnionTypeConverter(object):
     return result
 
 
-class JsonDecoration(Decoration):
+class JsonDecoration(decoration.Decoration):
   pass
 
 
@@ -427,50 +427,21 @@ class JsonRequired(JsonDecoration):
   classdef.repr([])
 
 
-class _JsonDeserializerSerializerBase(JsonDecoration):
-  """ Private. Base class for #JsonDeserializer and #JsonSerializer. """
-
-  classdef.repr([])
-  _method_name = None
-
-  def __init__(self, func):
-    self.func = func
-
-  @classmethod
-  def for_class(cls, search_cls):
-    value = cls.first(vars(search_cls).values())
-    if value:
-      # Make sure the wrapped function accepts the class as the first argument.
-      return cls(partial(value.func, search_cls))
-    # Fall back to the method name (defined in a sub class).
-    if not value and hasattr(search_cls, cls._method_name):
-      value = cls(getattr(search_cls, cls._method_name))
-    return value
-
-
-@implements(IDeserializer)
-class JsonDeserializer(_JsonDeserializerSerializerBase):
+class JsonDeserializer(decoration.ClassmethodDecoration, JsonDecoration):
   """ Decorator for a deserializer function on a class. Classes that have a
   member of this type can be deserialized under the #PythonClassType datatype.
 
   Functions decorated with #JsonDeserializer are invoked as classmethods
   by the deserialization process. """
 
-  _method_name = 'from_json'
 
-  def deserialize(self, context, location):
-    return self.func(context, location)
-
-
-@implements(ISerializer)
-class JsonSerializer(_JsonDeserializerSerializerBase):
+class JsonSerializer(decoration.ClassmethodDecoration, JsonDecoration):
   """ Decorator for a serializer function on a class. Classes that have a
   member of this type can be deserialized under the #PythonClassType datatype.
 
   Functions decorated with #JsonSerializer are invoked as classmethods
   by the serialization process. """
 
-  _method_name = 'to_json'
 
-  def serialize(self, context, location):
-    return self.func(context, location)
+class JsonStrict(decoration.ClassDecoration, JsonDecoration):
+  pass

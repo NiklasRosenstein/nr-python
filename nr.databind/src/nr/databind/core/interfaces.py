@@ -89,14 +89,16 @@ class IDataType(Interface):
 class IDeserializeContext(Interface):
   """ Context for deserializing values. """
 
-  def deserialize(self, value, datatype, key=None):  # type: (Any, IDataType, Optional[str])
+  def deserialize(self, value, datatype, key=None, filename=None):
+    # type: (Any, IDataType, Optional[str], Optional[str])
     pass
 
 
 class ISerializeContext(Interface):
   """ Context for serializing values. """
 
-  def serialize(self, value, datatype, key=None):  # type: (Any, IDataType, Optional[str])
+  def serialize(self, value, datatype, key=None, filename=None):
+    # type: (Any, IDataType, Optional[str], Optional[str])
     pass
 
 
