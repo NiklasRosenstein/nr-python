@@ -19,25 +19,35 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.commons.py.typing import is_generic, get_generic_args
-from typing import List, Dict, Union
+from nr.commons.py.typing import is_generic, get_generic_args, extract_optional
+from typing import Dict, List, Optional, Union
 
 
 def test_is_generic():
-    assert is_generic(List[str])
-    assert not is_generic(str)
-    assert is_generic(List[str], List)
-    assert is_generic(List[str], (Dict, List))
-    assert is_generic(List, List)
-    assert not is_generic(List, Dict)
-    assert not is_generic(List[str], Dict)
+  assert is_generic(List[str])
+  assert not is_generic(str)
+  assert is_generic(List[str], List)
+  assert is_generic(List[str], (Dict, List))
+  assert is_generic(List, List)
+  assert not is_generic(List, Dict)
+  assert not is_generic(List[str], Dict)
 
-    assert is_generic(Union)
-    assert is_generic(Union, Union)
-    assert not is_generic(Union, Dict)
-    assert is_generic(Union[int, str], Union)
+  assert is_generic(Union)
+  assert is_generic(Union, Union)
+  assert not is_generic(Union, Dict)
+  assert is_generic(Union[int, str], Union)
+
+  assert is_generic(Optional[List[str]])
+  assert is_generic(Optional[List[str]], Optional)
+  assert get_generic_args(Optional[List[str]]) == (List[str],)
 
 
 def test_get_generic_args():
-    assert get_generic_args(List) == List.__parameters__
-    assert get_generic_args(List[str]) == (str,)
+  assert get_generic_args(List) == List.__parameters__
+  assert get_generic_args(List[str]) == (str,)
+
+
+def test_extract_optional():
+  assert extract_optional(Optional[List[str]]) == List[str]
+  assert extract_optional(Union[List[str], None]) == List[str]
+  assert extract_optional(Union[List[str], str]) is None

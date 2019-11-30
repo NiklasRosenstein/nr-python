@@ -73,6 +73,9 @@ def is_generic(
     return x in generic_types
 
   for gtype in generic_types:
+    # Special handling for Optional, subscripting it gives a Union.
+    if gtype == typing.Optional and extract_optional(x) is not None:
+      return True
     if eq(x, gtype) or eq(x.__origin__, gtype):
       return True
     if getattr(gtype, '__origin__', None) is not None and eq(x.__origin__, gtype.__origin__):
@@ -86,8 +89,13 @@ def get_generic_args(x):  # type: Any -> Tuple[Any]
   the typevars are returned instead.
   """
 
-  return x.__args__ or x.__parameters__
+  # Special handling for Optional, as subscripting it gives a Union with
+  # two arguments.
+  v = extract_optional(x)
+  if v is not None:
+    return (v,)
 
+  return x.__args__ or x.__parameters__
 
 
 def extract_optional(x):  # type: (Any, Any) -> Optional[Type]
