@@ -205,6 +205,10 @@ class _Member(object):
       return True
     return False
 
+  @property
+  def required(self):
+    raise NotImplementedError
+
 
 class Method(_Member):
   """
@@ -214,11 +218,11 @@ class Method(_Member):
   *Changed in 2.5.0*: Added *static* argument and member.
   """
 
-  def __init__(self, interface, name, argspec, impl=None, final=False,
+  def __init__(self, interface, name, argspec, default=None, final=False,
                hidden=False, static=False):
     super(Method, self).__init__(interface, name)
     self.argspec = argspec
-    self.impl = impl
+    self.default = default
     self.final = final
     self.hidden = hidden
     self.static = static
@@ -234,8 +238,8 @@ class Method(_Member):
     return '<' + s
 
   def __call__(self, *a, **kw):
-    if self.impl:
-      return self.impl(*a, **kw)
+    if self.default:
+      return self.default(*a, **kw)
     return None
 
   def __eq__(self, other):
@@ -243,6 +247,10 @@ class Method(_Member):
       return (self.argspec, self.final, self.hidden, self.static) == \
         (other.argspec, other.final, other.hidden, other.static)
     return False
+
+  @property
+  def required(self):
+    return self.default is None
 
   @classmethod
   def is_candidate(cls, name, value):
@@ -265,10 +273,10 @@ class Method(_Member):
       # If it's one of the hidden methods, they also act as the "default"
       # implementation because we actually want to call them independently
       # of potential overrides by the implementation.
-      impl = value if props.is_default or hidden else None
+      default = value if props.is_default or hidden else None
       static = isinstance(value, (staticmethod, classmethod))
       spec = FunctionSpec.from_function(value)
-      return Method(interface, name, spec, impl, props.is_final, hidden, static)
+      return Method(interface, name, spec, default, props.is_final, hidden, static)
     return None
 
 
@@ -304,6 +312,10 @@ class Attribute(_Member):
     if callable(self.default):
       return self.default
     return self.default
+
+  @property
+  def required(self):
+    return self.default is NotSet
 
 
 class Property(_Member):
@@ -350,6 +362,11 @@ class Property(_Member):
       deleter = self.deleter_impl
 
     return property(getter, setter, deleter)
+
+  @property
+  def required(self):
+    # TODO (@NiklasRosenstein): Not so sure about this logic tbh.
+    return not all(self.getter_impl, self.setter_impl, self.deleter_impl)
 
   @property
   def getter(self):
@@ -490,13 +507,31 @@ class InterfaceClass(type):
 
 class Interface(six.with_metaclass(InterfaceClass)):
   """
-  Base class for interfaces. Interfaces can not be instantiated.
+  Base class for interfaces. Interfaces can be directly instantiated if all
+  required members are passed as keyword arguments to its constructor. Methods
+  passed into the #Interface constructor like this will not receive a *self*
+  argument.
   """
 
   @Decoration.wraps(skip=True)
-  def __new__(cls):
-    msg = 'interface {} cannot be instantiated'.format(cls.__name__)
-    raise RuntimeError(msg)
+  def __new__(cls, **kwargs):
+    required = frozenset(x.name for x in cls.members() if x.required)
+    given = frozenset(kwargs.keys())
+    missing = required - given
+    if missing:
+      raise TypeError('missing keyword argument "{}"'.format(next(iter(missing))))
+    extra = given - required
+    if extra:
+      raise TypeError('extranous keyword argument "{}"'.format(next(iter(missing))))
+
+    # Wrap functions as static methods.
+    for key, value in six.iteritems(kwargs):
+      if isinstance(value, types.FunctionType):
+        kwargs[key] = staticmethod(value)
+
+    kwargs['__implements__'] = [cls]
+    impl_class = type('{}_Temporary', (Implementation,), kwargs)
+    return impl_class()
 
 
 def is_interface(obj):
@@ -550,6 +585,8 @@ def reduce_interfaces(interfaces):
 
   result = []
   for interface in interfaces:
+    if not isinstance(interface, type):
+      raise TypeError('expected Type, got {}'.format(type(interface).__name__))
     skip = False
 
     for i in range(len(result)):
@@ -619,8 +656,8 @@ class Implementation(InlineMetaclassBase):
     # Assign default implementations and static attributes.
     for interface in implements:
       for member in interface.members():
-        if isinstance(member, Method) and member.name not in attrs and member.impl:
-          attrs[member.name] = member.impl
+        if isinstance(member, Method) and member.name not in attrs and member.default:
+          attrs[member.name] = member.default
         elif (isinstance(member, Attribute) and member.static and
               member.default is not NotSet and member.name not in attrs and
               not any(hasattr(x, member.name) for x in bases)):
@@ -649,7 +686,7 @@ class Implementation(InlineMetaclassBase):
         if isinstance(member, Method):
           if isinstance(value, types.MethodType):
             value = value.im_func if six.PY2 else value.__func__
-          if member.final and value is not NotSet and member.impl != value:
+          if member.final and value is not NotSet and member.default != value:
             impl_error.add(interface, 'implemented final method: {}()'.format(member.name))
             continue
           if value is NotSet:
@@ -696,11 +733,11 @@ class Implementation(InlineMetaclassBase):
           setattr(self, member.name, member.make_default())
       member = interface.get('__init__')
       if member:
-        member.impl(self)
+        member.default(self)
     for interface in self.__implements__:
       member = interface.get('__constructed__')
       if member:
-        member.impl(self)
+        member.default(self)
 
 
 class ConflictingInterfacesError(RuntimeError):

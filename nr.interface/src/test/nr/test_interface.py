@@ -41,13 +41,14 @@ def test_constructed():
     Foo()
 
 
-def test_interface_cannot_be_constructed():
+def test_interface_construction():
   class IFoo(Interface):
     def bar(self):
       pass
-  with pytest.raises(RuntimeError) as excinfo:
+  with pytest.raises(TypeError) as excinfo:
     IFoo()
-  assert str(excinfo.value) == 'interface IFoo cannot be instantiated'
+  assert str(excinfo.value) == 'missing keyword argument "bar"'
+  assert IFoo(bar=lambda: 42).bar() == 42
 
 
 def test_value():
@@ -592,31 +593,33 @@ def test_readme_compound():
 
 
 def test_implements_metaclass_conflict():
-  from nr.databind import Field, Struct
+  class _MyMeta(type):
+    pass
+  class MyClass(six.with_metaclass(_MyMeta)):
+    pass
+
   class MyInterface(Interface):
     def foo(self):
       pass
 
   with pytest.raises(TypeError) as excinfo:
     @implements(MyInterface, resolve_metaclass_conflict=False)
-    class MyImpl(Struct):
+    class MyImpl(MyClass):
       pass
   assert 'metaclass conflict' in str(excinfo.value).lower()
 
   with pytest.raises(ImplementationError) as excinfo:
     @implements(MyInterface, resolve_metaclass_conflict=True)
-    class MyImpl(Struct):
+    class MyImpl(MyClass):
       pass
   assert 'does not meet requirements of interface MyInterface' in str(excinfo.value)
 
   @implements(MyInterface)
-  class MyImpl(Struct):
-    a = Field(int)
+  class MyImpl(MyClass):
     def foo(self):
-      return self.a * 2
+      return 42
 
-  assert MyImpl.__fields__
-  assert MyImpl(42).foo() == 84
+  assert MyImpl().foo() == 42
 
 
 def test_conflicting_interfaces():
@@ -678,3 +681,17 @@ def test_deconflicting_interfaces():
       pass
     def a(self):
       pass
+
+
+def test_interface_constructor():
+  class IMyInterface(Interface):
+    def hello(self, name):
+      pass
+
+  with pytest.raises(TypeError) as excinfo:
+    IMyInterface()
+  assert str(excinfo.value) == 'missing keyword argument "hello"'
+
+  impl = IMyInterface(hello=lambda name: 'Hello, {}!'.format(name))
+  assert impl.hello('John') == 'Hello, John!'
+  assert IMyInterface.provided_by(impl)
