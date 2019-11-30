@@ -5,7 +5,7 @@ from nr.databind.core import (
   SerializationTypeError,
   UnionType,
   translate_type_def)
-from .fixtures import mapper
+from ..fixtures import mapper
 import pytest
 
 

@@ -19,7 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from nr.commons.py import funcdef
 import sys
+
+__all__ = ['Decoration', 'ClassDecoration', 'MetadataDecoration', 'TrackLocation']
 
 
 class Decoration(object):
@@ -29,21 +32,34 @@ class Decoration(object):
   field. """
 
   @classmethod
-  def all(cls, values):
+  def all(cls, *values):
     """ Yields all items in the iterable *values* that are instances of the
     decoration. """
 
     for value in values:
-      if isinstance(value, cls):
-        yield value
+      if hasattr(value, '__decorations__'):
+        value = value.__decorations__
+      elif hasattr(value, 'decorations'):
+        value = value.decorations()
+      if isinstance(value, type) or not hasattr(value, '__iter__'):
+        continue
+      for item in value:
+        if isinstance(item, cls):
+          yield item
 
   @classmethod
-  def first(cls, values, fallback=None):
+  def first(cls, *values, **kwargs):
     """ Returns the first value from the iterable *values* that is an instance
     of the decoration. If there is no such value, *fallback* is returned
-    instead."""
+    instead.
 
-    return next(cls.all(values), fallback)
+    Parameters:
+      *values:
+      fallback: A fallback value. Defaults to None. """
+
+    fallback = kwargs.pop('fallback', None)
+    funcdef.raise_kwargs(kwargs)
+    return next(cls.all(*values), fallback)
 
 
 class ClassmethodDecoration(Decoration, classmethod):
@@ -87,3 +103,21 @@ class ClassDecoration(Decoration):
     self = object.__new__(cls)
     self.__init__(*args, **kwargs)
     return self
+
+
+class MetadataDecoration(Decoration):
+
+  def enrich_metadata(self, metadata):  # type: (dict)
+    raise NotImplementedError
+
+  @classmethod
+  def enrich_all(cls, metadata, context, location, *decorations):
+    # type: (dict, Union[IDeserializeContext, ISerializeContext], Location, Tuple[Decoration])
+    for decoration in cls.all(context, *decorations):
+      decoration.enrich_metadata(metadata, context, location)
+
+
+class TrackLocation(MetadataDecoration, ClassDecoration):
+
+  def enrich_metadata(self, metadata, context, location):
+    metadata.location = location

@@ -1,28 +1,23 @@
 
-import textwrap
-import yaml
-
 from nr.interface import implements
-from nr.databind import JsonObjectMapper, Struct, Field, deserialize, serialize
 from nr.databind.contrib.preprocessor import Preprocessor, preprocess
 from nr.types.utils import classdef
+from ..fixtures import mapper
+import textwrap
+import yaml
 
 
 def test_preprocessor():
   p = Preprocessor({'$serviceRoot': '/opt/app'})
-
   assert p('{{$serviceRoot}}') == '/opt/app'
-
   assert p({'config': {'directories': {'data': '{{$serviceRoot}}/data'}}}) == \
     {'config': {'directories': {'data': '/opt/app/data'}}}
 
 
 def test_preprocessor_flat_update():
   preprocessor = Preprocessor()
-
   preprocessor.flat_update({'directory': {'data': '/opt/app/data'}})
   assert preprocessor('{{directory.data}}') == '/opt/app/data'
-
   preprocessor.flat_update({'key': [{'value': 'foo'}]})
   print(preprocessor)
   assert preprocessor('{{key[0].value}}') == 'foo'

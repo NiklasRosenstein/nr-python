@@ -28,7 +28,6 @@ from .datatypes import CollectionType, translate_type_def
 from .decoration import Decoration, ClassDecoration
 from .errors import InvalidTypeDefinitionError
 from .interfaces import IDataType
-from .metadata import DatabindMetadata
 from nr.collections import abc, OrderedDict
 from nr.commons.notset import NotSet
 from nr.commons.py import classdef, funcdef
@@ -138,7 +137,7 @@ class Field(object):
           type(item).__name__))
 
     self.datatype = datatype
-    self.decorations = decorations
+    self.decorations = list(decorations)
     self.name = name
     self.nullable = False if nullable is None else bool(nullable)
     self.default = default
@@ -475,7 +474,7 @@ class Struct(six.with_metaclass(_StructMeta)):
   """
 
   __fields__ = FieldSpec()
-  __databind__ = None  # type: Optional[DatabindMetadata]
+  __databind__ = None  # type: Optional[dict]
 
   def __init__(self, *args, **kwargs):
     argcount = len(args) + len(kwargs)

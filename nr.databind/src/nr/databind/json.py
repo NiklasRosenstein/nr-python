@@ -43,9 +43,9 @@ from .core.datatypes import (
   ObjectType,
   PythonClassType,
   MultiType)
+from .core.decoration import MetadataDecoration
 from .core.errors import SerializationTypeError, SerializationValueError
 from .core.interfaces import IDeserializer, ISerializer
-from .core.metadata import DatabindMetadata
 from .core.mapper import SimpleModule, ObjectMapper
 from .core.struct import StructType
 from .core.union import UnionType, UnknownUnionTypeError
@@ -174,7 +174,9 @@ class CollectionConverter(object):
       result = py_type(result)
 
     if isinstance(result, Collection):
-      result.__databind__ = DatabindMetadata(location)
+      result.__databind__ = metadata = dict()
+      MetadataDecoration.enrich_all(metadata, context, location, py_type)
+
     return result
 
   def serialize(self, context, location):
@@ -278,7 +280,8 @@ class StructConverter(object):
             struct_cls.__name__, remaining_keys))
 
     obj = object.__new__(struct_cls)
-    obj.__databind__ = DatabindMetadata(location)
+    obj.__databind__ = metadata = dict()
+    MetadataDecoration.enrich_all(metadata, context, location, struct_cls)
 
     try:
       obj.__init__(**kwargs)

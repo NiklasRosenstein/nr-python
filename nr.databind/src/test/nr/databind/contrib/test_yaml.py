@@ -1,16 +1,16 @@
 
+from nr.databind.core import Collection, Struct, Field
+from nr.databind.contrib.yaml import loadwsi, YamlSourceInfo
+from ..fixtures import mapper
 import textwrap
 
-from nr.databind import CustomCollection, Struct, Field, JsonObjectMapper, deserialize
-from nr.databind.contrib.yaml import load_with_line_numbers
 
-
-def test_load_with_line_numbers():
+def test_load_with_line_numbers(mapper):
   class Item(Struct):
     name = Field(str)
     value = Field(int)
 
-  class Items(CustomCollection, list):
+  class Items(Collection, list):
     item_type = Item
 
   yaml_code = textwrap.dedent('''
@@ -21,10 +21,9 @@ def test_load_with_line_numbers():
       value: 99
   ''')
 
-  mapper = JsonObjectMapper(options={'track_location': True})
-  payload = load_with_line_numbers(yaml_code, filename='<string>')
-  items = deserialize(mapper, payload, Items)
+  payload = loadwsi(yaml_code, filename='<string>')
+  items = mapper.deserialize(payload, Items, decorations=[YamlSourceInfo()])
 
-  assert items.__location__.value.__metadata__ == {'filename': '<string>', 'lineno': 2}
-  assert items[0].__location__.value.__metadata__ == {'filename': '<string>', 'lineno': 3}
-  assert items[1].__location__.value.__metadata__ == {'filename': '<string>', 'lineno': 5}
+  assert items.__databind__['source_info'] == ('<string>', 2)
+  assert items[0].__databind__['source_info'] == ('<string>', 3)
+  assert items[1].__databind__['source_info'] == ('<string>', 5)

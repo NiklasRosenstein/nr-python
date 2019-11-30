@@ -23,7 +23,7 @@ from .datatypes import translate_type_def
 from .interfaces import IDataType, IDeserializeContext, \
   ISerializeContext, IDeserializer, ISerializer
 from .location import Location, Path
-from nr.interface import Interface, default, implements
+from nr.interface import Interface, default, implements, override
 import contextlib
 
 __all__ = ['IModule', 'SimpleModule', 'ObjectMapper']
@@ -130,11 +130,12 @@ class ModuleContainer(object):
 @implements(IDeserializeContext, ISerializeContext)
 class ModuleContext(object):
 
-  def __init__(self, module, path, filename):
+  def __init__(self, module, path, filename, decorations):
     # type: (IModule, Optional[list], Optional[str])
     self._module = module
     self._filename = [filename] if filename else []
     self._path = list(path) if path else []
+    self._decorations = list(decorations)
 
   @property
   def path(self):
@@ -163,6 +164,7 @@ class ModuleContext(object):
   def mklocation(self, value, datatype):
     return Location(value, datatype, self.path, self.filename)
 
+  @override
   def deserialize(self, value, datatype, key=None, filename=None):
     datatype = translate_type_def(datatype)
     with self._put_key(key, filename):
@@ -172,6 +174,7 @@ class ModuleContext(object):
           type(datatype).__name__))
       return deserializer.deserialize(self, self.mklocation(value, datatype))
 
+  @override
   def serialize(self, value, datatype, key=None, filename=None):
     datatype = translate_type_def(datatype)
     with self._put_key(key, filename):
@@ -180,6 +183,10 @@ class ModuleContext(object):
         raise RuntimeError('no serializer for {!r} found'.format(
           type(datatype).__name__))
       return serializer.serialize(self, self.mklocation(value, datatype))
+
+  @override
+  def decorations(self):
+    return iter(self._decorations)
 
 
 class ObjectMapper(object):
@@ -191,15 +198,21 @@ class ObjectMapper(object):
   def __init__(self, *modules):
     self._modules = ModuleContainer(*modules)
     self._modules.setup_module(None)
+    self._decorations = []
+
+  def add_decorations(self, *decorations):
+    self._decorations.extend(decorations)
 
   def register_module(self, module):
     self._modules.register_module(module)
     module.setup_module()
 
-  def deserialize(self, value, datatype, path=None, filename=None):
-    context = ModuleContext(self._modules, path, filename)
+  def deserialize(self, value, datatype, path=None, filename=None, decorations=None):
+    decorations = list(self._decorations) + list(decorations or ())
+    context = ModuleContext(self._modules, path, filename, decorations)
     return context.deserialize(value, datatype)
 
-  def serialize(self, value, datatype, path=None, filename=None):
-    context = ModuleContext(self._modules, path, filename)
+  def serialize(self, value, datatype, path=None, filename=None, decorations=None):
+    decorations = list(self._decorations) + list(decorations or ())
+    context = ModuleContext(self._modules, path, filename, decorations)
     return context.serialize(value, datatype)

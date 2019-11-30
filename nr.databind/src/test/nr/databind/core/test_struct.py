@@ -2,7 +2,7 @@
 from nr.databind.core import *
 from nr.databind.json import JsonFieldName, JsonStrict
 from typing import Optional, List, Dict
-from .fixtures import mapper
+from ..fixtures import mapper
 import pytest
 import six
 import sys
@@ -52,6 +52,8 @@ def test_struct(mapper):
         name: str
         age: int = None
         telephone_numbers: List[str] = list
+
+      Person.__fields__['telephone_numbers'].decorations.append(JsonFieldName('telephone-numbers'))
       _test_object_def(Person)
       '''), scope)
 

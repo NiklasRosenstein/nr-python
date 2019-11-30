@@ -20,15 +20,19 @@
 # IN THE SOFTWARE.
 
 """
-Utilities for loading YAML.
-
-* [[load_with_line_numbers()]]
+Utilities for loading YAML with source information (line number, filename).
 """
 
 from __future__ import absolute_import
+from nr.databind.core.decoration import MetadataDecoration
+import collections
 import io
 import types
 import yaml
+
+__all__ = ['loadwsi', 'YamlSourceInfo']
+
+SourceInfo = collections.namedtuple('SourceInfo', 'filename,lineno')
 
 
 def _yaml_type_factory(name, base):
@@ -41,7 +45,7 @@ def _yaml_type_factory(name, base):
 
     def __init__(self, filename, lineno, *args, **kwargs):
       super(_YamlType, self).__init__(*args, **kwargs)
-      self.__metadata__ = {'filename': filename, 'lineno': lineno}
+      self.__source_info__ = SourceInfo(filename, lineno)
 
     def __repr__(self):
       return '{}({})'.format(type(self).__name__, super(_YamlType, self).__repr__())
@@ -106,7 +110,7 @@ class YamlLineNumberLoaderMixin(object):
     data.update(value)
 
 
-def load_with_line_numbers(_data=None, *args, **kwargs):
+def loadwsi(_data=None, *args, **kwargs):
   """ Loads YAML data from a file, adding line numbers to every type of
   collection returned from the loader (sets, lists and dicts). The specified
   YAML loader will be with the [[YamlLineNumberLoaderMixin]] class. The
@@ -131,3 +135,11 @@ def load_with_line_numbers(_data=None, *args, **kwargs):
 
   loader = _YamlLoader(_data, *args, **kwargs)
   return loader.get_single_data()
+
+
+class YamlSourceInfo(MetadataDecoration):
+
+  def enrich_metadata(self, metadata, context, location):
+    source_info = getattr(location.value, '__source_info__', None)
+    if source_info:
+      metadata['source_info'] = source_info

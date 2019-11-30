@@ -93,12 +93,18 @@ class IDeserializeContext(Interface):
     # type: (Any, IDataType, Optional[str], Optional[str])
     pass
 
+  def decorations(self):  # type: () -> Iterable[Decoration]
+    pass
+
 
 class ISerializeContext(Interface):
   """ Context for serializing values. """
 
   def serialize(self, value, datatype, key=None, filename=None):
     # type: (Any, IDataType, Optional[str], Optional[str])
+    pass
+
+  def decorations(self):  # type: () -> Iterable[Decoration]
     pass
 
 

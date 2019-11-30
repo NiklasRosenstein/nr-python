@@ -6,7 +6,7 @@ from nr.databind.core import (
   translate_type_def)
 from nr.databind.core.datatypes import *
 from nr.databind.json import JsonModule
-from .fixtures import mapper
+from ..fixtures import mapper
 import decimal
 import pytest
 
