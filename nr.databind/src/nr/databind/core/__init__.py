@@ -24,6 +24,7 @@ from .datatypes import *
 from .errors import *
 from .interfaces import *
 from .location import *
+from .mapper import *
 from .metadata import *
 from .struct import *
 from .union import *
@@ -35,6 +36,7 @@ __all__ = (
   errors.__all__ +
   interfaces.__all__ +
   location.__all__ +
+  mapper.__all__ +
   metadata.__all__ +
   struct.__all__ +
   union.__all__

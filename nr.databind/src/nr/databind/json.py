@@ -27,15 +27,29 @@ import decimal
 import six
 
 from functools import partial
+from nr.commons.notset import NotSet
 from nr.commons.py import classdef
 from nr.collections import abc, OrderedDict
 from nr.interface import implements
-from .core import decoration, IDeserializer, ISerializer, Collection, \
-  SerializationTypeError, SerializationValueError, \
-  AnyType, BooleanType, StringType, IntegerType, DecimalType, CollectionType, \
-  ObjectType, StructType, PythonClassType, MultiType, UnionType, \
-  DatabindMetadata
-from .mapper import SimpleModule, ObjectMapper
+from .core import decoration
+from .core.collection import Collection
+from .core.datatypes import (
+  AnyType,
+  BooleanType,
+  StringType,
+  IntegerType,
+  DecimalType,
+  CollectionType,
+  ObjectType,
+  PythonClassType,
+  MultiType)
+from .core.errors import SerializationTypeError, SerializationValueError
+from .core.interfaces import IDeserializer, ISerializer
+from .core.metadata import DatabindMetadata
+from .core.mapper import SimpleModule, ObjectMapper
+from .core.struct import StructType
+from .core.union import UnionType, UnknownUnionTypeError
+
 
 __all__ = ['JsonModule', 'JsonFieldName', 'JsonRequired', 'JsonDeserializer',
            'JsonSerializer']
@@ -174,7 +188,7 @@ class CollectionConverter(object):
     item_type = location.datatype.item_type
     result = []
     for index, item in enumerate(location.value):
-      result.append(context.serialize(iten, item_type, index))
+      result.append(context.serialize(item, item_type, index))
 
     # Convert to the designated JSON type.
     json_type = self.json_type
@@ -220,9 +234,9 @@ class StructConverter(object):
 
     key = json_field_name.name if json_field_name else field.name
     if key not in location.value:
-      if json_required:
-        raise SerializationValueError(location, "missing member \"{}\" for {} object"
-                                .format(key, struct_cls.__name__))
+      if json_required or field.default is NotSet:
+        msg = 'member "{}" is missing for {} object'.format(key, struct_cls.__name__)
+        raise SerializationValueError(location, msg)
       return
 
     value = location.value[key]
@@ -236,10 +250,10 @@ class StructConverter(object):
   def deserialize(self, context, location):
     # Check if there is a custom deserializer on the struct class.
     struct_cls = location.datatype.struct_cls
-    deserializer = JsonDeserializer.find_in_class(struct_cls)
+    deserializer = JsonDeserializer.first(struct_cls.__decorations__)
     if deserializer:
       try:
-        return deserializer(struct_cls, context, location)
+        return deserializer(context, location)
       except NotImplementedError:
         pass
 
@@ -269,7 +283,7 @@ class StructConverter(object):
     try:
       obj.__init__(**kwargs)
     except TypeError as exc:
-      raise SerializationTypeError(location)
+      raise SerializationTypeError(location, exc)
     return obj
 
   def serialize(self, context, location):
@@ -278,10 +292,10 @@ class StructConverter(object):
       raise SerializationTypeError(location)
 
     # Check if there is a custom serializer on the struct class.
-    serializer = JsonSerializer.find_in_class(struct_cls)
+    serializer = JsonSerializer.first(struct_cls.__decorations__)
     if serializer:
       try:
-        return serializer(struct_cls, context, location)
+        return serializer(context, location)
       except NotImplementedError:
         pass
 
@@ -290,8 +304,7 @@ class StructConverter(object):
       if field.is_derived():
         continue
       value = getattr(location.value, name)
-      sub_location = location.sub(name, value, field.datatype)
-      result[field.name] = context.serialize(sub_location)
+      result[field.name] = context.serialize(value, field.datatype, name)
     return result
 
 
@@ -302,21 +315,23 @@ class PythonClassConverter(object):
   the class does not support it. """
 
   def deserialize(self, context, location):
-    deserializer = JsonDeserializer.find_in_class(location.datatype.cls)
+    decorations = getattr(location.datatype.cls, '__decorations__', [])
+    deserializer = JsonDeserializer.first(decorations)
     if not deserializer:
       raise SerializationTypeError(location, 'No JsonDeserializer found '
         'on class {}'.format(location.datatype.cls.__name__))
-    return deserializer(location.datatype.cls, context, location)
+    return deserializer(context, location)
 
   def serialize(self, context, location):
-    serializer = JsonSerializer.find_in_class(location.datatype.cls)
+    decorations = getattr(location.datatype.cls, '__decorations__', [])
+    serializer = JsonSerializer.first(decorations)
     if not serializer:
       raise SerializationTypeError(location, 'No JsonSerializer found '
         'on class {}'.format(location.datatype.cls.__name__))
     if not isinstance(location.value, location.datatype.cls):
       raise SerializationValueError(location, 'Expected {} instance, got {}'
         .format(location.datatype.cls.__name__, type(location.value).__name__))
-    return serializer(location.datatype.cls, context, location)
+    return serializer(context, location)
 
 
 @implements(IDeserializer, ISerializer)
@@ -424,20 +439,38 @@ class JsonRequired(JsonDecoration):
   classdef.repr([])
 
 
-class JsonDeserializer(decoration.ClassmethodDecoration, JsonDecoration):
-  """ Decorator for a deserializer function on a class. Classes that have a
-  member of this type can be deserialized under the #PythonClassType datatype.
+class JsonDeserializer(decoration.ClassDecoration, JsonDecoration):
+  """ A class decoration that defines the deserializer that is to be used
+  for the class. Can also be used to decorate methods that implementation
+  the deserialization inside the class. """
 
-  Functions decorated with #JsonDeserializer are invoked as classmethods
-  by the deserialization process. """
+  def __init__(self, deserializer):  # type: (Callable, IDeserializer)
+    if callable(deserializer):
+      deserializer = IDeserializer(deserialize=deserializer)
+    if not IDeserializer.provided_by(deserializer):
+      raise TypeError('expected IDeserializer, got {}'.format(
+        type(deserializer).__name__))
+    self.deserializer = deserializer
+
+  def __call__(self, *args, **kwargs):
+    return self.deserializer.deserialize(*args, **kwargs)
 
 
-class JsonSerializer(decoration.ClassmethodDecoration, JsonDecoration):
-  """ Decorator for a serializer function on a class. Classes that have a
-  member of this type can be deserialized under the #PythonClassType datatype.
+class JsonSerializer(decoration.ClassDecoration, JsonDecoration):
+  """ A class decoration that defines the deserializer that is to be used
+  for the class. Can also be used to decorate methods that implementation
+  the deserialization inside the class. """
 
-  Functions decorated with #JsonSerializer are invoked as classmethods
-  by the serialization process. """
+  def __init__(self, serializer):  # type: (Union[Callable, IDeserializer])
+    if callable(serializer):
+      serializer = ISerializer(serialize=serializer)
+    if not ISerializer.provided_by(serializer):
+      raise TypeError('expected ISerializer, got {}'.format(
+        type(serializer).__name__))
+    self.serializer = serializer
+
+  def __call__(self, *args, **kwargs):
+    return self.serializer.serialize(*args, **kwargs)
 
 
 class JsonStrict(decoration.ClassDecoration, JsonDecoration):

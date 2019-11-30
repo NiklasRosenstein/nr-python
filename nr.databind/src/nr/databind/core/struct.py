@@ -22,6 +22,7 @@
 
 import pkg_resources
 import six
+import typing
 
 from .datatypes import CollectionType, translate_type_def
 from .decoration import Decoration, ClassDecoration
@@ -31,7 +32,7 @@ from .metadata import DatabindMetadata
 from nr.collections import abc, OrderedDict
 from nr.commons.notset import NotSet
 from nr.commons.py import classdef, funcdef
-from nr.commons.py.typing import extract_optional
+from nr.commons.py.typing import is_generic, get_generic_args, extract_optional
 from nr.interface import implements
 from nr.stream import Stream
 
@@ -87,7 +88,7 @@ class Field(object):
   objects. Other arguments must be supplied as keyword-arguments. """
 
   classdef.repr('name datatype nullable default')
-  classdef.comparable('__class__ name datatype required')
+  classdef.comparable('__class__ name datatype nullable default')
   _INSTANCE_INDEX_COUNTER = 0
 
   def __init__(self, datatype, *decorations, **kwargs):
@@ -109,9 +110,24 @@ class Field(object):
 
     name = kwargs.pop('name', None)
     assert name is None or isinstance(name, str), repr(name)
-    nullable = kwargs.pop('nullable', False)
+    nullable = kwargs.pop('nullable', None)
     default = kwargs.pop('default', NotSet)
     funcdef.raise_kwargs(kwargs)
+
+    if is_generic(datatype, typing.Optional):
+      datatype = get_generic_args(datatype)[0]
+      if nullable is not None:
+        # For consistency reasons, Field(Optional[...], nullable=True)
+        # looks confusing.
+        raise ValueError('"nullable" argument must be None when an Optional '
+          'is provided to the Field() constructor')
+      nullable = True
+
+    if default is None:
+      if nullable is None:
+        nullable = True
+      elif not nullable:
+        raise ValueError('default=None but nullable=False, this does not add up')
 
     if not IDataType.provided_by(datatype):
       datatype = translate_type_def(datatype)
@@ -124,7 +140,7 @@ class Field(object):
     self.datatype = datatype
     self.decorations = decorations
     self.name = name
-    self.nullable = nullable
+    self.nullable = False if nullable is None else bool(nullable)
     self.default = default
 
     self.instance_index = Field._INSTANCE_INDEX_COUNTER
@@ -233,12 +249,9 @@ class FieldSpec(object):
 
     fields = []
     for name, datatype in six.iteritems(obj_class.__annotations__):
-      wrapped_type = extract_optional(datatype)
-      nullable = wrapped_type is not None
       default = getattr(obj_class, name, NotSet)
       field = Field(
-        datatype=wrapped_type or datatype,
-        nullable=nullable,
+        datatype=datatype,
         default=default,
         name=name)
       fields.append(field)

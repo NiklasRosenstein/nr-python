@@ -19,10 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .core.datatypes import translate_type_def
-from .core.interfaces import IDataType, IDeserializeContext, \
+from .datatypes import translate_type_def
+from .interfaces import IDataType, IDeserializeContext, \
   ISerializeContext, IDeserializer, ISerializer
-from .core.location import Location, Path
+from .location import Location, Path
 from nr.interface import Interface, default, implements
 import contextlib
 
@@ -69,7 +69,7 @@ class SimpleModule(object):
     if not ISerializer.provided_by(serializer):
       raise TypeError('expected IDeserializer instance, got {!r}'
         .format(serializer.__name__))
-    self._deserializers[datatype_type] = serializer
+    self._serializers[datatype_type] = serializer
 
   def register_duplex(self, datatype_type, deserializer_serializer):
     self.register_deserializer(datatype_type, deserializer_serializer)
@@ -168,7 +168,8 @@ class ModuleContext(object):
     with self._put_key(key, filename):
       deserializer = self._module.get_deserializer(datatype)
       if deserializer is None:
-        raise RuntimeError('unsupported datatype: {}'.format(datatype))
+        raise RuntimeError('no deserializer for {!r} found'.format(
+          type(datatype).__name__))
       return deserializer.deserialize(self, self.mklocation(value, datatype))
 
   def serialize(self, value, datatype, key=None, filename=None):
@@ -176,7 +177,8 @@ class ModuleContext(object):
     with self._put_key(key, filename):
       serializer = self._module.get_serializer(datatype)
       if serializer is None:
-        raise RuntimeError('unsupported datatype: {}'.format(datatype))
+        raise RuntimeError('no serializer for {!r} found'.format(
+          type(datatype).__name__))
       return serializer.serialize(self, self.mklocation(value, datatype))
 
 

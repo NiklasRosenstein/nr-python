@@ -19,18 +19,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .core import *
-from .mapper import *
-import contextlib
-import logging
-import sys
-import traceback
-
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.9.0'
-
-
-__all__ = (
-  core.__all__ +
-  mapper.__all__
-)
