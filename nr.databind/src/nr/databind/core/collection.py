@@ -22,7 +22,7 @@
 from .datatypes import CollectionType, translate_type_def
 import six
 
-__all__ = ['Collection']
+__all__ = ['CollectionType', 'Collection']
 
 
 class _CollectionMeta(type):

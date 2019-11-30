@@ -19,6 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import sys
+
 
 class Decoration(object):
   """ A decoration is an object that adds behavior to a class or field.
@@ -59,17 +61,29 @@ class ClassmethodDecoration(Decoration, classmethod):
 
 
 class ClassDecoration(Decoration):
-  """ A decoration for a class that will add itself to the classes'
-  `__decorations__` list. """
+  """ A decoration for a class that can be added by simply calling it from
+  within the class definition. Example:
 
-  def __new__(cls, decorated_cls):
-    if not isinstance(decorated_cls, type):
-      raise TypeError('{}() must be used to decorate a class, got {}'
-        .format(type(self).__name__, type(decorated_cls).__name__))
+  ```python
+  class MyClass(Struct):
+    MyClassDecoration()
+  ```
+
+  The decoration will be added to the `__decorations__` list of the calling
+  scope. If you need to create an instance of this class without also adding
+  the instance to the calling scope's `__decorations__` list, use #create().
+  """
+
+  def __new__(cls, *args, **kwargs):
+    self = cls.create(*args, **kwargs)
+    frame = sys._getframe(1)
+    try:
+      frame.f_locals.setdefault('__decorations__', []).append(self)
+    finally:
+      del frame
+
+  @classmethod
+  def create(cls, *args, **kwargs):
     self = object.__new__(cls)
-    self.__init__(decorated_cls)
-    decorated_cls.__decorations__.append(self)
-    return decorated_cls
-
-  def __init__(self, decorated_cls):
-    pass
+    self.__init__(*args, **kwargs)
+    return self

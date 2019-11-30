@@ -28,12 +28,17 @@ from nr.interface import Interface, implements
 from nr.types.utils import classdef
 from nr.types.utils.typing import is_generic, get_generic_args
 
-from ..errors import InvalidTypeDefinitionError
-from ..interfaces import IDataType
-from ..struct import Struct, StructType
+from .errors import InvalidTypeDefinitionError
+from .interfaces import IDataType
+from .struct import Struct, StructType
 
-__all__ = ['IUnionTypeMember', 'IUnionTypeResolver', 'StandardTypeResolver',
-           'EntrypointTypeResolver', 'UnionType']
+__all__ = [
+  'IUnionTypeMember',
+  'IUnionTypeResolver',
+  'StandardTypeResolver',
+  'EntrypointTypeResolver',
+  'UnionType'
+]
 
 
 class UnknownUnionTypeError(Exception):

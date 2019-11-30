@@ -9,3 +9,8 @@ requirements:
   - test:
     - pytest
     - PyYAML
+
+entrypoints:
+  nr.databind.core.struct.Mixin:
+    - json = nr.databind.json:JsonMixin
+    - tuple = nr.databind.contrib.mixins.tuple:TupleMixin

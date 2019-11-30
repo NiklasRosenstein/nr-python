@@ -30,15 +30,12 @@ from functools import partial
 from nr.commons.py import classdef
 from nr.collections import abc, OrderedDict
 from nr.interface import implements
-from .core import decoration
-from .core.interfaces import IDeserializer, ISerializer
-from .core.collection import Collection
-from .core.errors import SerializationTypeError, SerializationValueError
-from .core.datatypes import AnyType, BooleanType, StringType, IntegerType, \
-  DecimalType, CollectionType, ObjectType, StructType, PythonClassType, \
-  MultiType, UnionType
-from .core.metadata import DatabindMetadata
-from .mapper import SimpleModule
+from .core import decoration, IDeserializer, ISerializer, Collection, \
+  SerializationTypeError, SerializationValueError, \
+  AnyType, BooleanType, StringType, IntegerType, DecimalType, CollectionType, \
+  ObjectType, StructType, PythonClassType, MultiType, UnionType, \
+  DatabindMetadata
+from .mapper import SimpleModule, ObjectMapper
 
 __all__ = ['JsonModule', 'JsonFieldName', 'JsonRequired', 'JsonDeserializer',
            'JsonSerializer']
@@ -445,3 +442,18 @@ class JsonSerializer(decoration.ClassmethodDecoration, JsonDecoration):
 
 class JsonStrict(decoration.ClassDecoration, JsonDecoration):
   pass
+
+
+class JsonMixin(object):
+  """ A mixin for #Struct or #Collection subclasses that adds #to_json()
+  and #from_json() methods which de/serialize an instance of the class with
+  an #ObjectMapper and the #JsonModule. """
+
+  def to_json(self, *args, **kwargs):
+    mapper = ObjectMapper(JsonModule())
+    return mapper.serialize(self, type(self), *args, **kwargs)
+
+  @classmethod
+  def from_json(cls, data, *args, **kwargs):
+    mapper = ObjectMapper(JsonModule())
+    return mapper.dserialize(data, cls, *args, **kwargs)

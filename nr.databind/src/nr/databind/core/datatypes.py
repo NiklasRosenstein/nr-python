@@ -32,8 +32,8 @@ from nr.collections import abc
 from nr.commons.py.typing import is_generic
 from nr.interface import implements
 from nr.types.utils import classdef
-from ..interfaces import IDataType
-from ..errors import InvalidTypeDefinitionError
+from .interfaces import IDataType
+from .errors import InvalidTypeDefinitionError
 
 
 @implements(IDataType)
@@ -187,7 +187,7 @@ class CollectionType(object):
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
-    from ..collection import Collection
+    from .collection import Collection
     # []
     if isinstance(py_type_def, list) and len(py_type_def) == 0:
       return cls(AnyType())
@@ -343,10 +343,6 @@ def translate_type_def(py_type_def, fallback=None):
   raise InvalidTypeDefinitionError(py_type_def)
 
 
-from .union import UnionType
-from .struct import StructType
-
-
 __all__ = [
   'AnyType',
   'BooleanType',
@@ -356,7 +352,6 @@ __all__ = [
   'CollectionType',
   'ObjectType',
   'PythonClassType',
-  'UnionType',
-  'StructType',
+  'MultiType',
   'translate_type_def'
 ]

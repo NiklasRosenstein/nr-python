@@ -19,23 +19,19 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .collection import *
-from .datatypes import *
-from .errors import *
-from .interfaces import *
-from .location import *
-from .metadata import *
-from .struct import *
-from .union import *
 
+class TupleMixin(object):
+  """ A mixin for #Struct classes adding named-tuple like behavior. """
 
-__all__ = (
-  collection.__all__ +
-  datatypes.__all__ +
-  errors.__all__ +
-  interfaces.__all__ +
-  location.__all__ +
-  metadata.__all__ +
-  struct.__all__ +
-  union.__all__
-)
+  def __getitem__(self, index):
+    return getattr(self, self.__fields__[index].name)
+
+  def __setitem__(self, index, value):
+    return setattr(self, self.__fields__[index].name, value)
+
+  def __iter__(self):
+    for field in self.__fields__:
+      yield getattr(self, field.name)
+
+  def __len__(self):
+    return len(self.__fields__)
