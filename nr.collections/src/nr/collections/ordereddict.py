@@ -65,7 +65,7 @@ class OrderedDict(MutableMapping):
   def __eq__(self, other):
     if other is self:
       return True
-    return other == self.asdict()
+    return other == dict(self)
 
   def __ne__(self, other):
     return not self == other
