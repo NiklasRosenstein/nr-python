@@ -1,11 +1,11 @@
 package:
   name: nr.databind
-  version: 0.9.0
+  version: 0.1.0
   description: Bind structured data directly to typed objects.
 
 requirements:
   - python ^2.7|^3.4
-  - nr.interface ~0.9.0
+  - nr.interface ~0.1.0
   - test:
     - pytest
     - PyYAML

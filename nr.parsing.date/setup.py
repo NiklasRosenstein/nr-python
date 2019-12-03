@@ -10,7 +10,7 @@ with io.open('src/nr/parsing/date.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['python-dateutil']
+requirements = ['python-dateutil >=2.8.1,<3.0.0']
 
 setuptools.setup(
   name = 'nr.parsing.date',

@@ -1,11 +1,11 @@
 package:
   name: nr.interface
-  version: 0.9.0
+  version: 0.1.0
   description: Interface definitions for Python.
 
 requirements:
-  - nr.collections ^0.9.0
-  - nr.metaclass ^0.9.0
-  - nr.commons ^0.9.0
+  - nr.collections ~0.1.0
+  - nr.metaclass ~0.1.0
+  - nr.commons ~0.1.0
   - python ^2.7|^3.4
   - six ^1.11.0
