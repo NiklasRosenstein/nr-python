@@ -90,7 +90,7 @@ class IDeserializeContext(Interface):
   """ Context for deserializing values. """
 
   def deserialize(self, value, datatype, key=None, filename=None):
-    # type: (Any, IDataType, Optional[str], Optional[str])
+    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str])
     pass
 
   def decorations(self):  # type: () -> Iterable[Decoration]
@@ -101,7 +101,7 @@ class ISerializeContext(Interface):
   """ Context for serializing values. """
 
   def serialize(self, value, datatype, key=None, filename=None):
-    # type: (Any, IDataType, Optional[str], Optional[str])
+    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str])
     pass
 
   def decorations(self):  # type: () -> Iterable[Decoration]

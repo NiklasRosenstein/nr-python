@@ -149,15 +149,18 @@ class ModuleContext(object):
 
   @contextlib.contextmanager
   def _put_key(self, key, filename):
+    if key is not None and not isinstance(key, (list, tuple)):
+      key = [key]
     if key is not None:
-      self._path.append(key)
+      self._path.extend(key)
     if filename is not None:
       self._filename.append(filename)
     try:
       yield
     finally:
       if key is not None:
-        assert self._path.pop() is key, key
+        for item in reversed(key):
+          assert self._path.pop() is item, item
       if filename is not None:
         assert self._filename.pop() is filename, filename
 
