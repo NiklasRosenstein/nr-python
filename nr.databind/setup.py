@@ -11,7 +11,8 @@ with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
 requirements = ['nr.interface >=0.1.0,<0.2.0']
-test_requirements = ['pytest', 'PyYAML']
+tests_require = []
+tests_require = ['pytest', 'PyYAML']
 
 setuptools.setup(
   name = 'nr.databind',
@@ -23,12 +24,14 @@ setuptools.setup(
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs',
   license = 'MIT',
-  packages = setuptools.find_packages('src'),
+  packages = setuptools.find_packages('src', ['test', 'test.*', 'docs', 'docs.*']),
   package_dir = {'': 'src'},
   include_package_data = False,
   install_requires = requirements,
-  tests_require = test_requirements,
+  extras_require = {},
+  tests_require = tests_require,
   python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
+  data_files = [],
   entry_points = {
     'nr.databind.core.struct.Mixin': [
       'json = nr.databind.json:JsonMixin',
