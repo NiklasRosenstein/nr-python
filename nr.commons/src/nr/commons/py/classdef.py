@@ -88,6 +88,7 @@ def repr(properties, _stackdepth=0, decorate=None):
   """
 
   properties = _split_names(properties)
+  parents = properties
 
   if decorate is None:
     def decorate(x):
@@ -95,8 +96,10 @@ def repr(properties, _stackdepth=0, decorate=None):
 
   @decorate
   def __repr__(self):
+
     attrs = ', '.join('{}={!r}'.format(k, getattr(self, k)) for k in properties)
     return '{}({})'.format(type(self).__name__, attrs)
 
   frame = sys._getframe(_stackdepth + 1)
   frame.f_locals['__repr__'] = __repr__
+  frame.f_locals['__repr_properties__'] = properties
