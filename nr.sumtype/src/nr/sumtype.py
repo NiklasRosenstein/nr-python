@@ -95,7 +95,6 @@ class Sumtype(InlineMetaclassBase):
     cls.__constructors__ = Stream(bases)\
       .map(lambda x: getattr(x, '__constructors__', {}))\
       .reduce(lambda a, b: dict(**a, **b))
-    print(name, cls.__constructors__)
 
     # Find all constructors defined in the class.
     cls.__constructors__.update(Stream(vars(cls).items())\
