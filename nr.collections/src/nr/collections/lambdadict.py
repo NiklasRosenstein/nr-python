@@ -42,14 +42,14 @@ class LambdaDict(abc.MutableMapping):
   def __delitem__(self, key):
     if self._deleter is None:
       raise NotImplementedError('__delitem__() not configured')
-    self._deleter(key, value)
+    self._deleter(key)
 
   def __len__(self):
     if self._length is None:
       raise NotImplementedError('__len__() not configured')
-    self._length()
+    return self._length()
 
   def __iter__(self):
     if self._iterate is None:
       raise NotImplementedError('__iter__() not configured')
-    self._iterate()
+    return self._iterate()
