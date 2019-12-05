@@ -24,9 +24,9 @@
 import typing
 
 from nr.collections import abc
+from nr.commons.py import classdef
+from nr.commons.py.typing import is_generic, get_generic_args
 from nr.interface import Interface, implements
-from nr.types.utils import classdef
-from nr.types.utils.typing import is_generic, get_generic_args
 
 from .errors import InvalidTypeDefinitionError
 from .interfaces import IDataType

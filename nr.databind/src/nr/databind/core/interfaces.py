@@ -21,8 +21,8 @@
 
 import string
 
+from nr.commons.py import classdef
 from nr.interface import Interface, attr, default
-from nr.types.utils import classdef
 from .errors import InvalidTypeDefinitionError
 from .location import Location
 
