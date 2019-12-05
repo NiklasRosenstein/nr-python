@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 """
 This module provides an AST rewriter that takes and Read/Write operations on
 global variables and rewrites them to retrieve the variable by a function
@@ -56,6 +57,9 @@ import sys
 
 from six import exec_, string_types
 from six.moves import builtins
+
+try: from collections import abc
+except ImportError: import collections as abc
 
 
 def get_argname(arg):
@@ -273,14 +277,19 @@ def transform(ast_node, data_var='__dict__'):
   return ast_node
 
 
-def dynamic_exec(code, mapping, automatic_builtins=True,
+def dynamic_exec(code, mapping, automatic_builtins=True, wrap=True,
                  filename=None, module_name=None, _type='exec'):
   """
   Transforms the Python source code *code* and evaluates it so that the
   all global variables are accessed through the specified *mapping*.
 
-  It is recommended to use the #DynamicMapping class.
+  If *wrap* is True, the *mapping* will be wrapped in a #DynamicMapping,
+  which will provide builtins and support proper deletion semantics.
   """
+
+  if wrap and not isinstance(mapping, DynamicMapping):
+    mapping = DynamicMapping(mapping)
+  print('>>>', mapping, mapping['NameError'])
 
   parse_filename = filename or '<string>'
   ast_node = transform(ast.parse(code, parse_filename, mode=_type))
@@ -313,6 +322,9 @@ class DynamicMapping(object):
   def __init__(self, target=None, automatic_builtins=True):
     if target is None:
       target = {}
+    if not isinstance(target, abc.Mapping):
+      raise TypeError('expected Mapping, got {!r}'.format(
+        type(target).__name__))
     self._data = target
     self._deleted = set()
     self._automatic_builtins = automatic_builtins
@@ -326,7 +338,7 @@ class DynamicMapping(object):
     try:
       return self._data[key]
     except KeyError:
-      pass  # Continue with resolve()\
+      pass
     if self._automatic_builtins and not key.startswith('_'):
       try:
         return getattr(builtins, key)
@@ -341,6 +353,9 @@ class DynamicMapping(object):
   def __delitem__(self, key):
     try:
       self._data.pop(key)
+    except NotImplementedError:
+      # Shadow the deletion.
+      pass
     except KeyError:
       raise UnboundLocalError("local variable '{}' referenced before assignment".format(key))
     self._deleted.add(key)

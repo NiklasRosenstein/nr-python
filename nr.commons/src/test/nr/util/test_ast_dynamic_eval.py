@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from nr.collections import LambdaDict
+from nr.commons.py.ast.dynamic_eval import dynamic_exec, dynamic_eval
 import textwrap
 import sys
-from nose.tools import *
-from nr.ast import dynamic_exec, dynamic_eval
+import pytest
 
 
 def test_dynamic_exec():
@@ -31,17 +32,14 @@ def test_dynamic_exec():
   assignments['assignments'] = lambda: assignments
 
   def resolve(x):
-    try:
-      return assignments[x]
-    except KeyError:
-      raise NameError(x)
+    return assignments[x]
 
   assign = assignments.__setitem__
   delete = assignments.__delitem__
 
   code = textwrap.dedent('''
     from __future__ import print_function
-    from nose.tools import *
+    import pytest
     import os
     import os.path
     import sys
@@ -56,34 +54,34 @@ def test_dynamic_exec():
       alocal = 'ham'
       tbd = 'delete me!'
       del tbd
-      with assert_raises(NameError):
+      with pytest.raises(NameError):
         tbd
       print("Hello, World from", os.getcwd(), 'a, b', (a, b))
-      assert_equals(a, 42)
-      assert_equals(b, 99)
-      assert_equals(assignments()['a'], 42)
-      assert_equals(assignments()['b'], 0)
+      assert a == 42
+      assert b == 99
+      assert assignments()['a'] == 42
+      assert assignments()['b'] == 0
       for i in range(10):
         pass
       assert 'i' not in assignments(), 'i in assignments'
-      assert_equals(i, 9)
+      assert i == 9
       for j in range(10):
         j = j*2
       assert 'j' not in assignments(), 'j in assignments'
-      assert_equals(j, 18)
+      assert j == 18
       class Test:
         def __init__(self):
           queue = [('ham', 'egg')]
           c, b = queue.pop()
-          assert_equals((c, b), ('ham', 'egg'))
-          assert_equals(alocal, 'ham')
+          assert (c, b) == ('ham', 'egg')
+          assert alocal == 'ham'
       assert 'Test' not in assignments(), 'Test in assignments'
       assert '__init__' not in assignments(), '__init__ in assignments'
       Test()
-      assert_equals((lambda x: x)(42), 42)
+      assert (lambda x: x)(42) == 42
       [x for x in range(10)]
       if sys.version_info[0] == 3:
-        with assert_raises(NameError):
+        with pytest.raises(NameError):
           x
       else:
         x
@@ -93,48 +91,48 @@ def test_dynamic_exec():
         def __exit__(self,*a):
           pass
       with ContextManager() as value:
-        assert_equals(value, 'ContextManager!')
-      assert_equals(value, 'ContextManager!')
+        assert value == 'ContextManager!'
+      assert value == 'ContextManager!'
       assert 'value' not in assignments()
     main('hello')
-    assert_equals(a, 42)
-    assert_equals(b, 0)
+    assert a == 42
+    assert b == 0
     del a
-    with assert_raises(NameError):
+    with pytest.raises(NameError):
       a
   ''')
 
-  dynamic_exec(code, resolve, assign, delete)
+  dynamic_exec(code, LambdaDict(resolve, assign, delete))
 
   for key in ('os', 'b', 'main'):
     assert key in assignments, key
 
-  assert_equals(assignments['b'], 0)
+  assert assignments['b'] == 0
 
 
 def test_exception_handler():
   code = textwrap.dedent('''
     import sys
-    from nose.tools import *
+    import pytest
     def main():
       try:
         raise Exception
       except Exception as e:
-        assert_is_instance(e, Exception)
+        assert isinstance(e, Exception)
     main()
-    with assert_raises(NameError):
+    with pytest.raises(NameError):
       e
 
     try:
       raise Exception
     except Exception as e:
-      assert_is_instance(e, Exception)
+      assert isinstance(e, Exception)
 
     if sys.version_info[0] == 3:
-      with assert_raises(NameError):
+      with pytest.raises(NameError):
         e
     elif sys.version_info[0] == 2:
-      assert_is_instance(e, Exception)
+      assert isinstance(e, Exception)
     else:
       assert False, "Oh boy"
   ''')
@@ -149,45 +147,41 @@ def test_exception_handler():
     assert False, "Oh boy"
 
 
-def test_prevent_deletion():
+def test_noop_deletion():
   code = textwrap.dedent('''
+    import pytest
     a = 42
     del a
-    a
-  ''')
-
-  scope = {}
-  def resolve(x):
-    try:
-      return scope[x]
-    except KeyError:
-      raise NameError(x)
-  assign = scope.__setitem__
-  delete = lambda k: None
-
-  dynamic_exec(code, resolve, assign, delete)
-  assert 'a' in scope
-
-
-def test_shadowed_deletion():
-  code = textwrap.dedent('''
-    from nose.tools import assert_raises
-    a = 42
-    del a
-    with assert_raises(NameError):
+    with pytest.raises(NameError):
       a
   ''')
 
   scope = {}
   def resolve(x):
-    try:
-      return scope[x]
-    except KeyError:
-      raise NameError(x)
+    return scope[x]
+  assign = scope.__setitem__
+  delete = lambda k: None
+
+  dynamic_exec(code, LambdaDict(resolve, assign, delete))
+  assert 'a' in scope
+
+
+def test_shadowed_deletion():
+  code = textwrap.dedent('''
+    import pytest
+    a = 42
+    del a
+    with pytest.raises(NameError):
+      a
+  ''')
+
+  scope = {}
+  def resolve(x):
+    return scope[x]
   assign = scope.__setitem__
   delete = None
 
-  dynamic_exec(code, resolve, assign, delete)
+  dynamic_exec(code, LambdaDict(resolve, assign, delete))
   assert 'a' in scope
 
 
@@ -227,19 +221,17 @@ def test_super():
 
   if sys.version_info[0] >= 3:
     code = textwrap.dedent('''
-      from nose.tools import assert_equals
-
       def main():
         class Test(object):
           def __init__(self):
-            assert_equals(__class__, Test)
+            assert __class__ == Test
             super().__init__()
         Test()
       main()
 
       class Test(object):
         def __init__(self):
-          assert_equals(__class__, Test)
+          assert __class__ == Test
           super().__init__()
       Test()
     ''')
@@ -248,8 +240,8 @@ def test_super():
 
 def test_builtin_members():
   code = textwrap.dedent('''
-    from nose.tools import *
-    with assert_raises(NameError):
+    import pytest
+    with pytest.raises(NameError):
       __class__
   ''')
   dynamic_exec(code, {})
@@ -257,15 +249,14 @@ def test_builtin_members():
 
 def test_class_members():
   code = textwrap.dedent('''
-    from nose.tools import assert_equals
     a = 42
     class Test:
       a = 99
-      assert_equals(a, 99)
+      assert a == 99
       def __init__(self):
-        assert_equals(a, 42)
-        assert_equals(self.a, 99)
-    assert_equals(a, 42)
-    assert_equals(Test.a, 99)
+        assert a == 42
+        assert self.a == 99
+    assert a == 42
+    assert Test.a == 99
   ''')
   dynamic_exec(code, {})
