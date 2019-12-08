@@ -80,7 +80,8 @@ def test_translate_type_def_typing(mapper):
   assert isinstance(translate_type_def(Dict[str, str]).value_type, StringType)
   assert isinstance(translate_type_def(Dict), ObjectType)
   assert isinstance(translate_type_def(Dict).value_type, AnyType)
-  assert isinstance(translate_type_def(Dict[int, str]), PythonClassType)
+  with pytest.raises(InvalidTypeDefinitionError):
+    assert isinstance(translate_type_def(Dict[int, str]), PythonClassType)
 
 
 def test_multitype_translation():
