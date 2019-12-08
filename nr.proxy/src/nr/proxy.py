@@ -52,7 +52,7 @@ class Proxy(object):
   __slots__ = ("__local", "__dict__", "__name__", "__wrapped__")
   __is_proxy__ = True
 
-  def __init__(self, local, name=None, lazy=False, deref=False):
+  def __init__(self, local=None, name=None, lazy=False, deref=False):
     object.__setattr__(self, "_Proxy__local", local)
     object.__setattr__(self, "_Proxy__lazy", lazy)
     object.__setattr__(self, "_Proxy__cache", None)
@@ -68,6 +68,8 @@ class Proxy(object):
       if self.__cache is None:
         object.__setattr__(self, "_Proxy__cache", self.__local())
       return self.__cache
+    elif self.__local is None:
+      raise RuntimeError('unbound proxy')
     else:
       return self.__local()
 
@@ -190,6 +192,13 @@ class Proxy(object):
   __copy__ = lambda x: copy.copy(x._get_current_object())
   __deepcopy__ = lambda x, memo: copy.deepcopy(x._get_current_object(), memo)
   __class__ = property(lambda x: type(x._get_current_object()))
+
+
+def proxy_set_value(proxy, value):
+  """ Permanently overrides the internal value of a #Proxy. """
+
+  object.__setattr__(proxy, '_Proxy__lazy', True)
+  object.__setattr__(proxy, '_Proxy__cache', value)
 
 
 def proxy_deref(proxy):
