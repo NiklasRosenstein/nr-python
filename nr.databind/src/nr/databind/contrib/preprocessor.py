@@ -76,33 +76,26 @@ preprocessor['$serviceRoot'] = os.path.dirname(__file__)
 preprocessor.flat_update(preprocessor(data.pop('config', {})))
 data = preprocessor(data)
 ```
-
-## IConfigurable
-
-Todo
 """
 
 import copy
+import os
 import re
 import six
 
 from nr.collections import abc
 
 
-class Preprocessor(dict):
-  """ The Preprocessor class is used to substitute variables in a nested
-  structured comprised of dictionaries and lists. By default, the regex it
-  uses to replace variables matches strings like `{{<variable_name>}}`.
+class Vars(dict):
+  """ A preprocessor plugin that substitutes variables in strings of the form
+  `{{variableName}}`. This class is a mapping that describes the known
+  variables for the substition. """
 
-  This class is a subclass of [[dict]]. """
+  _DEFAULT_REGEX = r'\{\{([^}]+)\}\}'
 
-  regex = re.compile(r'\{\{([^}]+)\}\}')
-
-  def __init__(self, iterable=None, regex=None, mutate=False, keep_type=True):
-    super(Preprocessor, self).__init__(iterable or ())
-    self.regex = regex or Preprocessor.regex
-    self.mutate = mutate
-    self.keep_type = keep_type
+  def __init__(self, iterable=None, regex=None):
+    super(Vars, self).__init__(iterable or ())
+    self.regex = re.compile(regex or self._DEFAULT_REGEX)
 
   def __sub(self, match):
     """ The method that is passed to [[re.sub()]]. Private. """
@@ -114,32 +107,12 @@ class Preprocessor(dict):
       return '{{' + key + '}}'
 
   def __call__(self, data):
-    """ Process the specified *data* and return the result. Handles strings,
-    mappings and sequences. If the [[#mutate]] attribute is set to True,
-    mappings and sequences will be assumed mutable. If [[#keep_type]] is set
-    to True, it will try to keep the same type of the mapping or sequence,
-    otherwise dicts or lists are returned. """
-
     if isinstance(data, six.string_types):
       return self.regex.sub(self.__sub, data)
-    elif isinstance(data, abc.Mapping):
-      if self.mutate and isinstance(data, abc.MutableMapping):
-        for key in data:
-          data[key] = self(data[key])
-      else:
-        data = (type(data) if self.keep_type else dict)((k, self(data[k])) for k in data)
-      return data
-    elif isinstance(data, abc.Sequence):
-      if self.mutate and isinstance(data, abc.MutableSequence):
-        for index, value in enumerate(data):
-          data[index] = self(value)
-      else:
-        data = (type(data) if self.keep_type else list)(self(v) for v in data)
-      return data
     return data
 
   def __repr__(self):
-    return 'Preprocessor({})'.format(super(Preprocessor, self).__repr__())
+    return 'Vars({})'.format(super(Vars, self).__repr__())
 
   def flat_update(self, mapping, separator='.'):
     """ Performs a flat update of the variables in the Preprocessor dictionary
@@ -174,22 +147,96 @@ class Preprocessor(dict):
     update('', mapping)
 
 
-def preprocess(data, init_variables=None, config_key='config', regex=None):
-  """ Convenience function to take the *config_key* from *data* and preprocess
-  it, then use it to [[Preprocessor.flat_update()]] the current pre-processor
-  to process the rest of *data*. Returns a copy of *data* without the
-  *config_key*. """
+class Include(object):
+  """ Replaces strings of the form `{{!include <FILENAME>}}` with the contents
+  of the actual file, optionally loaded with the specified *load_func*. """
 
-  data = copy.copy(data)
-  preprocessor = Preprocessor(init_variables, regex=regex)
-  preprocessor.flat_update(preprocessor(data.pop(config_key, {})))
+  def __init__(self, base_dir, load_func=None):
+    self.base_dir = base_dir
+    self.load_func = load_func
+
+  def __call__(self, data):
+    if not isinstance(data, six.string_types):
+      return data
+    if not (data.startswith('{{!include ') and data.endswith('}}')):
+      return data
+    filename = data[10:-2].strip()
+    if not filename:
+      return data
+    filename = os.path.join(self.base_dir, filename)
+    with open(filename) as fp:
+      if self.load_func:
+        return self.load_func(fp)
+      return fp.read()
+
+
+class Preprocessor(object):
+
+  def __init__(self, plugins=(), mutate=False, keep_type=True):
+    self._plugins = list(plugins)
+    self._mutate = mutate
+    self._keep_type = keep_type
+
+  def add_plugin(self, plugin):
+    self._plugins.append(plugin)
+
+  def __call__(self, data):
+    """ Process the specified *data* with the list of *plugins* and return the
+    result. Handles strings, mappings and sequences. If the *mutate* is True,
+    mappings and sequences will be assumed mutable. If *keep_type* is True, the
+    function will attempt to keep the same type of the mapping or sequence,
+    otherwise dicts or lists are returned. """
+
+    for plugin in self._plugins:
+      data = plugin(data)
+
+    if isinstance(data, abc.Mapping):
+      if self._mutate and isinstance(data, abc.MutableMapping):
+        for key in data:
+          data[key] = self(data[key])
+      else:
+        cls = type(data) if self._keep_type else dict
+        data = cls((k, self(data[k])) for k in data)
+    elif isinstance(data, abc.Sequence) and not isinstance(data, six.string_types):
+      if self._mutate and isinstance(data, abc.MutableSequence):
+        for index, value in enumerate(data):
+          data[index] = self(value)
+      else:
+        cls = type(data) if self._keep_type else list
+        data = cls(self(v) for v in data)
+
+    return data
+
+
+def preprocess(data, *args, **kwargs):
+  preprocessor = Preprocessor(*args, **kwargs)
   return preprocessor(data)
 
 
+def config_preprocess(config, runtime, plugins=(), *args, **kwargs):
+  """ Preprocesses a configuration in two phases: First *config* is
+  pre-processed and then used to enrich the #Vars plugin. Second the
+  *runtime* is pre-processed with the new variables made available from
+  the *config* object.
+
+  If no #Vars plugin exists in *plugins*, it as appended automatically. """
+
+  plugins = list(plugins)
+  vars_plugin = next((x for x in plugins if isinstance(x, Vars)), None)
+
+  if vars_plugin is None:
+    vars_plugin = Vars()
+    plugins.append(vars_plugin)
+
+  preprocessor = Preprocessor(plugins)
+  vars_plugin.flat_update(preprocessor(config))
+  return preprocessor(runtime)
+
+
 __all__ = [
+  'Vars',
+  'Include',
   'Preprocessor',
   'preprocess',
-  'IConfigurable',
-  'import_configurable',
-  'load_configurable'
+  'config_preprocess'
 ]

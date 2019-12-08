@@ -1,25 +1,27 @@
 
 from nr.interface import implements
-from nr.databind.contrib.preprocessor import Preprocessor, preprocess
-from nr.types.utils import classdef
+from nr.databind.contrib.preprocessor import *
+from nr.commons.py import classdef
 from ..fixtures import mapper
 import textwrap
 import yaml
 
 
 def test_preprocessor():
-  p = Preprocessor({'$serviceRoot': '/opt/app'})
+  p = Preprocessor([Vars({'$serviceRoot': '/opt/app'})])
   assert p('{{$serviceRoot}}') == '/opt/app'
   assert p({'config': {'directories': {'data': '{{$serviceRoot}}/data'}}}) == \
     {'config': {'directories': {'data': '/opt/app/data'}}}
 
 
 def test_preprocessor_flat_update():
-  preprocessor = Preprocessor()
-  preprocessor.flat_update({'directory': {'data': '/opt/app/data'}})
+  vars_plugin = Vars()
+  vars_plugin.flat_update({'directory': {'data': '/opt/app/data'}})
+
+  preprocessor = Preprocessor([vars_plugin])
   assert preprocessor('{{directory.data}}') == '/opt/app/data'
-  preprocessor.flat_update({'key': [{'value': 'foo'}]})
-  print(preprocessor)
+
+  vars_plugin.flat_update({'key': [{'value': 'foo'}]})
   assert preprocessor('{{key[0].value}}') == 'foo'
 
 
@@ -33,9 +35,9 @@ def test_preprocessor_e2e():
         path: '{{directories.data}}/media'
   ''')
 
-  data = preprocess(
-    yaml.safe_load(yaml_code),
-    init_variables={'$serviceRoot': '/opt/app'}
-  )
+  data = yaml.safe_load(yaml_code)
+  runtime = config_preprocess(data['config'], data['runtime'], [
+    Vars({'$serviceRoot': '/opt/app'})
+  ])
 
-  assert data == {'runtime': {'media': {'path': '/opt/app/data/media'}}}
+  assert runtime == {'media': {'path': '/opt/app/data/media'}}
