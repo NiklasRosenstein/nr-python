@@ -10,7 +10,7 @@ with io.open('src/nr/databind/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.interface >=0.1.0,<0.2.0', 'nr.stream >=0.1.0,<0.2.0']
+requirements = ['nr.interface >=0.1.0,<0.2.0', 'nr.parsing.date >=0.1.0,<0.2.0', 'nr.stream >=0.1.0,<0.2.0']
 tests_require = []
 tests_require = ['pytest', 'PyYAML']
 
