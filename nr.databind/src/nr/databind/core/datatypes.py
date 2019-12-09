@@ -28,6 +28,7 @@ import decimal
 import six
 import typing
 
+from datetime import datetime
 from nr.collections import abc
 from nr.commons.py import classdef
 from nr.commons.py.typing import is_generic, get_generic_args
@@ -271,6 +272,24 @@ class ObjectType(object):
     if _convert and (not isinstance(self.py_type, type) or
         not isinstance(py_value, self.py_type)):
       py_value = self.py_type(py_value)
+    return py_value
+
+
+@implements(IDataType)
+class DatetimeType(object):
+
+  classdef.comparable([])
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is datetime:
+      return cls()
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  def check_value(self, py_value):
+    if not isinstance(py_value, datetime):
+      raise TypeError('expected datetime, got {!r}'.format(
+        type(py_value).__name__))
     return py_value
 
 

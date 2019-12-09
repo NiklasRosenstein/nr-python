@@ -6,6 +6,7 @@ package:
 requirements:
   - python ^2.7|^3.4
   - nr.interface ~0.1.0
+  - nr.parsing.date ~0.1.0
   - nr.stream ~0.1.0
   - test:
     - pytest

@@ -23,14 +23,13 @@
 Converts from and to JSON like nested structures.
 """
 
-import decimal
-import six
-
+from datetime import datetime
 from functools import partial
 from nr.commons.notset import NotSet
 from nr.commons.py import classdef
 from nr.collections import abc, OrderedDict
 from nr.interface import implements
+from nr.parsing.date import ISO_8601
 from .core import decoration
 from .core.collection import Collection
 from .core.datatypes import (
@@ -41,14 +40,22 @@ from .core.datatypes import (
   DecimalType,
   CollectionType,
   ObjectType,
+  DatetimeType,
   PythonClassType,
-  MultiType)
+  MultiType,
+  translate_type_def)
 from .core.decoration import MetadataDecoration
-from .core.errors import SerializationTypeError, SerializationValueError
+from .core.errors import (
+  SerializationTypeError,
+  SerializationValueError,
+  InvalidTypeDefinitionError)
 from .core.interfaces import IDeserializer, ISerializer
 from .core.mapper import SimpleModule, ObjectMapper
 from .core.struct import StructType
 from .core.union import UnionType, UnknownUnionTypeError
+import decimal
+import six
+import json
 
 
 __all__ = ['JsonModule', 'JsonFieldName', 'JsonRequired', 'JsonDeserializer',
@@ -66,6 +73,7 @@ class JsonModule(SimpleModule):
     self.register_duplex(CollectionType, CollectionConverter())
     self.register_duplex(ObjectType, ObjectConverter())
     self.register_duplex(StructType, StructConverter())
+    self.register_duplex(DatetimeType, DatetimeConverter())
     self.register_duplex(PythonClassType, PythonClassConverter())
     self.register_duplex(MultiType, MultiTypeConverter())
     self.register_duplex(UnionType, UnionTypeConverter())
@@ -312,6 +320,23 @@ class StructConverter(object):
 
 
 @implements(IDeserializer, ISerializer)
+class DatetimeConverter(object):
+
+  def deserialize(self, context, location):
+    if isinstance(location.value, str):
+      return ISO_8601.parse(location.value)
+    elif isinstance(location.value, int):
+      return datetime.fromtimestamp(location.value)
+    else:
+      raise SerializationTypeError(location)
+
+  def serialize(self, context, location):
+    if isinstance(location.value, datetime):
+      return ISO_8601.format(location.value)
+    raise SerializationTypeError(location)
+
+
+@implements(IDeserializer, ISerializer)
 class PythonClassConverter(object):
   """ Uses the #to_json()/#from_json() method that is defined on the class
   to serialize/deserialize the object. Raises a #SerializationTypeError if
@@ -493,3 +518,21 @@ class JsonMixin(object):
   def from_json(cls, data, *args, **kwargs):
     mapper = ObjectMapper(JsonModule())
     return mapper.dserialize(data, cls, *args, **kwargs)
+
+
+class JsonEncoder(json.JSONEncoder):
+  """ A #json.JSONEncoder that supports serializing objects into JSON from
+  their Python type via an #ObjectMapper. """
+
+  def __init__(self, mapper):
+    super(JsonEncoder, self).__init__()
+    self._mapper = mapper
+
+  def default(self, obj):
+    try:
+      datatype = translate_type_def(type(obj))
+    except InvalidTypeDefinitionError:
+      pass
+    else:
+      return self._mapper.serialize(obj, datatype)
+    return super(JsonEncoder, self).default(obj)
