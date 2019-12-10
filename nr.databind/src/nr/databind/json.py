@@ -271,7 +271,12 @@ class StructConverter(object):
 
     validator = JsonValidator.first(struct_cls.__decorations__)
     if validator:
-      validator(obj)
+      try:
+        validator(obj)
+      except ValueError as exc:
+        raise SerializationValueError(location, exc)
+      except TypeError as exc:
+        raise SerializationTypeError(location, exc)
 
     return obj
 
