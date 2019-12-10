@@ -263,9 +263,20 @@ class StructConverter(object):
     deserializer = JsonDeserializer.first(struct_cls.__decorations__)
     if deserializer:
       try:
-        return deserializer(context, location)
+        obj = deserializer(context, location)
       except NotImplementedError:
         pass
+    else:
+      obj = self._deserialize(context, location)
+
+    validator = JsonValidator.first(struct_cls.__decorations__)
+    if validator:
+      validator(obj)
+
+    return obj
+
+  def _deserialize(self, context, location):
+    struct_cls = location.datatype.struct_cls
 
     # Otherwise, we expect a mapping.
     if not isinstance(location.value, abc.Mapping):
@@ -295,6 +306,7 @@ class StructConverter(object):
       obj.__init__(**kwargs)
     except TypeError as exc:
       raise SerializationTypeError(location, exc)
+
     return obj
 
   def serialize(self, context, location):
@@ -306,16 +318,17 @@ class StructConverter(object):
     serializer = JsonSerializer.first(struct_cls.__decorations__)
     if serializer:
       try:
-        return serializer(context, location)
+        result = serializer(context, location)
       except NotImplementedError:
         pass
+    else:
+      result = {}
+      for name, field in struct_cls.__fields__.items():
+        if field.is_derived():
+          continue
+        value = getattr(location.value, name)
+        result[field.name] = context.serialize(value, field.datatype, name)
 
-    result = {}
-    for name, field in struct_cls.__fields__.items():
-      if field.is_derived():
-        continue
-      value = getattr(location.value, name)
-      result[field.name] = context.serialize(value, field.datatype, name)
     return result
 
 
@@ -503,6 +516,22 @@ class JsonSerializer(decoration.ClassDecoration, JsonDecoration):
 
 class JsonStrict(decoration.ClassDecoration, JsonDecoration):
   pass
+
+
+class JsonValidator(decoration.ClassDecoration, JsonDecoration):
+  """ A class decoration for a validation function that is called after
+  a #Struct has been deserialized. """
+
+  def __init__(self, validator):
+    assert callable(validator), 'expected callable for JsonValidator'
+    self._validator = validator
+    super(JsonValidator, self).__init__()
+
+  def __populate__(self):
+    return self._validator
+
+  def __call__(self, instance):
+    self._validator(instance)
 
 
 class JsonMixin(object):
