@@ -97,6 +97,10 @@ class ClassDecoration(Decoration):
       frame.f_locals.setdefault('__decorations__', []).append(self)
     finally:
       del frame
+    return self.__populate__()
+
+  def __populate__(self):
+    return self
 
   @classmethod
   def create(cls, *args, **kwargs):
