@@ -58,8 +58,15 @@ import six
 import json
 
 
-__all__ = ['JsonModule', 'JsonFieldName', 'JsonRequired', 'JsonDeserializer',
-           'JsonSerializer']
+__all__ = [
+  'JsonModule',
+  'JsonFieldName',
+  'JsonRequired',
+  'JsonDeserializer',
+  'JsonSerializer',
+  'JsonStrict',
+  'JsonValidator',
+  'JsonEncoder']
 
 
 class JsonModule(SimpleModule):
