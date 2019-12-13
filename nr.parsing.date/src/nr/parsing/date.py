@@ -286,3 +286,35 @@ JAVA_OFFSET_DATETIME = create_format_set('JAVA_OFFSET_DATETIME', [
 	'%Y-%m-%dT%H:%M:%S%z',
 	'%Y-%m-%dT%H:%M%z',
 ])
+
+
+def parse_iso8601_duration(d):  # type: (str) -> int
+	""" Parses an ISO8601 duration to seconds. Thanks to
+	https://stackoverflow.com/a/35936407 """
+
+	if d[0] != 'P':
+		raise ValueError('Not an ISO 8601 Duration string')
+
+	seconds = 0
+	for i, item in enumerate(d.split('T')):
+		for number, unit in re.findall( '(?P<number>\d+)(?P<period>S|M|H|D|W|Y)', item ):
+			number = int(number)
+			this = 0
+			if unit == 'Y':
+				this = number * 31557600 # 365.25
+			elif unit == 'W':
+				this = number * 604800
+			elif unit == 'D':
+				this = number * 86400
+			elif unit == 'H':
+				this = number * 3600
+			elif unit == 'M':
+				# ambiguity ellivated with index i
+				if i == 0:
+					this = number * 2678400  # assume 30 days
+				else:
+					this = number * 60
+			elif unit == 'S':
+				this = number
+			seconds = seconds + this
+	return seconds
