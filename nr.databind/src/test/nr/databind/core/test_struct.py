@@ -146,17 +146,17 @@ def test_fieldspec_update(mapper):
     foo = Field(str)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo']
-  assert not hasattr(TestObject, 'test')
-  assert not hasattr(TestObject, 'foo')
+  assert TestObject.test is TestObject.__fields__['test']
+  assert TestObject.foo is TestObject.__fields__['foo']
   assert TestObject.__fields__['foo'].name == 'foo'
 
   fields = [Field(str, name='test'), Field(object, name='bar')]
   TestObject.__fields__.update(fields)
 
   assert list(TestObject.__fields__.keys()) == ['test', 'foo', 'bar']
-  assert not hasattr(TestObject, 'test')
-  assert not hasattr(TestObject, 'foo')
-  assert not hasattr(TestObject, 'bar')
+  assert TestObject.test is TestObject.__fields__['test']
+  assert TestObject.foo is TestObject.__fields__['foo']
+  assert TestObject.bar is TestObject.__fields__['bar']
   assert TestObject.__fields__['bar'].name == 'bar'
 
 
