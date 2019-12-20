@@ -194,6 +194,12 @@ class Field(object):
       return self.default()
     return self.default
 
+  def check_value(self, struct_name, py_value):
+    try:
+      return self.datatype.check_value(py_value)
+    except (TypeError, ValueError) as exc:
+      raise type(exc)('{}.{}: {}'.format(struct_name, self.name, exc))
+
 
 class FieldSpec(object):
   """ A container for #Fields which is used to collect all fields of a
@@ -459,6 +465,19 @@ class _StructMeta(type):
         new_field.parent = field
         parent_fields.update([new_field])
 
+    # If a struct is declared with __fields__ or by directly setting
+    # __annotations__, the default value may still be defined on the class
+    # level.
+    for key, field in fields.items():
+      assert field.name == key
+      value = attrs.get(field.name, field)
+      if value is not field and value != field.default:
+        if field.default is not NotSet:
+          raise RuntimeError('cannot override default value for field {!r} '
+            'when the field was declared with a default value ({!r}) on the '
+            'same class'.format(key, field.default))
+        field.default = value
+
     # Give new fields (non-inherited ones) a chance to propagate their
     # name (eg. to datatypes, this is mainly used to automatically generate
     # a proper class name for inline-declared objects).
@@ -530,6 +549,7 @@ class Struct(six.with_metaclass(_StructMeta)):
   __databind__ = None  # type: Optional[dict]
 
   def __init__(self, *args, **kwargs):
+    struct_name = type(self).__name__
     argcount = len(args) + len(kwargs)
     if argcount > len(self.__fields__):
       # TODO(nrosenstein): Include min number of args.
@@ -544,14 +564,14 @@ class Struct(six.with_metaclass(_StructMeta)):
         kwargs[field.name] = None
         continue
       try:
-        kwargs[field.name] = field.datatype.check_value(arg)
+        kwargs[field.name] = field.check_value(struct_name, arg)
       except TypeError as exc:
         raise TypeError('{}.{}: {}'.format(type(self).__name__, field.name, exc))
 
     # Extract all fields.
     handled_keys = set()
     for field in self.__fields__.values().sortby(lambda x: x.get_priority()):
-      if field.name not in kwargs:
+      if field.name not in kwargs and field.name not in vars(self):
         if field.default is NotSet:
           raise TypeError('missing required argument "{}"'.format(field.name))
         kwargs[field.name] = field.get_default_value()
