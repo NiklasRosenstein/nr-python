@@ -50,7 +50,7 @@ class OrderedDict(MutableMapping):
     elif iterable is not None:
       self.__items = []
       for key, value in iterable:
-        self.__items.append((key, value))
+        self.__items.append([key, value])
     else:
       self.__items = []
 
