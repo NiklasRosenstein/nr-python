@@ -309,7 +309,7 @@ class PythonClassType(object):
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
     if isinstance(py_type_def, type) and py_type_def.__module__ not in (
-        'builtin', '__builtin__'):
+        'builtin', '__builtin__', 'typing'):
       return cls(py_type_def)
     raise InvalidTypeDefinitionError(py_type_def)
 
