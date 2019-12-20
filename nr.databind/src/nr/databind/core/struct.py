@@ -432,8 +432,7 @@ class _StructMeta(type):
   def __getattr__(self, name):
     field = self.__fields__.get(name)
     if field is not None:
-      if isinstance(field, Field) and isinstance(field.datatype, StructType):
-        return field.datatype.struct_cls
+      return field
     raise AttributeError(name)
 
 
