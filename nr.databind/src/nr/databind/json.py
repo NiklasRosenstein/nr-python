@@ -272,8 +272,9 @@ class StructConverter(object):
       try:
         obj = deserializer(context, location)
       except NotImplementedError:
-        pass
-    else:
+        deserializer = None
+
+    if not deserializer:
       obj = self._deserialize(context, location)
 
     validator = JsonValidator.first(struct_cls.__decorations__)
@@ -332,8 +333,9 @@ class StructConverter(object):
       try:
         result = serializer(context, location)
       except NotImplementedError:
-        pass
-    else:
+        serializer = None
+
+    if not serializer:
       result = {}
       for name, field in struct_cls.__fields__.items():
         if field.is_derived():
