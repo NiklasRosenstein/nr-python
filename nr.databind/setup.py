@@ -34,6 +34,7 @@ setuptools.setup(
   data_files = [],
   entry_points = {
     'nr.databind.core.struct.Mixin': [
+      'asdict = nr.databind.contrib.mixins.asdict:AsdictMixin',
       'json = nr.databind.json:JsonMixin',
       'tuple = nr.databind.contrib.mixins.tuple:TupleMixin',
     ]
