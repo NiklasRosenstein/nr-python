@@ -37,15 +37,19 @@ class Decoration(object):
     decoration. """
 
     for value in values:
+      try_next = ()
+      if isinstance(value, type):
+        try_next = value.__bases__
       if hasattr(value, '__decorations__'):
         value = value.__decorations__
       elif hasattr(value, 'decorations'):
         value = value.decorations()
-      if isinstance(value, type) or not hasattr(value, '__iter__'):
-        continue
-      for item in value:
-        if isinstance(item, cls):
-          yield item
+      if not isinstance(value, type) and hasattr(value, '__iter__'):
+        for item in value:
+          if isinstance(item, cls):
+            yield item
+      for x in cls.all(*try_next):
+        yield x
 
   @classmethod
   def first(cls, *values, **kwargs):

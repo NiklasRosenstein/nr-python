@@ -1,6 +1,7 @@
 
 from nr.databind.core import *
 from nr.databind.json import JsonFieldName, JsonStrict
+from nr.commons.notset import NotSet
 from typing import Optional, List, Dict
 from ..fixtures import mapper
 import pytest
@@ -190,3 +191,25 @@ def test_inline_schema_definition(mapper):
   })
   assert type(datatype) == StructType
   assert sorted(datatype.struct_cls.__fields__.keys()) == ['a', 'b']
+
+
+def test_struct_class_overridable_attribute():
+
+  class MyBaseClass(Struct):
+    __annotations__ = [
+      ('a', str),
+      ('b', int),
+      ('c', float)
+    ]
+
+  assert sorted(MyBaseClass.__fields__) == ['a', 'b', 'c']
+
+  class MySubClass(MyBaseClass):
+    b = 42
+
+  assert MySubClass.b == MySubClass.__fields__['b']
+  assert MySubClass.b.default == 42
+  assert MyBaseClass.b.default == NotSet
+  assert MySubClass.b.parent == MyBaseClass.b
+
+  assert MySubClass('value of a', c=1.0) == MySubClass('value of a', 42, 1.0)

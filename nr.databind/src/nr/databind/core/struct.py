@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-
+import copy
 import pkg_resources
 import six
 import typing
@@ -38,6 +38,7 @@ from nr.stream import Stream
 __all__ = [
   'Field',
   'FieldSpec',
+  'StructClassExposeFieldsAs',
   'Struct',
   'StructType',
   'Mixin',
@@ -141,6 +142,7 @@ class Field(object):
     self.name = name
     self.nullable = False if nullable is None else bool(nullable)
     self.default = default
+    self.parent = None
 
     self.instance_index = Field._INSTANCE_INDEX_COUNTER
     Field._INSTANCE_INDEX_COUNTER += 1
@@ -383,6 +385,32 @@ class Mixin(ClassDecoration):
     return len(self._mixins)
 
 
+class StructClassExposeFieldsAs(ClassDecoration):
+  """ A decoration for the #Struct class that defines that fields on the class
+  object itself are exposed as their default value instead of the actual
+  #Field object. """
+
+  FIELDS = 'fields'
+  FIELD_DEFAULTS = 'field_defaults'
+
+  classdef.comparable('mode')
+  classdef.repr('mode')
+
+  def __init__(self, mode):
+    assert mode in (self.FIELDS, self.FIELD_DEFAULTS)
+    self.mode = mode
+
+  def __call__(self, field):
+    if self.mode == self.FIELDS:
+      return field
+    elif self.mode == self.FIELD_DEFAULTS:
+      if field.default is not NotSet:
+        return field.default
+    else:
+      raise RuntimeError('invalid mode: {!r}'.format(self.mode))
+    raise NotImplementedError
+
+
 class _StructMeta(type):
   """ Private. Meta class for #Struct. """
 
@@ -405,17 +433,31 @@ class _StructMeta(type):
 
     # If there are any class member annotations, we derive the object fields
     # from these rather than from class level #Field objects.
-    if hasattr(self, '__fields__') and not isinstance(self.__fields__, FieldSpec):
+    if '__fields__' in attrs and not isinstance(attrs['__fields__'], FieldSpec):
       fields = FieldSpec.from_list_def(self.__fields__)
-    elif hasattr(self, '__annotations__'):
-      if isinstance(self.__annotations__, dict):
+    elif '__annotations__' in attrs:
+      if isinstance(attrs['__annotations__'], dict):
+        assert attrs['__annotations__'] is self.__annotations__
         fields = FieldSpec.from_annotations(self)
       else:
-        fields = FieldSpec.from_list_def(self.__annotations__)
+        fields = FieldSpec.from_list_def(attrs['__annotations__'])
     else:
       fields = FieldSpec.from_class_members(self)
-      if not fields and hasattr(self, '__fields__'):
-        fields = self.__fields__
+      if not fields and '__fields__' in attrs:
+        fields = attrs['__fields__']
+
+    # If at the class-level a field has been overwritten with a plain value,
+    # it will cause a copy of the field to be created and the default value
+    # to be overwritten.
+    for key, field in parent_fields.items():
+      assert field.name == key
+      value = attrs.get(field.name, field)
+      if value is not field and value != field.default:
+        assert not isinstance(value, Field)
+        new_field = copy.copy(field)
+        new_field.default = value
+        new_field.parent = field
+        parent_fields.update([new_field])
 
     # Give new fields (non-inherited ones) a chance to propagate their
     # name (eg. to datatypes, this is mainly used to automatically generate
@@ -427,12 +469,18 @@ class _StructMeta(type):
     for key in fields:
       if key in vars(self):
         delattr(self, key)
+
+    self.__expose_fields = StructClassExposeFieldsAs.first(self) or \
+      StructClassExposeFieldsAs(StructClassExposeFieldsAs.FIELDS)
     self.__fields__ = fields
 
   def __getattr__(self, name):
     field = self.__fields__.get(name)
     if field is not None:
-      return field
+      try:
+        return self.__expose_fields(field)
+      except NotImplementedError:
+        pass
     raise AttributeError(name)
 
 
@@ -534,6 +582,12 @@ class Struct(six.with_metaclass(_StructMeta)):
   def __repr__(self):
     attrs = ['{}={!r}'.format(k, getattr(self, k)) for k in self.__fields__]
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
+
+  def __getattr__(self, name):
+    try:
+      return getattr(type(self), name)
+    except AttributeError as exc:
+      raise AttributeError(name)
 
 
 def create_struct_class(name, fields, base=None, mixins=()):
