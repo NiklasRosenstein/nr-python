@@ -219,8 +219,15 @@ class Stream(object):
     return cls(itertools.takewhile(pred, iterable))
 
   @_dualmethod
-  def groupby(cls, iterable, key=None):
-    return cls(itertools.groupby(iterable, key))
+  def groupby(cls, iterable, key=None, collect=False):
+    if collect:
+      collect_as = collect if callable(collect) else list
+      def generator():
+        for k, g in cls.groupby(iterable, key, False):
+          yield k, collect_as(g)
+      return cls(generator())
+    else:
+      return cls(itertools.groupby(iterable, key))
 
   @_dualmethod
   def slice(cls, iterable, *args, **kwargs):
