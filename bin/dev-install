@@ -1,0 +1,14 @@
+#!/bin/sh
+
+${PYTHON:-python} -m pip install \
+  -e nr.collections \
+  -e nr.metaclass \
+  -e nr.fs \
+  -e nr.parsing.core \
+  -e nr.parsing.date \
+  -e nr.proxy \
+  -e nr.commons          `# requires nr.collections` \
+  -e nr.stream           `# requires nr.collections, nr.commons` \
+  -e nr.sumtype          `# requires nr.metaclass, nr.stream` \
+  -e nr.interface        `# requires nr.collections, nr.commons, nr.metaclass` \
+  -e nr.databind          # requires nr.interface, nr.parsing.date, nr.stream
