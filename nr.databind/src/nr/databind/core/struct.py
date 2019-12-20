@@ -281,6 +281,12 @@ class FieldSpec(object):
 
     assert not isinstance(list_def, abc.Mapping), "did not expect a mapping"
 
+    if isinstance(list_def, str):
+      if ',' in list_def:
+        list_def = [x.strip() for x in list_def.split(',')]
+      else:
+        list_def = list_def.split()
+
     fields = []
     for item in list_def:
       if isinstance(item, str):
