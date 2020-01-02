@@ -294,6 +294,7 @@ def test_staticattr_default():
 
   class IFoo(Interface):
     x = attr(int, 24, static=True)
+    y = attr(default=list, static=True)
 
   @implements(IFoo)
   class Bar(object):
@@ -303,6 +304,9 @@ def test_staticattr_default():
   assert Bar.x == 24
   assert Bar().x == 24
   assert 'x' not in vars(Bar())
+  assert Bar.y == []
+  assert Bar().y == []
+  assert 'y' not in vars(Bar())
 
 
 def test_staticattr_override():

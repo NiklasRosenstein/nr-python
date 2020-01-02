@@ -310,7 +310,7 @@ class Attribute(_Member):
     if self.default is NotSet:
       raise RuntimeError('Attribute.default is NotSet')
     if callable(self.default):
-      return self.default
+      return self.default()
     return self.default
 
   @property
@@ -455,7 +455,7 @@ class InterfaceClass(type):
         del attrs[key]
       if isinstance(attr, Attribute) and attr.static and \
           not any(hasattr(x, key) for x in bases):
-        attrs[key] = attr.default
+        attrs[key] = attr.make_default()
 
     self = type.__new__(cls, name, bases, attrs)
     self.__implementations = OrderedSet()
