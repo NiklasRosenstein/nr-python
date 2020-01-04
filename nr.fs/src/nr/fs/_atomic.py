@@ -28,37 +28,37 @@ import shutil
 
 
 class atomic_file(object):
-    """
-    A context-manager for creating a new temporary file that will then replace
-    an existing file atomatically. This class has to be used as a
-    context-manager.
-    """
+  """
+  A context-manager for creating a new temporary file that will then replace
+  an existing file atomatically. This class has to be used as a
+  context-manager.
+  """
 
-    def __init__(self, filename, text=False, encoding=None, temp_dir=None):
-        self._filename = filename
-        self._tempfile = tempfile(base(filename), 'atomic',
-            dir=temp_dir, text=text, encoding=encoding)
+  def __init__(self, filename, text=False, encoding=None, temp_dir=None):
+    self._filename = filename
+    self._tempfile = tempfile(base(filename), 'atomic',
+      dir=temp_dir, text=text, encoding=encoding)
 
-    def __enter__(self):
-        return self._tempfile.__enter__()
+  def __enter__(self):
+    return self._tempfile.__enter__()
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        try:
-            if exc_type is None:
-                self._replace()
-        finally:
-            self._tempfile.__exit__(exc_type, exc_value, exc_tb)
+  def __exit__(self, exc_type, exc_value, exc_tb):
+    try:
+      if exc_type is None:
+        self._replace()
+    finally:
+      self._tempfile.__exit__(exc_type, exc_value, exc_tb)
 
-    def _replace(self):
-        if not self._tempfile.closed:
-            self._tempfile.close()
+  def _replace(self):
+    if not self._tempfile.closed:
+      self._tempfile.close()
 
-        delete_file = None
-        if isfile(self._filename):
-            delete_file = join(dir(self._filename), '~.' + base(self._filename))
-            rename(self._filename, delete_file)
+    delete_file = None
+    if isfile(self._filename):
+      delete_file = join(dir(self._filename), '~.' + base(self._filename))
+      rename(self._filename, delete_file)
 
-        shutil.move(self._tempfile.name, self._filename)
+    shutil.move(self._tempfile.name, self._filename)
 
-        if delete_file:
-            remove(delete_file)
+    if delete_file:
+      remove(delete_file)
