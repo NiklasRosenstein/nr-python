@@ -75,7 +75,7 @@ class _EntityCloneHelper(object):
     return new
 
 
-class MetaAppEntity(type):
+class AppEntityMeta(type):
 
   _app_database = None
   _bound_entity = None
@@ -119,7 +119,7 @@ class MetaAppEntity(type):
     return None if self._bound_entity is None else self._bound_entity()
 
 
-class AppEntity(metaclass=MetaAppEntity):
+class AppEntity(metaclass=AppEntityMeta):
 
   def __new__(cls, *args, **kwargs):
     bound_entity = cls.bound_entity
@@ -156,10 +156,11 @@ class AppDatabase:
   def __init__(self, app_namespace: str):
     self.app_namespace = app_namespace
     self.entities = {}
-    self.Entity = MetaAppEntity(app_namespace + '.Entity', (AppEntity,), {})
+    self.Entity = AppEntityMeta(app_namespace + '.Entity', (AppEntity,), {})
     self.Entity._app_database = weakref.ref(self)
     self.bound_db = None
     self.bound_entities = None
+    self.converter_classes = []
 
   def __getattr__(self, name):
     if self.bound_db is None:
@@ -219,6 +220,10 @@ class AppDatabase:
       entity_decl._bound_entity = weakref.ref(db_entity)
       self.bound_entities[name] = db_entity
 
+    # TODO (@NiklasRosenstein): Is there a way we can limit the use of a
+    #   converted to just the entities that are defined in this app db?
+    db.provider.converter_classes.extend(self.converter_classes)
+
   def is_bound(self):
     return self.bound_db is not None
 
@@ -233,6 +238,21 @@ class AppDatabase:
       raise ValueError('{!r} is not an entity of app database {!r}'.format(
         table.__name__, self.app_namespace))
     self.bound_db.drop_table(table_name, if_exists, with_all_data)
+
+  def register_converter(self, cls, converter_cls=None):
+    if converter_cls is None:
+      converter_cls, cls = cls, None
+    if cls is None:
+      if not hasattr(converter_cls, 'for_types'):
+        raise TypeError('converter_cls requires a for_types attribute if '
+                        'cls is not specified.')
+      for type_ in converter_cls.for_types:
+        assert type_ is not None  # prevent infinite recursion
+        self.register_converter(type_, converter_cls)
+    else:
+      if self.bound_db:
+        self.bound_db.provider.converter_classes.append((cls, converter_cls))
+      self.converter_classes.append((cls, converter_cls))
 
 
 __all__ = [

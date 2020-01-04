@@ -19,28 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import enum
-import pony.orm.dbapiprovider
+__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
+__version__ = '0.0.1'
 
-
-# TODO(nrosenstein) How to register a converter only for an AppDatabase
-class EnumConverter(pony.orm.dbapiprovider.StrConverter):
-  """
-  A converter for #enum.Enum values.
-  """
-
-  def validate(self, val, obj=None):
-    if not isinstance(val, enum.Enum):
-      raise ValueError('mut be an Enum, got {}'.format(type(val)))
-    return val
-
-  def py2sql(self, val):
-    return val.name
-
-  def sql2py(self, value):
-    # Any enum type can be used, so py_type ensures the correct one is used to create the enum instance
-    return self.py_type[value]
-
-  @classmethod
-  def register(cls, db):
-    db.provider.converter_classes.append((enum.Enum, cls))
+from .utils import *

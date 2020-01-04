@@ -1,5 +1,5 @@
 package:
-  name: "nr.orm.ponyappdb"
+  name: "nr.utils.ponyorm"
   version: "0.0.1"
   license: "MIT"
   description: "Package description here."
