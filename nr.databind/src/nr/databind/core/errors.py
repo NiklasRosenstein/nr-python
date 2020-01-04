@@ -19,6 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from nr.commons.py.exc import return_formatted_traceback
+from .location import Location
+
 __all__ = [
   'SerializationError',
   'SerializationTypeError',
@@ -30,9 +33,13 @@ __all__ = [
 class SerializationError(Exception):
 
   def __init__(self, location, message=None):  # type: (Location, Optional[str])
+    if not isinstance(location, Location):
+      raise TypeError('location must be a Location object, got {}'.format(
+        type(location).__name__))
     self.location = location
     self.message = message
 
+  @return_formatted_traceback
   def __str__(self):
     result = 'at {}'.format(self.location.path)
     if self.location.filename:
