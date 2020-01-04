@@ -9,6 +9,7 @@ ${PYTHON:-python} -m pip install \
   -e "nr.parsing.date" \
   -e "nr.proxy" \
   -e "nr.stream" `# depends on nr.collections, nr.commons` \
+  -e "nr.utils.ponyorm" `# depends on nr.commons` \
   -e "nr.interface" `# depends on nr.collections, nr.metaclass, nr.commons` \
   -e "nr.sumtype" `# depends on nr.metaclass, nr.stream` \
   -e "nr.databind" `# depends on nr.interface, nr.parsing.date, nr.stream`

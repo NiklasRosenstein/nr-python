@@ -1,9 +1,10 @@
 package:
   name: "nr.utils.ponyorm"
-  version: "0.0.1"
+  version: "0.1.0"
   license: "MIT"
   description: "Package description here."
 
 requirements:
   - python ^3.4
+  - nr.commons ^0.1.0
   - pony ^0.7.0
