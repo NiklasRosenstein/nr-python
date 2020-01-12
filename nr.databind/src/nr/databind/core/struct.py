@@ -458,8 +458,7 @@ class _StructMeta(type):
     for key, field in parent_fields.items():
       assert field.name == key
       value = attrs.get(field.name, field)
-      if value is not field and value != field.default:
-        assert not isinstance(value, Field)
+      if not isinstance(value, Field) and value != field.default:
         new_field = copy.copy(field)
         new_field.default = value
         new_field.parent = field

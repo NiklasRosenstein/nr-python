@@ -213,3 +213,8 @@ def test_struct_class_overridable_attribute():
   assert MySubClass.b.parent == MyBaseClass.b
 
   assert MySubClass('value of a', c=1.0) == MySubClass('value of a', 42, 1.0)
+
+  class OtherSubclass(MyBaseClass):
+    b = Field(str)
+
+  assert OtherSubclass.__fields__['b'].datatype == StringType()
