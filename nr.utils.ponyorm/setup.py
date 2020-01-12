@@ -10,7 +10,7 @@ with io.open('src/nr/utils/ponyorm/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['pony >=0.7.0,<1.0.0']
+requirements = ['nr.commons >=0.1.0,<1.0.0', 'pony >=0.7.0,<1.0.0']
 
 setuptools.setup(
   name = 'nr.utils.ponyorm',

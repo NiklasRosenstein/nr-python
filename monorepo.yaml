@@ -1,8 +1,10 @@
 project:
+  use: [devinstallscript]
   name: nr-libs
   version: 0.1.0
 
 packages:
+  use: [setuptools]
   url: https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs
   license: MIT
   author:
