@@ -1,4 +1,4 @@
-# nr.bundler
+# nr.pylang.bundle
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -23,7 +23,7 @@ in parentheses.
 #### Synopsis
 
 ```
-$ nr python-bundler --help
+$ python -m nr.pylang.bundle --help
 usage: nr python-bundler [-h] [--version] [-v] [--flat] [--json]
                          [--json-graph] [--dotviz] [--search SEARCH]
                          [--recursive] [--whitelist GLOB] [--deps]

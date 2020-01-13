@@ -22,11 +22,9 @@
 # IN THE SOFTWARE.
 
 """
-nr.pybundle is a tool to collect and bundle all Python modules, packages,
-data files and binaries to create a standalone Python application.
-
-To access the `nr pybundle` command-line tool, install the nr.cli package.
+`nr.pylang.bundling` is a tool to collect and bundle Python modules, packages,
+data files and binaries to create standalone Python applications.
 """
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '1.2.3'
+__version__ = '0.0.1'

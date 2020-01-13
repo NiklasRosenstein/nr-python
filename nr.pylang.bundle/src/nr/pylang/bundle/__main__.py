@@ -161,7 +161,7 @@ def main(argv=None, prog=None):
   Create standalone distributions of Python applications.
   """
 
-  parser = get_argument_parser(prog)
+  parser = get_argument_parser(prog or 'nr.pylang.bundle')
   args, unknown = parser.parse_known_args(argv)
 
   if args.verbose == 0:

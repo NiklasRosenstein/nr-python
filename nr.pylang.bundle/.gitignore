@@ -7,6 +7,6 @@
 __pycache__/
 dist/
 
-# nr.bundler
-.bundler-temp
-bundle/
+# nr.pylang.bundle
+/.bundler-temp
+/bundle

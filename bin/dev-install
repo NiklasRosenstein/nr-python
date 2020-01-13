@@ -11,6 +11,7 @@ ${PYTHON:-python} -m pip install \
   -e "nr.utils.process" \
   -e "nr.stream" `# depends on nr.collections, nr.commons` \
   -e "nr.utils.ponyorm" `# depends on nr.commons` \
+  -e "nr.pylang.bundle" `# depends on nr.fs` \
   -e "nr.interface" `# depends on nr.collections, nr.commons, nr.metaclass` \
   -e "nr.sumtype" `# depends on nr.metaclass, nr.stream` \
   -e "nr.databind" `# depends on nr.interface, nr.parsing.date, nr.stream`
