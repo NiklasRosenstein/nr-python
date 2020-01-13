@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from .vendor import pip_pep425tags as tags
-from nr.types import structured, stream
+from nr.databind.core import Struct
 from .utils import system
 from .hooks import Hook
 
@@ -90,7 +90,7 @@ def get_imports(filename, source=None):
   return result
 
 
-class ImportInfo(structured.Object):
+class ImportInfo(Struct):
   __annotations__ = [
     ('name', str),
     ('filename', str),
@@ -172,7 +172,7 @@ class ImportInfo(structured.Object):
     return ImportInfo(module_name, self.filename, self.lineno, self.is_from_import)
 
 
-class ModuleInfo(structured.Object):
+class ModuleInfo(Struct):
   """
   Represents a Python module.
   """

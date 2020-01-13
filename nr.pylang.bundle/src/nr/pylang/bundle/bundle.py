@@ -21,8 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types import structured
-from nr.types.sumtype import Constructor, Sumtype
+from nr.databind.core import Struct
+from nr.sumtype import Constructor, Sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
 from .utils import gitignore, system
@@ -40,7 +40,7 @@ import textwrap
 import zipfile
 
 
-class AppResource(structured.Object):
+class AppResource(Struct):
   """
   Represents a file or directory that that is an application resource file
   and will need to be copied to the application folder.
@@ -59,7 +59,7 @@ class AppResource(structured.Object):
     self.source = nr.fs.canonical(self.source)
 
 
-class SiteSnippet(structured.Object):
+class SiteSnippet(Struct):
   """
   A code snippet that is inserted into the `site.py` module .
   """
@@ -73,7 +73,7 @@ class SiteSnippet(structured.Object):
   ]
 
 
-class DirConfig(structured.Object):
+class DirConfig(Struct):
   """
   The configuration where the bundle files will be placed.
   """
@@ -384,7 +384,7 @@ class PythonAppBundle(object):
       self.scripts.make_script(ep)
 
 
-class DistributionBuilder(structured.Object):
+class DistributionBuilder(Struct):
   """
   This object handles building a distribution and contains most of the
   functionality that is also provided via the pybundle command-line.

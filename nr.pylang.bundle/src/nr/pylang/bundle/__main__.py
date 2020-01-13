@@ -18,7 +18,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.types import stream
+from nr.stream import Stream
 from . import nativedeps, __version__
 from .utils import system
 from .bundle import DistributionBuilder
@@ -33,7 +33,7 @@ import sys
 def split_multiargs(value):
   if not value:
     return []
-  return list(stream.concat([x.split(',') for x in value]))
+  return list(Stream.concat([x.split(',') for x in value]))
 
 
 def dump_list(lst, args):
@@ -223,7 +223,7 @@ def main(argv=None, prog=None):
       if not args.json:
         print('{} ({})'.format(module.name, module.type))
       contents = result.setdefault(module.name, [])
-      for submodule in stream.chain([module], builder.finder.iter_package_modules(module)):
+      for submodule in Stream.chain([module], builder.finder.iter_package_modules(module)):
         data = {'name': submodule.name, 'type': submodule.type, 'filename': submodule.filename}
         contents.append(data)
         flat.append(data)

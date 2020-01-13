@@ -11,14 +11,17 @@ Options:
 import collections
 import os
 
-from nr.pybundle import nativedeps
-from nr.types import structured, stream
+from nr.pylang.bundle import nativedeps
+from nr.databind.core import Struct
+from nr.stream import Stream
 
-class Module(structured.Object):
+
+class Module(Struct):
   __annotations__ = [
     ('deps', list, Named.Initializer(list)),
     ('files', list, Named.Initializer(list))
   ]
+
 
 module_graph = collections.defaultdict(Module)
 module_graph['QtBluetooth'].deps = []
@@ -77,7 +80,7 @@ def _expand_modules(modules):
 
 def _get_exclude_module_files(modules):
   modules = _expand_modules(modules)
-  exclude = set(stream.concat(x.files for x in module_graph.values()))
+  exclude = set(Stream.concat(x.files for x in module_graph.values()))
   for name in module_graph:
     if name not in modules:
       exclude.add('Qt5{}{}'.format(name[2:], so_ext))
