@@ -1,0 +1,12 @@
+# System files
+.DS_Store
+
+# Python
+*.egg-info
+.venv/
+__pycache__/
+dist/
+
+# nr.bundler
+.bundler-temp
+bundle/
