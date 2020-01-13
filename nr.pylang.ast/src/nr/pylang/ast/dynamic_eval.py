@@ -24,28 +24,6 @@
 This module provides an AST rewriter that takes and Read/Write operations on
 global variables and rewrites them to retrieve the variable by a function
 instead. Non-global variables are left untouched.
-
-Example:
-
-    import os
-    from os import path
-
-    parent_dir = path.dirname(__file__)
-
-    def main():
-      filename = path.join(parent_dir, 'foo.py')
-      print(filename)
-
-Will be converted to:
-
-    import os; __dict__['os'] = os
-    from os import path; __dict__['path'] = path
-
-    __dict__['parent_dir'] = __dict__['path'].dirname(__dict__['__file__'])
-
-    def main():
-      filename = __dict__['path'].join(__dict__['parent_dir'], 'foo.py')
-      __dict__['print'](filename)
 """
 
 __all__ = ['dynamic_exec', 'dynamic_eval', 'transform']
@@ -289,7 +267,6 @@ def dynamic_exec(code, mapping, automatic_builtins=True, wrap=True,
 
   if wrap and not isinstance(mapping, DynamicMapping):
     mapping = DynamicMapping(mapping)
-  print('>>>', mapping, mapping['NameError'])
 
   parse_filename = filename or '<string>'
   ast_node = transform(ast.parse(code, parse_filename, mode=_type))
