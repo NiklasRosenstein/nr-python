@@ -1,8 +1,8 @@
 package:
   name: nr.sumtype
-  version: 0.1.0
+  version: "0.0.1"
   description: Sumtypes in Python.
 
 requirements:
-  - nr.metaclass ^0.1.0
-  - nr.stream ^0.1.0
+  - nr.metaclass ^0.0.1
+  - nr.stream ^0.0.1
