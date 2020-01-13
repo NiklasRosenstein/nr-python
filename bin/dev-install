@@ -8,6 +8,7 @@ ${PYTHON:-python} -m pip install \
   -e "nr.parsing.core" \
   -e "nr.parsing.date" \
   -e "nr.proxy" \
+  -e "nr.utils.process" \
   -e "nr.stream" `# depends on nr.collections, nr.commons` \
   -e "nr.utils.ponyorm" `# depends on nr.commons` \
   -e "nr.interface" `# depends on nr.collections, nr.metaclass, nr.commons` \
