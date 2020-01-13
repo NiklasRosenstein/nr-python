@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from nr.collections import LambdaDict
-from nr.commons.py.ast.dynamic_eval import dynamic_exec, dynamic_eval
+from nr.pylang.ast.dynamic_eval import dynamic_exec, dynamic_eval
 import textwrap
 import sys
 import pytest
