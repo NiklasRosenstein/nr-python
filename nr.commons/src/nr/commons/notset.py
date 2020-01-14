@@ -19,28 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-
-class NotSetType(object):  # doc: ignore
-
-  def __new__(self):
-    global NotSet
-    if NotSet is not None:
-      return NotSet
-    NotSet = object.__new__(self)
-    return NotSet
-
-  def __repr__(self):
-    return 'NotSet'
-
-  def __bool__(self):
-    return False
-
-  def __nonzero__(self):
-    return False
-
-
-NotSet = None
-NotSet = NotSetType()
-
+from .py.classdef import make_singleton
 
 __all__ = ['NotSet']
+
+NotSet = make_singleton('NotSet', bool_value=False)

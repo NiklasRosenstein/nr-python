@@ -23,6 +23,7 @@
 Utils for class definition.
 """
 
+from .module import get_calling_module_name
 import sys
 
 
@@ -103,3 +104,29 @@ def repr(properties, _stackdepth=0, decorate=None):
   frame = sys._getframe(_stackdepth + 1)
   frame.f_locals['__repr__'] = __repr__
   frame.f_locals['__repr_properties__'] = properties
+
+
+def make_singleton(class_name, bool_value=True, module=None, base_class=object):
+  """ Creates a new singleton object. """
+
+  class SingletonType(object):
+    __INSTANCE = None
+
+    def __new__(cls):
+      if cls.__INSTANCE is None:
+        cls.__INSTANCE = object.__new__(cls)
+      return cls.__INSTANCE
+
+    def __repr__(self):
+      return class_name
+
+    def __bool__(self):
+      return bool_value
+
+    def __nonzero__(self):
+      return bool_value
+
+  SingletonType.__name__ = class_name
+  SingletonType.__module__ = module or get_calling_module_name(1)
+  SingletonType.__qualname__ = class_name
+  return SingletonType()

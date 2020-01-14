@@ -23,7 +23,6 @@
 Provides some fancy tools to augment module objects.
 """
 
-from nr.commons.notset import NotSet
 import sys
 import types
 
@@ -39,13 +38,13 @@ class _InheritableModuleTypeClass(type):
     if bases == (types.ModuleType,):
       return type.__new__(cls, name, bases, attrs)
     new_bases = []
-    inheritable_type = NotSet
+    inheritable_type = None
     for base in bases:
       if isinstance(base, _InheritableModuleTypeClass):
         inheritable_type = base.__inheritable_type__
       else:
         new_bases.append(base)
-    if inheritable_type is NotSet:
+    if inheritable_type is None:
       raise RuntimeError('__inheritable_type__ not set')
     return type(name, (inheritable_type,) + tuple(new_bases), attrs)
 
