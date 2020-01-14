@@ -25,6 +25,7 @@ from abc import ABCMeta
 from . import abc
 from six.moves import cPickle as pickle
 import codecs
+import errno
 import json
 import os
 import six
@@ -140,8 +141,12 @@ class FilePersister(Persister):
 
   def load(self, fp):
     assert fp is None, "FilePersister expected no file to be passed in"
-    with (self.opener or open)(self.filename, 'rb') as fp:
-      return self.persister.load(fp)
+    try:
+      with (self.opener or open)(self.filename, 'rb') as fp:
+        return self.persister.load(fp)
+    except OSError as exc:
+      if exc.errno != errno.ENOENT:
+        raise
 
   def save(self, fp, data):
     assert fp is None, "FilePersister expected no file to be passed in"
