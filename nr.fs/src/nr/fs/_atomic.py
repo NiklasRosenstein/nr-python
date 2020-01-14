@@ -24,6 +24,7 @@ __all__ = ['atomic_file']
 from ._tempfile import tempfile
 from ._path import base, dir, isfile, join, remove, rename
 
+import io
 import shutil
 
 
@@ -33,6 +34,13 @@ class atomic_file(object):
   an existing file atomatically. This class has to be used as a
   context-manager.
   """
+
+  @classmethod
+  def dispatch(cls, filename, mode, encoding=None):
+    if 'r' in mode or 'a' in mode:
+      return io.open(filename, mode, encoding=encoding)
+    elif 'w' in mode:
+      return cls(filename, 'b' not in mode, encoding=None)
 
   def __init__(self, filename, text=False, encoding=None, temp_dir=None):
     self._filename = filename
