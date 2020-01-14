@@ -72,6 +72,11 @@ __all__ = [
 class JsonModule(SimpleModule):
 
   def setup_module(self, context):
+    try: import enum
+    except ImportError: enum = None
+    else:
+      self.register_duplex(PythonClassType.of(enum.Enum), EnumConverter())
+
     self.register_duplex(AnyType, AnyConverter())
     self.register_duplex(BooleanType, BooleanConverter())
     self.register_duplex(StringType, StringConverter())
@@ -361,6 +366,21 @@ class DatetimeConverter(object):
     if isinstance(location.value, datetime):
       return ISO_8601.format(location.value)
     raise SerializationTypeError(location)
+
+
+@implements(IDeserializer, ISerializer)
+class EnumConverter(object):
+  """ Converter for a #PythonClassType that encapsulates an #enum.Enum
+  object. The serialized type for enums is a string (the enum name). """
+
+  def deserialize(self, context, location):
+    try:
+      return location.datatype.cls[location.value]
+    except KeyError as exc:
+      raise SerializationValueError(location, exc)
+
+  def serialize(self, context, location):
+    return location.value.name
 
 
 @implements(IDeserializer, ISerializer)
