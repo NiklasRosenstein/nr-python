@@ -201,7 +201,7 @@ class Field(object):
     if callable(self.default):
       return self.default()
     if self.default is Field.DEFAULT_CONSTRUCT:
-      return self.datatype.struct_cls
+      return self.datatype.struct_cls()
     return self.default
 
   def check_value(self, struct_name, py_value):
