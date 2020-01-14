@@ -43,9 +43,11 @@ class Persister(six.with_metaclass(ABCMeta)):
 class _PersistableMixin(object):
   """ Mixin for persistable objects. """
 
-  def __init__(self, persister, init_value):  # type: (Persister, Any)
+  def __init__(self, persister, init_value, default):  # type: (Persister, Any)
     self.__persister = persister
     self._data = init_value
+    self._default = default
+    assert callable(default)
 
   def load(self, file=None):  # type: (Union[str, BinaryIO, None])
     if isinstance(file, str):
@@ -53,6 +55,8 @@ class _PersistableMixin(object):
         self.load(fp)
     else:
       self._data = self.__persister.load(file)
+      if self._data is None:
+        self._data = self._default()
 
   def save(self, file=None):  # type: (Union[str, BinaryIO, None])
     if isinstance(file, str):
@@ -65,7 +69,7 @@ class _PersistableMixin(object):
 class PersistableDict(abc.MutableMapping, _PersistableMixin):
 
   def __init__(self, persister, *args, **kwargs):
-    _PersistableMixin.__init__(self, persister, dict(*args, **kwargs))
+    _PersistableMixin.__init__(self, persister, dict(*args, **kwargs), dict)
 
   def __len__(self):
     return len(self._data)
@@ -86,7 +90,7 @@ class PersistableDict(abc.MutableMapping, _PersistableMixin):
 class PersistableList(abc.MutableSequence, _PersistableMixin):
 
   def __init__(self, persister, *args):
-    _PersistableMixin.__init__(self, persister, list(*args))
+    _PersistableMixin.__init__(self, persister, list(*args), list)
 
   def __len__(self):
     return len(self._data)
@@ -147,6 +151,7 @@ class FilePersister(Persister):
     except OSError as exc:
       if exc.errno != errno.ENOENT:
         raise
+      return None
 
   def save(self, fp, data):
     assert fp is None, "FilePersister expected no file to be passed in"
@@ -155,3 +160,14 @@ class FilePersister(Persister):
 
   def exists(self):
     return os.path.isfile(self.filename)
+
+  @classmethod
+  def atomic_json(cls, filename):
+    """ Returns a #FilePersister instance with a #JsonPersister inside and
+    using the #nr.fs.atomic_file.dispatch() method as the opener. This is
+    provided as a convenience method as it is a common combination.
+
+    Requires the #nr.fs module to be installed. """
+
+    from nr.fs import atomic_file
+    return cls(JsonPersister(), filename, atomic_file.dispatch)
