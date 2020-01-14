@@ -92,6 +92,8 @@ class Field(object):
   classdef.comparable('__class__ name datatype nullable default')
   _INSTANCE_INDEX_COUNTER = 0
 
+  DEFAULT_CONSTRUCT = classdef.make_singleton('Field.DEFAULT_CONSTRUCT')
+
   def __init__(self, datatype, *decorations, **kwargs):
     """
     Parameters:
@@ -137,6 +139,11 @@ class Field(object):
       if not isinstance(item, Decoration):
         raise TypeError('expected Decoration object, got {!r}'.format(
           type(item).__name__))
+
+    if default is Field.DEFAULT_CONSTRUCT and type(datatype) != StructType:
+      raise ValueError('default cannot be Field.DEFAULT_CONSTRUCT if the '
+        'field datatype is not a StructType (got {})'.format(
+          type(datatype).__name__))
 
     self.datatype = datatype
     self.decorations = list(decorations)
@@ -193,6 +200,8 @@ class Field(object):
       raise RuntimeError('Field({!r}).default is NotSet'.format(self.name))
     if callable(self.default):
       return self.default()
+    if self.default is Field.DEFAULT_CONSTRUCT:
+      return self.datatype.struct_cls
     return self.default
 
   def check_value(self, struct_name, py_value):
