@@ -489,6 +489,8 @@ class InterfaceClass(type):
         yield member
 
   def implemented_by(self, x):
+    if not isinstance(x, type):
+      raise TypeError('expected type, got {}'.format(type(x).__name__))
     if not issubclass(x, Implementation):
       return False
     for interface in x.__implements__:
