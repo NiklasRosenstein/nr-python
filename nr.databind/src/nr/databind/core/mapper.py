@@ -25,6 +25,7 @@ from .interfaces import IDataType, IDeserializeContext, \
 from .location import Location, Path
 from nr.interface import Interface, default, implements, override
 import contextlib
+import inspect
 
 __all__ = ['IModule', 'SimpleModule', 'ObjectMapper']
 
@@ -52,23 +53,31 @@ class SimpleModule(object):
   def __init__(self):
     self._deserializers = {}
     self._serializers = {}
+    self._checked_deserializers = []
+    self._checked_serializers = []
 
   def register_deserializer(self, datatype_type, deserializer):
-    if not IDataType.implemented_by(datatype_type):
-      raise ValueError('expected IDataType implementation, got {!r}'
-        .format(datatype_type.__name__))
     if not IDeserializer.provided_by(deserializer):
       raise TypeError('expected IDeserializer instance, got {!r}'
         .format(deserializer.__name__))
-    self._deserializers[datatype_type] = deserializer
-
-  def register_serializer(self, datatype_type, serializer):
+    if inspect.isfunction(datatype_type):
+      self._checked_deserializers.append((datatype_type, deserializer))
+      return
     if not IDataType.implemented_by(datatype_type):
       raise ValueError('expected IDataType implementation, got {!r}'
         .format(datatype_type.__name__))
+    self._deserializers[datatype_type] = deserializer
+
+  def register_serializer(self, datatype_type, serializer):
     if not ISerializer.provided_by(serializer):
       raise TypeError('expected IDeserializer instance, got {!r}'
         .format(serializer.__name__))
+    if inspect.isfunction(datatype_type):
+      self._checked_serializers.append((datatype_type, serializer))
+      return
+    if not IDataType.implemented_by(datatype_type):
+      raise ValueError('expected IDataType implementation, got {!r}'
+        .format(datatype_type.__name__))
     self._serializers[datatype_type] = serializer
 
   def register_duplex(self, datatype_type, deserializer_serializer):
@@ -79,12 +88,18 @@ class SimpleModule(object):
     pass
 
   def get_deserializer(self, datatype):
+    for check, deserializer in self._checked_deserializers:
+      if check(datatype):
+        return deserializer
     try:
       return self._deserializers[type(datatype)]
     except KeyError:
       return None
 
   def get_serializer(self, datatype):
+    for check, serializer in self._checked_serializers:
+      if check(datatype):
+        return serializer
     try:
       return self._serializers[type(datatype)]
     except KeyError:

@@ -319,6 +319,16 @@ class PythonClassType(object):
         self.cls.__name__, type(py_value).__name__))
     return py_value
 
+  @classmethod
+  def of(cls, py_type): # type: (Type) -> Callable[bool, [IDataType]]
+    """ Returns a test function that accepts an #IDataType instance and
+    returns #True if it is a #PythonClassType of the specified *py_type*. """
+
+    def check(datatype):
+      return isinstance(datatype, PythonClassType) and issubclass(datatype.cls, py_type)
+    check.__qualname__ = 'PythonClassType.of.{}.check'.format(py_type.__name__)
+    return check
+
 
 @implements(IDataType)
 class MultiType(object):
