@@ -61,7 +61,8 @@ class StructType(object):
 
   def propagate_field_name(self, name):
     if self.struct_cls.__name__ == self._INLINE_GENERATED_TYPENAME:
-      self.struct_cls.__name__ = name
+      self.struct_cls.__name__ = name.rpartition('.')[-1]
+      self.struct_cls.__qualname__ = name
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
