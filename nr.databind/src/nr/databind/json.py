@@ -223,7 +223,7 @@ class CollectionConverter(object):
 @implements(IDeserializer, ISerializer)
 class ObjectConverter(object):
 
-  def __init__(self, json_type=OrderedDict):
+  def __init__(self, json_type=dict):
     super(ObjectConverter, self).__init__()
     self.json_type = json_type
 
