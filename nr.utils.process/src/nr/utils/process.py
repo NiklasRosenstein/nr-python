@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 import os
+import sys
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.1'
