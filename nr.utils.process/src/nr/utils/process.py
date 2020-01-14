@@ -84,6 +84,10 @@ def spawn_fork(func, detach=True):
   This is useful if *func* spawns another process, which will then behave like
   a daemon (as it will NOT be killed if the original process dies). """
 
+  if not callable(func):
+    raise TypeError('func is of type {} which is not callable'.format(
+      type(func).__name__))
+
   pid = os.fork()
   if pid > 0:
     # Return to the original caller
@@ -105,6 +109,10 @@ def spawn_daemon(func):
 
   # TODO (@NiklasRosenstein): It would be great if the second fork could
   #   somehow report it's process ID to the original caller.
+
+  if not callable(func):
+    raise TypeError('func is of type {} which is not callable'.format(
+      type(func).__name__))
 
   pid = os.fork()
   if pid > 0:
