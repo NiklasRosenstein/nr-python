@@ -158,16 +158,32 @@ class Include(object):
   def __call__(self, data):
     if not isinstance(data, six.string_types):
       return data
-    if not (data.startswith('{{!include ') and data.endswith('}}')):
+    match = re.match(r'{{\s*!include\s+(.+?)\s+}}$', data)
+    if not match:
       return data
-    filename = data[10:-2].strip()
-    if not filename:
-      return data
-    filename = os.path.join(self.base_dir, filename)
+    filename = os.path.join(self.base_dir, match.group(1))
     with open(filename) as fp:
       if self.load_func:
         return self.load_func(fp)
       return fp.read()
+
+
+class Envvars(object):
+  """ Replaces references of `{{ env VARIABLE_NAME }}` with the actual
+  environment variable value. If the environment vair """
+
+  def __init__(self, resolve=None):
+    if resolve is None:
+      resolve = lambda k: os.environ[k]
+    self._resolve = resolve
+
+  def __call__(self, data):
+    if not isinstance(data, six.string_types):
+      return data
+    def sub(match):
+      envname = match.group(1)
+      return self._resolve(match.group(1))
+    return re.sub(r'{{\s*env\s+([\w_\d]+)\s*}}', sub, data)
 
 
 class Preprocessor(object):
