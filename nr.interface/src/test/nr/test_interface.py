@@ -600,7 +600,8 @@ def test_implements_metaclass_conflict():
   class _MyMeta(type):
     pass
   class MyClass(six.with_metaclass(_MyMeta)):
-    pass
+    def __init__(self, bar):
+      self.bar = bar
 
   class MyInterface(Interface):
     def foo(self):
@@ -623,7 +624,31 @@ def test_implements_metaclass_conflict():
     def foo(self):
       return 42
 
-  assert MyImpl().foo() == 42
+  assert MyImpl(99).foo() == 42
+  assert MyImpl(99).bar == 99
+
+  # TODO (@NiklasRosenstein): Calling super() here should be allowed in the
+  #   Python3-style but it fails due to how __class__ is tied into the
+  #   __init__() function (the closure needs to be replaced when a copy of
+  #   the class is created).
+  #if six.PY3:
+  #  @implements(MyInterface)
+  #  class MyImpl(MyClass):
+  #    def __init__(self):
+  #      super().__init__(bar='Hello,')
+  #    def foo(self):
+  #      return 'World!'
+  #  assert MyImpl().bar == 'Hello,'
+  #  assert MyImpl().foo() == 'World!'
+
+  @implements(MyInterface)
+  class MyImpl(MyClass):
+    def __init__(self):
+      super(MyImpl, self).__init__(bar='Hello,')
+    def foo(self):
+      return 'World!'
+  assert MyImpl().bar == 'Hello,'
+  assert MyImpl().foo() == 'World!'
 
 
 def test_conflicting_interfaces():
