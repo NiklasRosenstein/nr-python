@@ -297,7 +297,7 @@ def parse_iso8601_duration(d):  # type: (str) -> int
 
 	seconds = 0
 	for i, item in enumerate(d.split('T')):
-		for number, unit in re.findall( '(?P<number>\d+)(?P<period>S|M|H|D|W|Y)', item ):
+		for number, unit in re.findall(r'(?P<number>\d+)(?P<period>S|M|H|D|W|Y)', item ):
 			number = int(number)
 			this = 0
 			if unit == 'Y':
