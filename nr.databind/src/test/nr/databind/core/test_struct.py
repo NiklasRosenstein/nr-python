@@ -122,6 +122,7 @@ def test_struct_def(mapper):
   assert A.__fields__['a'].datatype == AnyType()
   assert A.__fields__['c'].datatype == AnyType()
   assert A.__fields__['b'].datatype == AnyType()
+  assert isinstance(A.a, Field)
 
   class B(Struct):
     __fields__ = [
@@ -132,6 +133,16 @@ def test_struct_def(mapper):
   assert list(B.__fields__.keys()) == ['a', 'b']
   assert B.__fields__['a'].datatype == IntegerType()
   assert B.__fields__['b'].datatype == StringType()
+
+  class C(Struct):
+    __annotations__ = [
+      ('a', int),
+      ('b', str, 'value')
+    ]
+  assert isinstance(C.__fields__, FieldSpec)
+  assert list(C.__fields__.keys()) == ['a', 'b']
+  assert C.__fields__['a'].datatype == IntegerType()
+  assert C.__fields__['b'].datatype == StringType()
 
 
 def test_fieldspec_equality(mapper):
@@ -184,13 +195,23 @@ def test_custom_collection(mapper):
 
 
 def test_inline_schema_definition(mapper):
-  # Test _InlineObjectTranslator
   datatype = translate_type_def({
     'a': Field(int),
     'b': Field(str),
   })
   assert type(datatype) == StructType
   assert sorted(datatype.struct_cls.__fields__.keys()) == ['a', 'b']
+
+  class Test(Struct):
+    field1 = Field(int)
+    field2 = Field({
+      'a': Field(int),
+      'b': Field(str),
+    })
+  assert isinstance(Test.field1, Field)
+  assert isinstance(Test.field2, Field)
+  assert Test.field2.datatype.struct_cls.__name__ == 'field2'
+  assert Test.field2.datatype.struct_cls.__qualname__ == 'Test.field2'
 
 
 def test_struct_class_overridable_attribute():
