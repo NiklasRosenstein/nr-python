@@ -616,7 +616,8 @@ class ImplementationError(RuntimeError):
   def add(self, interface, message):
     if interface and interface not in self.interfaces:
       self.interfaces.append(interface)
-    self.errors.append(message)
+    if message not in self.errors:
+      self.errors.append(message)
 
   def __str__(self):
     lines = []
