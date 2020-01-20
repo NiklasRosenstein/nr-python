@@ -30,7 +30,6 @@ from nr.commons.py import classdef
 from nr.collections import abc, OrderedDict
 from nr.interface import implements
 from nr.parsing.date import ISO_8601
-from .core import decoration
 from .core.collection import Collection
 from .core.datatypes import (
   AnyType,
@@ -44,7 +43,11 @@ from .core.datatypes import (
   PythonClassType,
   MultiType,
   translate_type_def)
-from .core.decoration import MetadataDecoration
+from .core.decoration import (
+  get_decoration,
+  collect_metadata,
+  Decoration,
+  ClassDecoration)
 from .core.errors import (
   SerializationTypeError,
   SerializationValueError,
@@ -195,7 +198,7 @@ class CollectionConverter(object):
 
     if isinstance(result, Collection):
       result.__databind__ = metadata = dict()
-      MetadataDecoration.enrich_all(metadata, context, location, py_type)
+      collect_metadata(metadata, context, location, py_type, context)
 
     return result
 
@@ -251,8 +254,8 @@ class StructConverter(object):
     assert field.name not in kwargs, (field, struct_cls, location)
 
     # Retrieve decorations that will affect the deserialization of this field.
-    json_required = JsonRequired.first(field.decorations)
-    json_field_name = JsonFieldName.first(field.decorations)
+    json_required = get_decoration(JsonRequired, field)
+    json_field_name = get_decoration(JsonFieldName, field)
 
     key = json_field_name.name if json_field_name else field.name
     if key not in location.value:
@@ -272,7 +275,7 @@ class StructConverter(object):
   def deserialize(self, context, location):
     # Check if there is a custom deserializer on the struct class.
     struct_cls = location.datatype.struct_cls
-    deserializer = JsonDeserializer.first(struct_cls.__decorations__)
+    deserializer = get_decoration(JsonDeserializer, struct_cls)
     if deserializer:
       try:
         obj = deserializer(context, location)
@@ -282,7 +285,7 @@ class StructConverter(object):
     if not deserializer:
       obj = self._deserialize(context, location)
 
-    validator = JsonValidator.first(struct_cls.__decorations__)
+    validator = get_decoration(JsonValidator, struct_cls)
     if validator:
       try:
         validator(obj)
@@ -301,7 +304,7 @@ class StructConverter(object):
       raise SerializationTypeError(location)
 
     fields = struct_cls.__fields__
-    strict = JsonStrict.first(struct_cls.__decorations__)
+    strict = get_decoration(JsonStrict, struct_cls, context)
 
     kwargs = {}
     handled_keys = set(location.datatype.ignore_keys)
@@ -318,7 +321,7 @@ class StructConverter(object):
 
     obj = object.__new__(struct_cls)
     obj.__databind__ = metadata = dict()
-    MetadataDecoration.enrich_all(metadata, context, location, struct_cls)
+    collect_metadata(metadata, context, location, struct_cls, context)
 
     try:
       obj.__init__(**kwargs)
@@ -333,7 +336,7 @@ class StructConverter(object):
       raise SerializationTypeError(location)
 
     # Check if there is a custom serializer on the struct class.
-    serializer = JsonSerializer.first(struct_cls.__decorations__)
+    serializer = get_decoration(JsonSerializer, struct_cls)
     if serializer:
       try:
         result = serializer(context, location)
@@ -390,16 +393,14 @@ class PythonClassConverter(object):
   the class does not support it. """
 
   def deserialize(self, context, location):
-    decorations = getattr(location.datatype.cls, '__decorations__', [])
-    deserializer = JsonDeserializer.first(decorations)
+    deserializer = get_decoration(JsonDeserializer, location.datatype.cls)
     if not deserializer:
       raise SerializationTypeError(location, 'No JsonDeserializer found '
         'on class {}'.format(location.datatype.cls.__name__))
     return deserializer(context, location)
 
   def serialize(self, context, location):
-    decorations = getattr(location.datatype.cls, '__decorations__', [])
-    serializer = JsonSerializer.first(decorations)
+    deserializer = get_decoration(JsonSerializer, location.datatype.cls)
     if not serializer:
       raise SerializationTypeError(location, 'No JsonSerializer found '
         'on class {}'.format(location.datatype.cls.__name__))
@@ -493,7 +494,7 @@ class UnionTypeConverter(object):
     return result
 
 
-class JsonDecoration(decoration.Decoration):
+class JsonDecoration(Decoration):
   pass
 
 
@@ -514,7 +515,7 @@ class JsonRequired(JsonDecoration):
   classdef.repr([])
 
 
-class JsonDeserializer(decoration.ClassDecoration, JsonDecoration):
+class JsonDeserializer(ClassDecoration, JsonDecoration):
   """ A class decoration that defines the deserializer that is to be used
   for the class. Can also be used to decorate methods that implementation
   the deserialization inside the class. """
@@ -531,7 +532,7 @@ class JsonDeserializer(decoration.ClassDecoration, JsonDecoration):
     return self.deserializer.deserialize(*args, **kwargs)
 
 
-class JsonSerializer(decoration.ClassDecoration, JsonDecoration):
+class JsonSerializer(ClassDecoration, JsonDecoration):
   """ A class decoration that defines the deserializer that is to be used
   for the class. Can also be used to decorate methods that implementation
   the deserialization inside the class. """
@@ -548,11 +549,11 @@ class JsonSerializer(decoration.ClassDecoration, JsonDecoration):
     return self.serializer.serialize(*args, **kwargs)
 
 
-class JsonStrict(decoration.ClassDecoration, JsonDecoration):
+class JsonStrict(ClassDecoration, JsonDecoration):
   pass
 
 
-class JsonValidator(decoration.ClassDecoration, JsonDecoration):
+class JsonValidator(ClassDecoration, JsonDecoration):
   """ A class decoration for a validation function that is called after
   a #Struct has been deserialized. """
 

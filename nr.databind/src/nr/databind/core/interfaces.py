@@ -23,6 +23,7 @@ import string
 
 from nr.commons.py import classdef
 from nr.interface import Interface, attr, default
+from typing import ContextManager
 from .errors import InvalidTypeDefinitionError
 from .location import Location
 
@@ -86,25 +87,30 @@ class IDataType(Interface):
     raises TypeError: If the *py_value* doesn't match this datatype. """
 
 
-class IDeserializeContext(Interface):
+class IBaseContext(Interface):
+
+  def iter_decorations(self):  # type: () -> Iterable[Decoration]
+    """ Return an iterable of decorations that are set globally. """
+
+  def with_decoration(self, decoration: 'Decoration'):
+    # type: (Decoration) -> ContextManager
+    """ Temporarily adds a decoration to the context until the context manager
+    exited. """
+
+
+class IDeserializeContext(IBaseContext):
   """ Context for deserializing values. """
 
   def deserialize(self, value, datatype, key=None, filename=None):
     # type: (Any, IDataType, Union[str, Sequence, None], Optional[str])
     pass
 
-  def decorations(self):  # type: () -> Iterable[Decoration]
-    pass
 
-
-class ISerializeContext(Interface):
+class ISerializeContext(IBaseContext):
   """ Context for serializing values. """
 
   def serialize(self, value, datatype, key=None, filename=None):
     # type: (Any, IDataType, Union[str, Sequence, None], Optional[str])
-    pass
-
-  def decorations(self):  # type: () -> Iterable[Decoration]
     pass
 
 
@@ -128,6 +134,9 @@ class ISerializer(Interface):
 
   def serialize(self, context, location):  # type: (ISerializeContext, Location) -> Any
     pass
+
+
+from .decoration import Decoration
 
 
 __all__ = [

@@ -203,8 +203,22 @@ class ModuleContext(object):
       return serializer.serialize(self, self.mklocation(value, datatype))
 
   @override
-  def decorations(self):
+  def iter_decorations(self):
     return iter(self._decorations)
+
+  @override
+  @contextlib.contextmanager
+  def with_decoration(self, decoration):
+    self._decorations.append(decoration)
+    try:
+      yield
+    finally:
+      for index, item in eumerate(reversed(self._decorations)):
+        if item is decoration:
+          index = len(self._decorations) - index - 1
+          assert self._decorations[index] is item
+          del self._decorations[index]
+          break
 
 
 class ObjectMapper(object):

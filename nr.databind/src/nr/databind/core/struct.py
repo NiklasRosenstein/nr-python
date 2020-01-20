@@ -25,7 +25,7 @@ import six
 import typing
 
 from .datatypes import CollectionType, translate_type_def
-from .decoration import Decoration, ClassDecoration
+from .decoration import get_decoration, Decoration, ClassDecoration
 from .errors import InvalidTypeDefinitionError
 from .interfaces import IDataType
 from nr.collections import abc, OrderedDict
@@ -41,7 +41,7 @@ __all__ = [
   'StructClassExposeFieldsAs',
   'Struct',
   'StructType',
-  'Mixin',
+  'MixinDecoration',
   'create_struct_class'
 ]
 
@@ -371,13 +371,13 @@ class FieldSpec(object):
     return self._fields_indexable[index]
 
 
-class Mixin(ClassDecoration):
+class MixinDecoration(ClassDecoration):
   """ A class decoration to specify mixins that are to be added to the bases
   of the class. If a string is specified, it is resolved via the
-  `nr.databind.core.struct.Mixin` entrypoint. """
+  `nr.databind.core.struct.MixinDecoration` entrypoint. """
 
-  __ep = 'nr.databind.core.struct.Mixin'
-  assert __ep == (__name__ + '.Mixin')
+  __ep = 'nr.databind.core.struct.MixinDecoration'
+  assert __ep == (__name__ + '.MixinDecoration')
 
   def __init__(self, *mixins):
     self._mixins = []
@@ -431,10 +431,8 @@ class _StructMeta(type):
   """ Private. Meta class for #Struct. """
 
   def __new__(cls, name, bases, attrs):
-    decorations = attrs.setdefault('__decorations__', [])
-
-    # Add base classes if requested via the #Mixin decoration.
-    mixins = Mixin.first(decorations)
+    # Add base classes if requested via the MixinDecoration.
+    mixins = get_decoration(MixinDecoration, cls)
     if mixins:
       bases += tuple(mixins)
 
@@ -498,7 +496,7 @@ class _StructMeta(type):
       if key in vars(self):
         delattr(self, key)
 
-    self.__expose_fields = StructClassExposeFieldsAs.first(self) or \
+    self.__expose_fields = get_decoration(StructClassExposeFieldsAs, self) or \
       StructClassExposeFieldsAs(StructClassExposeFieldsAs.FIELDS)
     self.__fields__ = fields
 

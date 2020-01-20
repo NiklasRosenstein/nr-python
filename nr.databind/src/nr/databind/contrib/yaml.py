@@ -24,7 +24,7 @@ Utilities for loading YAML with source information (line number, filename).
 """
 
 from __future__ import absolute_import
-from nr.databind.core.decoration import MetadataDecoration
+from nr.databind.core.decoration import DeserializationMetadataDecoration
 import collections
 import io
 import types
@@ -137,9 +137,9 @@ def loadwsi(_data=None, *args, **kwargs):
   return loader.get_single_data()
 
 
-class YamlSourceInfo(MetadataDecoration):
+class YamlSourceInfo(DeserializationMetadataDecoration):
 
-  def enrich_metadata(self, metadata, context, location):
+  def enrich_object_metadata(self, metadata, context, location):
     source_info = getattr(location.value, '__source_info__', None)
     if source_info:
       metadata['source_info'] = source_info
