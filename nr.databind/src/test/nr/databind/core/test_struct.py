@@ -1,6 +1,7 @@
 
 from nr.databind.core import *
-from nr.databind.json import JsonFieldName, JsonStrict
+from nr.databind.core.decoration import LocationMetadataDecoration
+from nr.databind.json import JsonFieldName, JsonStrict, JsonDeserializer
 from nr.commons.notset import NotSet
 from typing import Optional, List, Dict
 from ..fixtures import mapper
@@ -239,3 +240,35 @@ def test_struct_class_overridable_attribute():
     b = Field(str)
 
   assert OtherSubclass.__fields__['b'].datatype == StringType()
+
+
+def test_json_custom_deserializer(mapper):
+
+  import re
+
+  class Author(Struct):
+    name = Field(str)
+    email = Field(str)
+
+    AUTHOR_EMAIL_REGEX = re.compile(r'([^<]+)<([^>]+)>')
+
+    def __str__(self):
+      return '{} <{}>'.format(self.name, self.email)
+
+    @JsonDeserializer
+    def __deserialize(context, location):
+      if isinstance(location.value, str):
+        match = Author.AUTHOR_EMAIL_REGEX.match(location.value)
+        if match:
+          author = match.group(1).strip()
+          email = match.group(2).strip()
+          return Author(author, email)
+      raise NotImplementedError
+
+  author = mapper.deserialize('Me <me@example.org>', Author)
+  assert author == Author('Me', 'me@example.org')
+
+  author = mapper.deserialize('Me <me@example.org>', Author,
+    decorations=[LocationMetadataDecoration()])
+  assert author.__databind__ is not None
+  assert author.__databind__['location'].value == 'Me <me@example.org>'

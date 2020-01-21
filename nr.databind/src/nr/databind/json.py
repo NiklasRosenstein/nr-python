@@ -197,8 +197,8 @@ class CollectionConverter(object):
       result = py_type(result)
 
     if isinstance(result, Collection):
-      result.__databind__ = metadata = {}
-      collect_metadata(metadata, context, location, py_type, context)
+      result.__databind__ = {}
+      collect_metadata(result.__databind__, context, location, py_type, context)
 
     return result
 
@@ -285,6 +285,10 @@ class StructConverter(object):
     if not deserializer:
       obj = self._deserialize(context, location)
 
+    if obj.__databind__ is None:
+      obj.__databind__ = {}
+    collect_metadata(obj.__databind__, context, location, struct_cls, context)
+
     validator = get_decoration(JsonValidator, struct_cls)
     if validator:
       try:
@@ -323,16 +327,15 @@ class StructConverter(object):
             struct_cls.__name__, remaining_keys))
 
     obj = object.__new__(struct_cls)
-    obj.__databind__ = metadata = {}
-    collect_metadata(metadata, context, location, struct_cls, context)
-
-    if store_remaining_keys:
-      metadata[store_remaining_keys.field_name] = remaining_keys
+    obj.__databind__ = {}
 
     try:
       obj.__init__(**kwargs)
     except TypeError as exc:
       raise SerializationTypeError(location, exc)
+
+    if store_remaining_keys:
+      obj.__databind__[store_remaining_keys.field_name] = remaining_keys
 
     return obj
 
