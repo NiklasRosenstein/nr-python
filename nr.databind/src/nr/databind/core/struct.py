@@ -109,12 +109,16 @@ class Field(object):
       default (Any): The default value for the field. If the default value is
         callable, it will be called without arguments to retrieve the actual
         default value of the field.
+      hidden (bool): Indicates that the field is hidden and will be ignored
+        during the serialization and deserialization. A hidden field requires
+        a default value.
     """
 
     name = kwargs.pop('name', None)
     assert name is None or isinstance(name, str), repr(name)
     nullable = kwargs.pop('nullable', None)
     default = kwargs.pop('default', NotSet)
+    hidden = kwargs.pop('hidden', False)
     funcdef.raise_kwargs(kwargs)
 
     if is_generic(datatype, typing.Optional):
@@ -145,11 +149,15 @@ class Field(object):
         'field datatype is not a StructType (got {})'.format(
           type(datatype).__name__))
 
+    if default is NotSet and hidden:
+      raise ValueError('a hidden field requires a default value')
+
     self.datatype = datatype
     self.decorations = list(decorations)
     self.name = name
     self.nullable = False if nullable is None else bool(nullable)
     self.default = default
+    self.hidden = hidden
     self.parent = None
 
     self.instance_index = Field._INSTANCE_INDEX_COUNTER
@@ -161,12 +169,6 @@ class Field(object):
     is zero (0). """
 
     return 0
-
-  def is_derived(self):  # type: () -> bool
-    """ Returns True if the field is a derived field and thus should be ignored
-    when serializing the struct. """
-
-    return False
 
   def set_name(self, name):  # type: str -> None
     """ Sets the name of the field. if the name is already set, a

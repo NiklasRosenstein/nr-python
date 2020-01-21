@@ -305,14 +305,17 @@ class StructConverter(object):
 
     fields = struct_cls.__fields__
     strict = get_decoration(JsonStrict, struct_cls, context)
+    store_remaining_keys = get_decoration(JsonStoreRemainingKeys, struct_cls, context)
 
     kwargs = {}
     handled_keys = set(location.datatype.ignore_keys)
     for name, field in fields.items().sortby(lambda x: x[1].get_priority()):
+      if field.hidden:
+        continue
       assert name == field.name, "woops: {}".format((name, field))
       self._extract_kwargs(field, context, struct_cls, location, kwargs, handled_keys)
 
-    if strict:
+    if strict or store_remaining_keys:
       remaining_keys = set(location.value.keys()) - handled_keys
       if remaining_keys and strict:
         raise SerializationValueError(location, "strict object type \"{}\" does not "
@@ -322,6 +325,9 @@ class StructConverter(object):
     obj = object.__new__(struct_cls)
     obj.__databind__ = metadata = {}
     collect_metadata(metadata, context, location, struct_cls, context)
+
+    if store_remaining_keys:
+      metadata[store_remaining_keys.field_name] = remaining_keys
 
     try:
       obj.__init__(**kwargs)
@@ -346,7 +352,7 @@ class StructConverter(object):
     if not serializer:
       result = {}
       for name, field in struct_cls.__fields__.items():
-        if field.is_derived():
+        if field.hidden:
           continue
         value = getattr(location.value, name)
         result[field.name] = context.serialize(value, field.datatype, name)
@@ -550,7 +556,23 @@ class JsonSerializer(ClassDecoration, JsonDecoration):
 
 
 class JsonStrict(ClassDecoration, JsonDecoration):
-  pass
+  """ A decoration that causes the #StructConverter to raise an exception for
+  unhandled keys during deserialization. """
+
+  classdef.comparable([])
+  classdef.repr([])
+
+
+class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
+  """ A decoration that causes a #StructConverter to add a `remaining_keys`
+  metadata field for the keys that have not been handled during the
+  deserialization. """
+
+  classdef.comparable('field_name')
+  classdef.repr('field_name')
+
+  def __init__(self, field_name='remaining_keys'):
+    self.field_name = field_name
 
 
 class JsonValidator(ClassDecoration, JsonDecoration):
