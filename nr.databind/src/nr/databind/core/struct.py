@@ -38,7 +38,7 @@ from nr.stream import Stream
 __all__ = [
   'Field',
   'FieldSpec',
-  'ExposeFieldsAs',
+  'ExposeFieldsAsDecoration',
   'Struct',
   'StructType',
   'MixinDecoration',
@@ -401,7 +401,7 @@ class MixinDecoration(ClassDecoration):
     return len(self._mixins)
 
 
-class ExposeFieldsAs(ClassDecoration):
+class ExposeFieldsAsDecoration(ClassDecoration):
   """ A decoration for the #Struct class that defines that fields on the class
   object itself are exposed as their default value instead of the actual
   #Field object. """
@@ -432,7 +432,7 @@ class _StructMeta(type):
 
   def __new__(cls, name, bases, attrs):
     # Add base classes if requested via the MixinDecoration.
-    mixins = get_decoration(MixinDecoration, cls)
+    mixins = get_decoration(MixinDecoration, attrs.get('__decorations__'))
     if mixins:
       bases += tuple(mixins)
 
@@ -496,8 +496,8 @@ class _StructMeta(type):
       if key in vars(self):
         delattr(self, key)
 
-    self.__expose_fields = get_decoration(ExposeFieldsAs, self) or \
-      ExposeFieldsAs(ExposeFieldsAs.FIELDS)
+    self.__expose_fields = get_decoration(ExposeFieldsAsDecoration, self) or \
+      ExposeFieldsAsDecoration(ExposeFieldsAsDecoration.FIELDS)
     self.__fields__ = fields
 
   def __getattr__(self, name):

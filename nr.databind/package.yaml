@@ -13,7 +13,7 @@ requirements:
     - PyYAML
 
 entrypoints:
-  nr.databind.core.struct.Mixin:
+  nr.databind.core.struct.MixinDecoration:
     - asdict = nr.databind.contrib.mixins.asdict:AsdictMixin
     - json = nr.databind.json:JsonMixin
     - tuple = nr.databind.contrib.mixins.tuple:TupleMixin

@@ -60,6 +60,9 @@ class Path(object):
 
     return ''.join(generate())
 
+  def __repr__(self):
+    return 'Path({})'.format(self)
+
   def resolve(self, value): # type: (Union[List, Dict]) -> Any
     """ Returns the value at this path by subsequently accessing every item in
     the path in *value* and its child nested structures.

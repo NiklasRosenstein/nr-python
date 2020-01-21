@@ -33,7 +33,7 @@ setuptools.setup(
   python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
   entry_points = {
-    'nr.databind.core.struct.Mixin': [
+    'nr.databind.core.struct.MixinDecoration': [
       'asdict = nr.databind.contrib.mixins.asdict:AsdictMixin',
       'json = nr.databind.json:JsonMixin',
       'tuple = nr.databind.contrib.mixins.tuple:TupleMixin',
