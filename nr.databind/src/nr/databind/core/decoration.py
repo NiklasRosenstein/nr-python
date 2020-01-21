@@ -143,5 +143,5 @@ class DeserializationMetadataDecoration(Decoration):
 class LocationMetadataDecoration(DeserializationMetadataDecoration, ClassDecoration):
   """ A metadata decoration that adds a "location" key to the metadata. """
 
-  def enrich_metadata(self, metadata, context, location):
+  def enrich_object_metadata(self, metadata, context, location):
     metadata["location"] = location
