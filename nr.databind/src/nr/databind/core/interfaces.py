@@ -92,11 +92,6 @@ class IBaseContext(Interface):
   def iter_decorations(self):  # type: () -> Iterable[Decoration]
     """ Return an iterable of decorations that are set globally. """
 
-  def with_decoration(self, decoration: 'Decoration'):
-    # type: (Decoration) -> ContextManager
-    """ Temporarily adds a decoration to the context until the context manager
-    exited. """
-
 
 class IDeserializeContext(IBaseContext):
   """ Context for deserializing values. """

@@ -163,7 +163,7 @@ class ModuleContext(object):
     return None
 
   @contextlib.contextmanager
-  def _put_key(self, key, filename):
+  def _enter(self, key, filename):
     if key is not None and not isinstance(key, (list, tuple)):
       key = [key]
     if key is not None:
@@ -185,7 +185,7 @@ class ModuleContext(object):
   @override
   def deserialize(self, value, datatype, key=None, filename=None):
     datatype = translate_type_def(datatype)
-    with self._put_key(key, filename):
+    with self._enter(key, filename):
       deserializer = self._module.get_deserializer(datatype)
       if deserializer is None:
         raise RuntimeError('no deserializer for {!r} found'.format(
@@ -195,7 +195,7 @@ class ModuleContext(object):
   @override
   def serialize(self, value, datatype, key=None, filename=None):
     datatype = translate_type_def(datatype)
-    with self._put_key(key, filename):
+    with self._enter(key, filename):
       serializer = self._module.get_serializer(datatype)
       if serializer is None:
         raise RuntimeError('no serializer for {!r} found'.format(
@@ -205,20 +205,6 @@ class ModuleContext(object):
   @override
   def iter_decorations(self):
     return iter(self._decorations)
-
-  @override
-  @contextlib.contextmanager
-  def with_decoration(self, decoration):
-    self._decorations.append(decoration)
-    try:
-      yield
-    finally:
-      for index, item in eumerate(reversed(self._decorations)):
-        if item is decoration:
-          index = len(self._decorations) - index - 1
-          assert self._decorations[index] is item
-          del self._decorations[index]
-          break
 
 
 class ObjectMapper(object):
@@ -232,19 +218,33 @@ class ObjectMapper(object):
     self._modules.setup_module(None)
     self._decorations = []
 
-  def add_decorations(self, *decorations):
-    self._decorations.extend(decorations)
+  def with_decorations(self, *decorations):  # type: (Decoration) -> ObjectMapper
+    """ Permanently adds the specified *decorations* to the mapper. """
 
-  def register_module(self, module):
+    self._decorations.extend(decorations)
+    return self
+
+  def register_module(self, module):  # type: (IModule) -> ObjectMapper
+    """ Registers an #IModule instance in the mapper. """
+
     self._modules.register_module(module)
     module.setup_module()
+    return self
 
   def deserialize(self, value, datatype, path=None, filename=None, decorations=None):
+    # type: (Any, Any, Optional[Path], Optional[str], Optional[List[Decoration]]) -> Any
+    """ Deserializes *value* from *datatype* with the modules that are
+    registered in the ObjectMapper. Returns the deserialized result. """
+
     decorations = list(self._decorations) + list(decorations or ())
     context = ModuleContext(self._modules, path, filename, decorations)
     return context.deserialize(value, datatype)
 
   def serialize(self, value, datatype, path=None, filename=None, decorations=None):
+    # type: (Any, Any, Optional[Path], Optional[str], Optional[List[Decoration]]) -> Any
+    """ Serializes *value* as *datatype* with the modules that are registered
+    in the ObjectMapper. Returns the deserialized result. """
+
     decorations = list(self._decorations) + list(decorations or ())
     context = ModuleContext(self._modules, path, filename, decorations)
     return context.serialize(value, datatype)

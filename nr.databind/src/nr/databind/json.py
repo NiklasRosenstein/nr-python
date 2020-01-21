@@ -197,7 +197,7 @@ class CollectionConverter(object):
       result = py_type(result)
 
     if isinstance(result, Collection):
-      result.__databind__ = metadata = dict()
+      result.__databind__ = metadata = {}
       collect_metadata(metadata, context, location, py_type, context)
 
     return result
@@ -314,13 +314,13 @@ class StructConverter(object):
 
     if strict:
       remaining_keys = set(location.value.keys()) - handled_keys
-      if remaining_keys:
+      if remaining_keys and strict:
         raise SerializationValueError(location, "strict object type \"{}\" does not "
           "allow additional keys on extract, but found {!r}".format(
             struct_cls.__name__, remaining_keys))
 
     obj = object.__new__(struct_cls)
-    obj.__databind__ = metadata = dict()
+    obj.__databind__ = metadata = {}
     collect_metadata(metadata, context, location, struct_cls, context)
 
     try:
