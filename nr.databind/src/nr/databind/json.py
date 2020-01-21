@@ -574,6 +574,26 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
   def __init__(self, field_name='remaining_keys'):
     self.field_name = field_name
 
+  def iter_paths(self, obj, _path=None):
+    # type: (Struct, Optional[MutablePath]) -> Iterable[Path]
+    """ Yields a #Path for every key that is unhandled, starting from #obj. """
+
+    from .core.location import MutablePath
+    from .core.struct import Struct
+
+    if not isinstance(obj, Struct):
+      raise TypeError('expected Struct, got {}'.format(type(obj).__name__))
+    if _path is None:
+      _path = MutablePath([])
+    for key in obj.__databind__.get(self.field_name):
+      yield _path.to_immutable(key)
+    for field in obj.__fields__.values():
+      value = getattr(obj, field.name)
+      if isinstance(value, Struct):
+        _path.push(field.name)
+        yield from self.iter_paths(getattr(obj, field.name), _path)
+        _path.pop()
+
 
 class JsonValidator(ClassDecoration, JsonDecoration):
   """ A class decoration for a validation function that is called after

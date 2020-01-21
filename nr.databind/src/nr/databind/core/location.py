@@ -21,7 +21,7 @@
 
 import string
 
-__all__ = ['Path', 'Location']
+__all__ = ['Path', 'MutablePath', 'Location']
 
 
 class Path(object):
@@ -61,7 +61,7 @@ class Path(object):
     return ''.join(generate())
 
   def __repr__(self):
-    return 'Path({})'.format(self)
+    return '{}({})'.format(type(self).__name__, str(self))
 
   def resolve(self, value): # type: (Union[List, Dict]) -> Any
     """ Returns the value at this path by subsequently accessing every item in
@@ -83,6 +83,24 @@ class Path(object):
       except IndexError as exc:
         raise IndexError('{} at {}'.format(exc, self))
     return value
+
+
+class MutablePath(Path):
+  """ A mutable version of #Path. """
+
+  def __init__(self, items):
+    self._items = list(items)
+
+  def push(self, item):  # type: (str) -> None
+    self._items.append(item)
+
+  def pop(self):  # type: () -> str
+    return self._items.pop()
+
+  def to_immutable(self, *push_items):  # type: (str) -> Path
+    items = list(self._items)
+    items.extend(push_items)
+    return Path(items)
 
 
 class Location(object):
