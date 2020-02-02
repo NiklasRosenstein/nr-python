@@ -577,7 +577,7 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
   def __init__(self, field_name='remaining_keys'):
     self.field_name = field_name
 
-  def iter_paths(self, obj, _path=None):
+  def iter_paths(self, obj, expect_has_metadata=False, _path=None):
     # type: (Struct, Optional[MutablePath]) -> Iterable[Path]
     """ Yields a #Path for every key that is unhandled, starting from #obj. """
 
@@ -588,13 +588,15 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
       raise TypeError('expected Struct, got {}'.format(type(obj).__name__))
     if _path is None:
       _path = MutablePath([])
-    for key in obj.__databind__.get(self.field_name):
+    fallback = (None if expect_has_metadata else set())
+    for key in obj.__databind__.get(self.field_name, fallback):
       yield _path.to_immutable(key)
     for field in obj.__fields__.values():
       value = getattr(obj, field.name)
       if isinstance(value, Struct):
         _path.push(field.name)
-        yield from self.iter_paths(getattr(obj, field.name), _path)
+        yield from self.iter_paths(getattr(obj, field.name),
+          expect_has_metadata, _path)
         _path.pop()
 
 
