@@ -509,7 +509,7 @@ class _StructMeta(type):
         return self.__expose_fields(field)
       except NotImplementedError:
         pass
-    raise AttributeError(name)
+    raise AttributeError('{} has no attribute {}'.format(self.__name__, name))
 
 
 class Struct(six.with_metaclass(_StructMeta)):
@@ -613,10 +613,7 @@ class Struct(six.with_metaclass(_StructMeta)):
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
   def __getattr__(self, name):
-    try:
-      return getattr(type(self), name)
-    except AttributeError as exc:
-      raise AttributeError(name)
+    return getattr(type(self), name)
 
 
 def create_struct_class(name, fields, base=None, mixins=()):
