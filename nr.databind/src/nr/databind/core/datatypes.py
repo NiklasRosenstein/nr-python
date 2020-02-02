@@ -314,7 +314,7 @@ class PythonClassType(object):
     raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
-    if not isinstance(py_value, self.ls):
+    if not isinstance(py_value, self.cls):
       raise TypeError('expected {} instance, got {}'.format(
         self.cls.__name__, type(py_value).__name__))
     return py_value
