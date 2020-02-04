@@ -1,5 +1,6 @@
 #!/bin/sh
 
+pushd "$(dirname $(dirname ${BASH_SOURCE[0]}))"
 ${PYTHON:-python} -m pip install \
   -e "nr.collections" \
   -e "nr.commons" \
@@ -16,3 +17,4 @@ ${PYTHON:-python} -m pip install \
   -e "nr.sumtype" `# depends on nr.metaclass, nr.stream` \
   -e "nr.databind" `# depends on nr.interface, nr.parsing.date, nr.stream` \
   -e "nr.pylang.bundle" `# depends on nr.databind, nr.fs, nr.stream`
+popd
