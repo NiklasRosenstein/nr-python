@@ -1,8 +1,6 @@
-package:
-  name: nr.proxy
-  version: "0.0.1"
-  description: Object proxy class.
-
+name: nr.proxy
+version: "0.0.1"
+description: Object proxy class.
 requirements:
   - python ^2.6|^3.4
   - six ^1.11.0

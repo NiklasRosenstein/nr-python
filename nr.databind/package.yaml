@@ -1,8 +1,6 @@
-package:
-  name: "nr.databind"
-  version: "0.0.1"
-  description: "Bind structured data directly to typed objects."
-
+name: nr.databind
+version: "0.0.1"
+description: Bind structured data directly to typed objects.
 requirements:
   - python ^2.7|^3.4
   - nr.interface ~0.0.1

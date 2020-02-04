@@ -1,8 +1,7 @@
-project:
-  use: [devinstallscript]
-  name: nr-libs
-  version: 0.1.0
-
+name: nr-libs
+version: "0.0.1"
+use:
+  - dev-install
 packages:
   use: [setuptools]
   url: https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs

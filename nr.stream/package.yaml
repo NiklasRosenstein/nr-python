@@ -1,8 +1,6 @@
-package:
-  name: "nr.stream"
-  version: "0.0.1"
-  description: "Use iterators like Java streams."
-
+name: nr.stream
+version: "0.0.1"
+description: Use iterators like Java streams.
 requirements:
   - nr.collections ^0.0.1
   - nr.commons ^0.0.1

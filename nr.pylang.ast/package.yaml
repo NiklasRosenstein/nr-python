@@ -1,9 +1,7 @@
-package:
-  name: "nr.pylang.ast"
-  version: "0.0.1"
-  license: "MIT"
-  description: "Package description here."
-
+name: "nr.pylang.ast"
+version: "0.0.1"
+license: "MIT"
+description: "Package description here."
 requirements:
   - python ^3.4
   - test: []

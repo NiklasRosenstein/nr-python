@@ -1,7 +1,5 @@
-package:
-  name: nr.parsing.core
-  version: "0.0.1"
-  description: Simple library to scan or tokenize text.
-
+name: nr.parsing.core
+version: "0.0.1"
+description: Simple library to scan or tokenize text.
 requirements:
   - python ^2.6|^3.4

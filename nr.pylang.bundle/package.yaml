@@ -1,9 +1,7 @@
-package:
-  name: "nr.pylang.bundle"
-  version: "0.0.1"
-  license: "MIT"
-  description: "Create standalone Python applications."
-
+name: "nr.pylang.bundle"
+version: "0.0.1"
+license: "MIT"
+description: "Create standalone Python applications."
 requirements:
   - python ^2.7|^3.4
   - distlib ^0.2.7
