@@ -254,17 +254,22 @@ class StructConverter(object):
     assert field.name not in kwargs, (field, struct_cls, location)
 
     # Retrieve decorations that will affect the deserialization of this field.
+    json_default = get_decoration(JsonDefault, field)
     json_required = get_decoration(JsonRequired, field)
     json_field_name = get_decoration(JsonFieldName, field)
 
     key = json_field_name.name if json_field_name else field.name
     if key not in location.value:
-      if json_required or field.default is NotSet:
+      if json_required or (field.default is NotSet and not json_default):
         msg = 'member "{}" is missing for {} object'.format(key, struct_cls.__name__)
         raise SerializationValueError(location, msg)
-      return
+      if json_default:
+        value = json_default.value
+      else:
+        return
+    else:
+      value = location.value[key]
 
-    value = location.value[key]
     if field.nullable and value is None:
       kwargs[field.name] = None
     else:
@@ -514,6 +519,18 @@ class JsonFieldName(JsonDecoration):
 
   def __init__(self, name):
     self.name = name
+
+
+class JsonDefault(JsonDecoration):
+  """ A decoration that overrides the default value of a field when it is
+  deserialized from JSON. The value specified here is deserialized in place.
+  """
+
+  def __init__(self, value):
+    self.value = value
+
+  def __repr__(self):
+    return 'JsonDecoration(value={!r})'.format(self.value)
 
 
 class JsonRequired(JsonDecoration):
