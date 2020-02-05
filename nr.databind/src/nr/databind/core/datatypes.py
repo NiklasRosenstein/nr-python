@@ -338,8 +338,10 @@ class MultiType(object):
 
   classdef.comparable(['types'])
 
-  def __init__(self, types):
-    self.types = types
+  def __init__(self, *types):
+    if len(types) == 1:
+      types = types[0]
+    self.types = [translate_type_def(x) for x in types]
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
