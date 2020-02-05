@@ -46,9 +46,11 @@ class atomic_file(object):
     self._filename = filename
     self._tempfile = tempfile(base(filename), 'atomic',
       dir=temp_dir, text=text, encoding=encoding)
+    self._discard = False
 
   def __enter__(self):
-    return self._tempfile.__enter__()
+    self._tempfile.__enter__()
+    return self
 
   def __exit__(self, exc_type, exc_value, exc_tb):
     try:
@@ -57,7 +59,12 @@ class atomic_file(object):
     finally:
       self._tempfile.__exit__(exc_type, exc_value, exc_tb)
 
+  def __getattr__(self, name):
+    return getattr(self._tempfile, name)
+
   def _replace(self):
+    if self._discard:
+      return
     if not self._tempfile.closed:
       self._tempfile.close()
 
@@ -70,3 +77,6 @@ class atomic_file(object):
 
     if delete_file:
       remove(delete_file)
+
+  def discard(self):
+    self._discard = True
