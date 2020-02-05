@@ -38,5 +38,6 @@ setuptools.setup(
       'json = nr.databind.json:JsonMixin',
       'tuple = nr.databind.contrib.mixins.tuple:TupleMixin',
     ]
-  }
+  },
+  cmdclass = {}
 )

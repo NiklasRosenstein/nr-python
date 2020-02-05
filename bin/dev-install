@@ -1,20 +1,75 @@
-#!/bin/sh
+#!/usr/bin/env python
 
-pushd "$(dirname $(dirname ${BASH_SOURCE[0]}))"
-${PYTHON:-python} -m pip install \
-  -e "nr.collections" \
-  -e "nr.commons" \
-  -e "nr.fs" \
-  -e "nr.metaclass" \
-  -e "nr.parsing.core" \
-  -e "nr.parsing.date" \
-  -e "nr.proxy" \
-  -e "nr.pylang.ast" \
-  -e "nr.utils.process" \
-  -e "nr.stream" `# depends on nr.collections, nr.commons` \
-  -e "nr.utils.ponyorm" `# depends on nr.commons` \
-  -e "nr.interface" `# depends on nr.collections, nr.commons, nr.metaclass` \
-  -e "nr.sumtype" `# depends on nr.metaclass, nr.stream` \
-  -e "nr.databind" `# depends on nr.interface, nr.parsing.date, nr.stream` \
-  -e "nr.pylang.bundle" `# depends on nr.databind, nr.fs, nr.stream`
-popd
+from __future__ import print_function
+import argparse
+import os
+import subprocess
+import sys
+
+package_def = [
+  {"name": "nr.collections", "requires": []},
+  {"name": "nr.commons", "requires": []},
+  {"name": "nr.fs", "requires": []},
+  {"name": "nr.metaclass", "requires": []},
+  {"name": "nr.parsing.core", "requires": []},
+  {"name": "nr.parsing.date", "requires": []},
+  {"name": "nr.proxy", "requires": []},
+  {"name": "nr.pylang.ast", "requires": []},
+  {"name": "nr.utils.process", "requires": []},
+  {"name": "nr.stream", "requires": ["nr.collections", "nr.commons"]},
+  {"name": "nr.utils.ponyorm", "requires": ["nr.commons"]},
+  {"name": "nr.interface", "requires": ["nr.collections", "nr.commons", "nr.metaclass"]},
+  {"name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
+  {"name": "nr.databind", "requires": ["nr.interface", "nr.parsing.date", "nr.stream"]},
+  {"name": "nr.pylang.bundle", "requires": ["nr.databind", "nr.fs", "nr.stream"]},
+]
+
+parser = argparse.ArgumentParser()
+parser.add_argument('packages', nargs='*')
+parser.add_argument('--no-develop', action='store_true', help='Perform a normal install of the packages.')
+parser.add_argument('--uninstall', action='store_true', help='Uninstall the packages instead.')
+parser.add_argument('--type', choices=('install', 'develop'), help='Alternative for using or not using --no-develop.')
+parser.add_argument('-v', '--verbose', action='store_true', help='Print the Pip command that is run.')
+args = parser.parse_args()
+
+if args.type and args.uninstall:
+  parser.error('conflicting options: --type and --uninstall')
+if args.no_develop and args.uninstall:
+  parser.error('conflicting options: --no-develop and --uninstall')
+if args.type == 'develop':
+  if args.no_develop:
+    parser.error('conflicting options: --type=develop and --no-develop')
+elif args.type == 'install':
+  args.no_develop = True
+
+if not args.packages:
+  install_packages = [x['name'] for x in package_def]
+else:
+  install_packages = []
+  def _resolve(pkgname):
+    if pkgname in install_packages:
+      return
+    package = next((x for x in package_def if x['name'] == pkgname), None)
+    if package is None:
+      parser.error('not a package of this monorepo: {}'.format(pkgname))
+    [_resolve(x) for x in package['requires']]
+    install_packages.append(pkgname)
+  [_resolve(x) for x in args.packages]
+
+python = os.getenv('PYTHON', 'python')
+command = [python, '-m', 'pip', 'uninstall' if args.uninstall else 'install']
+for pkgname in install_packages:
+  if not args.no_develop and not args.uninstall:
+    command.append('-e')
+  command.append(pkgname if args.uninstall else './' + pkgname)
+if args.uninstall:
+  command.append('-y')
+
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+if args.verbose:
+  command.append('-v')
+  print('Running command in working directory', project_dir)
+  print('$', ' '.join(command))
+
+sys.exit(subprocess.call(command, cwd=project_dir))

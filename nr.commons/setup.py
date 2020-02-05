@@ -31,5 +31,6 @@ setuptools.setup(
   tests_require = tests_require,
   python_requires = None, # TODO: None,
   data_files = [],
-  entry_points = {}
+  entry_points = {},
+  cmdclass = {}
 )
