@@ -24,11 +24,11 @@ Describes a strong typing system that can then be extracted from a structured
 object.
 """
 
+import datetime
 import decimal
 import six
 import typing
 
-from datetime import datetime
 from nr.collections import abc
 from nr.commons.py import classdef
 from nr.commons.py.typing import is_generic, get_generic_args
@@ -119,7 +119,7 @@ class IntegerType(object):
       return py_value
     else:
       if self.strict:
-        raise TypeError('expected int')
+        raise TypeError('expected int, got {}'.format(type(py_value).__name__))
       return int(py_value)
 
 
@@ -282,13 +282,31 @@ class DatetimeType(object):
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
-    if py_type_def is datetime:
+    if py_type_def is datetime.datetime:
       return cls()
     raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
-    if not isinstance(py_value, datetime):
-      raise TypeError('expected datetime, got {!r}'.format(
+    if not isinstance(py_value, datetime.datetime):
+      raise TypeError('expected datetime.datetime, got {!r}'.format(
+        type(py_value).__name__))
+    return py_value
+
+
+@implements(IDataType)
+class DateType(object):
+
+  classdef.comparable([])
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is datetime.date:
+      return cls()
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  def check_value(self, py_value):
+    if not isinstance(py_value, datetime.date):
+      raise TypeError('expected datetime.date, got {!r}'.format(
         type(py_value).__name__))
     return py_value
 
