@@ -57,6 +57,7 @@ from .core.mapper import SimpleModule, ObjectMapper
 from .core.struct import StructType
 from .core.union import UnionType, UnknownUnionTypeError
 import decimal
+import inspect
 import six
 import json
 
@@ -79,7 +80,7 @@ class JsonModule(SimpleModule):
     try: import enum
     except ImportError: enum = None
     else:
-      self.register_duplex(PythonClassType.of(enum.Enum), EnumConverter())
+      self.register_duplex(enum.Enum, EnumConverter())
 
     self.register_duplex(AnyType, AnyConverter())
     self.register_duplex(BooleanType, BooleanConverter())
@@ -548,15 +549,20 @@ class JsonDeserializer(ClassDecoration, JsonDecoration):
   the deserialization inside the class. """
 
   def __init__(self, deserializer):  # type: (Callable, IDeserializer)
-    if callable(deserializer):
-      deserializer = IDeserializer(deserialize=deserializer)
+    if inspect.isfunction(deserializer):
+      deserializer = IDeserializer(deserializer)
     if not IDeserializer.provided_by(deserializer):
       raise TypeError('expected IDeserializer, got {}'.format(
         type(deserializer).__name__))
     self.deserializer = deserializer
 
-  def __call__(self, *args, **kwargs):
-    return self.deserializer.deserialize(*args, **kwargs)
+  def __call__(self, context, location):
+    try:
+      return self.deserializer.deserialize(context, location)
+    except ValueError as exc:
+      raise SerializationValueError(location, exc)
+    except TypeError as exc:
+      raise SerializationTypeError(location, exc)
 
 
 class JsonSerializer(ClassDecoration, JsonDecoration):
@@ -565,15 +571,20 @@ class JsonSerializer(ClassDecoration, JsonDecoration):
   the deserialization inside the class. """
 
   def __init__(self, serializer):  # type: (Union[Callable, IDeserializer])
-    if callable(serializer):
-      serializer = ISerializer(serialize=serializer)
+    if inspect.isfunction(serializer):
+      serializer = ISerializer(serializer)
     if not ISerializer.provided_by(serializer):
       raise TypeError('expected ISerializer, got {}'.format(
         type(serializer).__name__))
     self.serializer = serializer
 
-  def __call__(self, *args, **kwargs):
-    return self.serializer.serialize(*args, **kwargs)
+  def __call__(self, context, location):
+    try:
+      return self.serializer.serialize(context, location)
+    except ValueError as exc:
+      raise SerializationValueError(location, exc)
+    except TypeError as exc:
+      raise SerializationTypeError(location, exc)
 
 
 class JsonStrict(ClassDecoration, JsonDecoration):

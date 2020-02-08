@@ -320,7 +320,7 @@ class PythonClassType(object):
     return py_value
 
   @classmethod
-  def of(cls, py_type): # type: (Type) -> Callable[bool, [IDataType]]
+  def make_check(cls, py_type): # type: (Type) -> Callable[bool, [IDataType]]
     """ Returns a test function that accepts an #IDataType instance and
     returns #True if it is a #PythonClassType of the specified *py_type*. """
 

@@ -19,12 +19,21 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .datatypes import translate_type_def
-from .interfaces import IDataType, IDeserializeContext, \
-  ISerializeContext, IDeserializer, ISerializer
+from .datatypes import PythonClassType, translate_type_def
+from .errors import (
+  InvalidTypeDefinitionError,
+  SerializationTypeError,
+  SerializationValueError)
+from .interfaces import (
+  IDataType,
+  IDeserializeContext,
+  ISerializeContext,
+  IDeserializer,
+  ISerializer)
 from .location import Location, Path
 from nr.interface import Interface, default, implements, override
 import contextlib
+import functools
 import inspect
 
 __all__ = ['IModule', 'SimpleModule', 'ObjectMapper']
@@ -49,7 +58,60 @@ class SimpleModule(object):
     self._checked_deserializers = []
     self._checked_serializers = []
 
+  def _wrap_serializer_function(self, func):
+    @functools.wraps(func)
+    def wrapper(context, location):
+      try:
+        return func(context, location)
+      except ValueError as exc:
+        raise SerializationValueError(location, exc)
+      except TypeError as exc:
+        raise SerializationTypeError(location, exc)
+    return wrapper
+
+  def deserializer_for(self, datatype_type):
+    """ A decorator to register a deserializer function for the specified
+    *datatype_type*. The decorator simply calls #register_deserializer()
+    with the specified datatype and decorated function after wrapping the
+    function in a #IDeserializer. """
+
+    def decorator(func):
+      self.register_deserializer(datatype_type, IDeserializer(self._wrap_serializer_function(func)))
+      return func
+
+    return decorator
+
+  def serializer_for(self, datatype_type):
+    """ Analoguous to #deserializer_for(). """
+
+    def decorator(func):
+      self.register_serializer(datatype_type, ISerializer(self._wrap_serializer_function(func)))
+      return func
+
+    return decorator
+
+  def _coerce_datatype_type(self, datatype_type):
+    if isinstance(datatype_type, type) and IDataType.implemented_by(datatype_type):
+      return datatype_type
+    try:
+      type_def = translate_type_def(datatype_type)
+      if isinstance(type_def, PythonClassType):
+        return PythonClassType.make_check(datatype_type)
+    except InvalidTypeDefinitionError:
+      pass
+    return datatype_type
+
   def register_deserializer(self, datatype_type, deserializer):
+    """ Registers a deserializer with an associated datatype or a predicate
+    function. The *datatype_type* may be one of the following types:
+
+    1. An instance of the #IDeserializer interface
+    2. A function object that accepts an #IDataType instance and returns
+        True if the *deserializer* is applicable to the datatype
+    """
+
+    datatype_type = self._coerce_datatype_type(datatype_type)
+
     if not IDeserializer.provided_by(deserializer):
       raise TypeError('expected IDeserializer instance, got {!r}'
         .format(deserializer.__name__))
@@ -62,6 +124,10 @@ class SimpleModule(object):
     self._deserializers[datatype_type] = deserializer
 
   def register_serializer(self, datatype_type, serializer):
+    """ Analoguous to #register_deserializer(). """
+
+    datatype_type = self._coerce_datatype_type(datatype_type)
+
     if not ISerializer.provided_by(serializer):
       raise TypeError('expected IDeserializer instance, got {!r}'
         .format(serializer.__name__))
@@ -74,6 +140,10 @@ class SimpleModule(object):
     self._serializers[datatype_type] = serializer
 
   def register_duplex(self, datatype_type, deserializer_serializer):
+    """ Analoguous to #register_deserializer(), only that the registered
+    instance must implement both the #IDeserializer and #ISerializer
+    interfaces. """
+
     self.register_deserializer(datatype_type, deserializer_serializer)
     self.register_serializer(datatype_type, deserializer_serializer)
 
