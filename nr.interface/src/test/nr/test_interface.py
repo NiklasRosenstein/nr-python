@@ -41,16 +41,6 @@ def test_constructed():
     Foo()
 
 
-def test_interface_construction():
-  class IFoo(Interface):
-    def bar(self):
-      pass
-  with pytest.raises(TypeError) as excinfo:
-    IFoo()
-  assert str(excinfo.value) == 'missing keyword argument "bar"'
-  assert IFoo(bar=lambda: 42).bar() == 42
-
-
 def test_value():
 
   class IFoo(Interface):
@@ -712,6 +702,16 @@ def test_deconflicting_interfaces():
       pass
 
 
+def test_interface_construction():
+  class IFoo(Interface):
+    def bar(self):
+      pass
+  with pytest.raises(TypeError) as excinfo:
+    IFoo()
+  assert str(excinfo.value) == 'missing keyword argument "bar"'
+  assert IFoo(bar=lambda: 42).bar() == 42
+
+
 def test_interface_lambda_instantiation():
   class IMyInterface(Interface):
     def hello(self, name):
@@ -724,3 +724,8 @@ def test_interface_lambda_instantiation():
   impl = IMyInterface(hello=lambda name: 'Hello, {}!'.format(name))
   assert impl.hello('John') == 'Hello, John!'
   assert IMyInterface.provided_by(impl)
+
+  impl2 = IMyInterface(hello=lambda name: 'Bye, {}!'.format(name))
+  assert impl2.hello('John') == 'Bye, John!'
+
+  assert type(impl) is type(impl2)

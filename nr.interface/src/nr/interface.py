@@ -43,10 +43,13 @@ import six
 import sys
 import types
 
+from nr.commons.py.classdef import make_singleton
 from nr.collections import OrderedSet
 from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
 from nr.commons.notset import NotSet
+
+_NoCheckType = make_singleton('_NoCheckType')
 
 
 class FunctionSpec(object):
@@ -531,37 +534,42 @@ class Interface(six.with_metaclass(InterfaceClass)):
 
     cache = getattr(cls, '_Interface__construct_cache', None)
     if cache is None:
-      cache = cls.__construct_cache = {}
+      cache = cls._Interface__construct_cache = {}
 
-    try:
-      required_members = cache['required_members']
-    except KeyError:
-      required_members = [x for x in cls.members() if x.required]
+    lambda_type = getattr(cls, '_Interface__lambda_type', None)
+    if lambda_type is None:
+      class lambda_type(Implementation):
+        __implements__ = [cls]
+        __required_members = frozenset(x.name for x in cls.members() if x.required)
 
-    if args:
-      if len(required_members) > 1:
-        raise TypeError('{} has more than one non-default member and thus '
-                        'must be constructed from keyword arguments only.'
-                        .format(cls.__name__))
-      kwargs[required_members[0].name] = args[0]
+        def __init__(self, *args, **kwargs):
+          if args:
+            if len(self.__required_members) > 1:
+              raise TypeError('{} has more than one non-default member and thus '
+                              'must be constructed from keyword arguments only.'
+                              .format(cls.__name__))
+            kwargs[next(iter(self.__required_members))] = args[0]
 
-    required = frozenset(x.name for x in required_members)
-    given = frozenset(kwargs.keys())
-    missing = required - given
-    if missing:
-      raise TypeError('missing keyword argument "{}"'.format(next(iter(missing))))
-    extra = given - required
-    if extra:
-      raise TypeError('extranous keyword argument "{}"'.format(next(iter(missing))))
+          given = frozenset(kwargs.keys())
+          missing = self.__required_members - given
+          if missing:
+            raise TypeError('missing keyword argument "{}"'.format(next(iter(missing))))
+          extra = given - self.__required_members
+          if extra:
+            raise TypeError('extranous keyword argument "{}"'.format(next(iter(missing))))
 
-    # Wrap functions as static methods.
-    for key, value in six.iteritems(kwargs):
-      if isinstance(value, types.FunctionType):
-        kwargs[key] = staticmethod(value)
+          # Wrap functions as static methods.
+          for key, value in six.iteritems(kwargs):
+            # TODO: Type checking
+            setattr(self, key, value)
 
-    kwargs['__implements__'] = [cls]
-    impl_class = type('{}_Temporary', (Implementation,), kwargs)
-    return impl_class()
+        # Need to provide the members for InterfaceClass, but we want it
+        # to skip the type checking.
+        locals().update({k: _NoCheckType for k in __required_members})
+
+      cls._Interface__lambda_type = lambda_type
+
+    return lambda_type(*args, **kwargs)
 
 
 def is_interface(obj):
@@ -714,6 +722,8 @@ class Implementation(InlineMetaclassBase):
     for interface in implements:
       for member in interface.members():
         value = getattr(self, member.name, NotSet)
+        if value is _NoCheckType:  # Internal for Interface.__new__()
+          continue
         if isinstance(member, Method):
           if isinstance(value, types.MethodType):
             value = value.im_func if six.PY2 else value.__func__
