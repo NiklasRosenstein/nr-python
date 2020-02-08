@@ -81,13 +81,15 @@ def test_struct(mapper):
 
   payload = [
     {'name': 'John Wick', 'age': 54},
-    {'name': 'Barbara Streisand', 'age': None, 'telephone-numbers': ['+1 BARBARA STREISAND']},
+    {'name': 'Barbara Streisand', 'telephone-numbers': ['+1 BARBARA STREISAND']},
   ]
   expected = [
     Person('John Wick', age=54, telephone_numbers=[]),
-    Person('Barbara Streisand', age=None, telephone_numbers=['+1 BARBARA STREISAND']),
+    Person('Barbara Streisand', telephone_numbers=['+1 BARBARA STREISAND']),
   ]
-  assert mapper.deserialize(payload, [Person]) == expected
+  deserialized = mapper.deserialize(payload, [Person])
+  assert deserialized == expected
+  assert mapper.serialize(deserialized, [Person]) == payload
 
 
 def test_struct_equality(mapper):
