@@ -152,7 +152,7 @@ class IntegerConverter(object):
 @implements(IDeserializer, ISerializer)
 class DecimalConverter(object):
 
-  def __init__(self, supports_decimal=False, as_string=False):
+  def __init__(self, supports_decimal=False, as_string=None):
     super(DecimalConverter, self).__init__()
     self.supports_decimal = supports_decimal
     self.as_string = as_string
@@ -163,11 +163,14 @@ class DecimalConverter(object):
     raise SerializationTypeError(location)
 
   def serialize(self, context, location):
-    if self.as_string:
-      return str(location.value)
-    if self.supports_decimal and isinstance(location, decimal.Decimal):
-      return location.value
-    return float(location.value)
+    value = location.datatype.coerce(location.value)
+    is_decimal = isinstance(location.value, decimal.Decimal)
+
+    if self.supports_decimal and self.as_string is None and is_decimal:
+      return value
+    if self.as_string or (self.as_string is None and is_decimal):
+      return str(value)
+    return float(value)
 
 
 @implements(IDeserializer, ISerializer)
