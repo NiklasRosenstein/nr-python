@@ -363,7 +363,10 @@ def translate_type_def(py_type_def, fallback=None):
   if IDataType.provided_by(py_type_def):
     return py_type_def
   elif isinstance(py_type_def, type) and IDataType.implemented_by(py_type_def):
-    return py_type_def()
+    try:
+      return py_type_def()
+    except TypeError:
+      raise InvalidTypeDefinitionError(py_type_def)
   for adapter in sorted(IDataType.implementations(), key=lambda x: -x.priority):
     try:
       return adapter.from_typedef(translate_type_def, py_type_def)

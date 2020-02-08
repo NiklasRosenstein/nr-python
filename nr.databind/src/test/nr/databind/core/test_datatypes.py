@@ -63,7 +63,7 @@ def test_translate_type_def(mapper):
 
   assert isinstance(translate_type_def(StringType), StringType)
 
-  with pytest.raises(TypeError):
+  with pytest.raises(InvalidTypeDefinitionError):
     translate_type_def(CollectionType)  # not enough arguments
 
   typedef = CollectionType(StringType())
