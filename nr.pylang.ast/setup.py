@@ -11,8 +11,6 @@ with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
 requirements = []
-tests_require = []
-tests_require = []
 
 setuptools.setup(
   name = 'nr.pylang.ast',
@@ -29,7 +27,7 @@ setuptools.setup(
   include_package_data = False,
   install_requires = requirements,
   extras_require = {},
-  tests_require = tests_require,
+  tests_require = [],
   python_requires = None, # TODO: '>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},

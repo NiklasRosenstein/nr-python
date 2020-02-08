@@ -10,6 +10,8 @@ with io.open('src/nr/commons/__init__.py', encoding='utf8') as fp:
 long_description = None
 
 requirements = []
+extras_require = {}
+extras_require['test'] = ['nr.collections >=0.1.0,<1.0.0']
 tests_require = []
 tests_require = ['nr.collections >=0.1.0,<1.0.0']
 
@@ -27,7 +29,7 @@ setuptools.setup(
   package_dir = {'': 'src'},
   include_package_data = False,
   install_requires = requirements,
-  extras_require = {},
+  extras_require = extras_require,
   tests_require = tests_require,
   python_requires = None, # TODO: None,
   data_files = [],

@@ -11,6 +11,8 @@ with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
 requirements = ['nr.interface >=0.0.1,<0.1.0', 'nr.parsing.date >=0.0.1,<0.1.0', 'nr.stream >=0.0.1,<0.1.0']
+extras_require = {}
+extras_require['test'] = ['pytest', 'PyYAML']
 tests_require = []
 tests_require = ['pytest', 'PyYAML']
 
@@ -28,7 +30,7 @@ setuptools.setup(
   package_dir = {'': 'src'},
   include_package_data = False,
   install_requires = requirements,
-  extras_require = {},
+  extras_require = extras_require,
   tests_require = tests_require,
   python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
