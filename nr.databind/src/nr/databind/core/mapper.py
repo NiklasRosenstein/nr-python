@@ -32,13 +32,6 @@ __all__ = ['IModule', 'SimpleModule', 'ObjectMapper']
 
 class IModule(Interface):
 
-  def setup_module(self, context):
-    """ Called to initialize the module. This is currently unused and only
-    part of the interface for future extension. The *context* argument will
-    be None. """
-
-    pass
-
   def get_deserializer(self, datatype):
     pass
 
@@ -84,9 +77,7 @@ class SimpleModule(object):
     self.register_deserializer(datatype_type, deserializer_serializer)
     self.register_serializer(datatype_type, deserializer_serializer)
 
-  def setup_module(self, context):
-    pass
-
+  @override
   def get_deserializer(self, datatype):
     for check, deserializer in self._checked_deserializers:
       if check(datatype):
@@ -96,6 +87,7 @@ class SimpleModule(object):
     except KeyError:
       return None
 
+  @override
   def get_serializer(self, datatype):
     for check, serializer in self._checked_serializers:
       if check(datatype):
@@ -123,10 +115,7 @@ class ModuleContainer(object):
         .format(type(module).__name__))
     self._modules.append(module)
 
-  def setup_module(self, context):
-    for module in self._modules:
-      module.setup_module(context)
-
+  @override
   def get_deserializer(self, datatype):
     for module in self._modules:
       deserializer = module.get_deserializer(datatype)
@@ -134,6 +123,7 @@ class ModuleContainer(object):
         return deserializer
     return None
 
+  @override
   def get_serializer(self, datatype):
     for module in self._modules:
       serializer = module.get_serializer(datatype)
@@ -207,18 +197,21 @@ class ModuleContext(object):
     return iter(self._decorations)
 
 
-class ObjectMapper(object):
+class ObjectMapper(SimpleModule):
   """ The #ObjectMapper is a high-level entrypoint for the deserialization/
   serialization process, dispatching the workload to a #ModuleContext. The
   object mapper can be initialized from an argument list of #IModule objects.
   """
 
   def __init__(self, *modules):
-    self._modules = ModuleContainer(*modules)
-    self._modules.setup_module(None)
+    super(ObjectMapper, self).__init__()
+    self._modules = [x() if isinstance(x, type) else x for x in modules]
     self._decorations = []
 
-  def with_decorations(self, *decorations):  # type: (Decoration) -> ObjectMapper
+  def module_container(self):  # type: () -> ModuleContainer
+    return ModuleContainer(self, *self._modules)
+
+  def add_decorations(self, *decorations):  # type: (Decoration) -> ObjectMapper
     """ Permanently adds the specified *decorations* to the mapper. """
 
     self._decorations.extend(decorations)
@@ -227,8 +220,7 @@ class ObjectMapper(object):
   def register_module(self, module):  # type: (IModule) -> ObjectMapper
     """ Registers an #IModule instance in the mapper. """
 
-    self._modules.register_module(module)
-    module.setup_module()
+    self._modules.append(module)
     return self
 
   def deserialize(self, value, datatype, path=None, filename=None, decorations=None):
@@ -237,7 +229,7 @@ class ObjectMapper(object):
     registered in the ObjectMapper. Returns the deserialized result. """
 
     decorations = list(self._decorations) + list(decorations or ())
-    context = ModuleContext(self._modules, path, filename, decorations)
+    context = ModuleContext(self.module_container(), path, filename, decorations)
     return context.deserialize(value, datatype)
 
   def serialize(self, value, datatype, path=None, filename=None, decorations=None):
@@ -246,5 +238,5 @@ class ObjectMapper(object):
     in the ObjectMapper. Returns the deserialized result. """
 
     decorations = list(self._decorations) + list(decorations or ())
-    context = ModuleContext(self._modules, path, filename, decorations)
+    context = ModuleContext(self.module_container(), path, filename, decorations)
     return context.serialize(value, datatype)

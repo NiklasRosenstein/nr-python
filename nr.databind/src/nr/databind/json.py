@@ -74,7 +74,8 @@ __all__ = [
 
 class JsonModule(SimpleModule):
 
-  def setup_module(self, context):
+  def __init__(self):
+    super(JsonModule, self).__init__()
     try: import enum
     except ImportError: enum = None
     else:
