@@ -520,6 +520,15 @@ class Interface(six.with_metaclass(InterfaceClass)):
 
   @Decoration.wraps(skip=True)
   def __new__(cls, *args, **kwargs):
+    """ Constructs an instance of the interface from the specified arguments.
+    All required members of an interface must be satisfied with the specified
+    arguments. Interfaces with only a single required member can be created
+    with a single positional argument. Interfaces with more than one required
+    member need to be instantiated with keyword arguments only.
+
+    We call this method of creating an interface instance "lambda
+    instantiation". """
+
     cache = getattr(cls, '_Interface__construct_cache', None)
     if cache is None:
       cache = cls.__construct_cache = {}

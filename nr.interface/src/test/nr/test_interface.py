@@ -712,7 +712,7 @@ def test_deconflicting_interfaces():
       pass
 
 
-def test_interface_constructor():
+def test_interface_lambda_instantiation():
   class IMyInterface(Interface):
     def hello(self, name):
       pass
