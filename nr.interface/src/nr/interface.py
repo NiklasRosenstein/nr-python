@@ -466,6 +466,9 @@ class InterfaceClass(type):
 
     return self
 
+  def __len__(self):
+    return len(self.__members)
+
   def __contains__(self, key):
     return key in self.__members
 
@@ -516,8 +519,24 @@ class Interface(six.with_metaclass(InterfaceClass)):
   """
 
   @Decoration.wraps(skip=True)
-  def __new__(cls, **kwargs):
-    required = frozenset(x.name for x in cls.members() if x.required)
+  def __new__(cls, *args, **kwargs):
+    cache = getattr(cls, '_Interface__construct_cache', None)
+    if cache is None:
+      cache = cls.__construct_cache = {}
+
+    try:
+      required_members = cache['required_members']
+    except KeyError:
+      required_members = [x for x in cls.members() if x.required]
+
+    if args:
+      if len(required_members) > 1:
+        raise TypeError('{} has more than one non-default member and thus '
+                        'must be constructed from keyword arguments only.'
+                        .format(cls.__name__))
+      kwargs[required_members[0].name] = args[0]
+
+    required = frozenset(x.name for x in required_members)
     given = frozenset(kwargs.keys())
     missing = required - given
     if missing:
