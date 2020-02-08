@@ -257,6 +257,9 @@ class ObjectConverter(object):
 @implements(IDeserializer, ISerializer)
 class StructConverter(object):
 
+  def __init__(self, skip_default_values=True):
+    self.skip_default_values = skip_default_values
+
   def _extract_kwargs(self, field, context, struct_cls, location, kwargs, handled_keys):
     assert field.name not in kwargs, (field, struct_cls, location)
 
@@ -369,8 +372,18 @@ class StructConverter(object):
       for name, field in struct_cls.__fields__.items():
         if field.hidden:
           continue
+
         value = getattr(location.value, name)
-        result[field.name] = context.serialize(value, field.datatype, name)
+        if not (field.nullable and value is None):
+          value = context.serialize(value, field.datatype, name)
+
+        if field.default is not NotSet and self.skip_default_values and \
+            value == field.get_default_value():
+          continue
+
+        json_field_name = get_decoration(JsonFieldName, field)
+        key = json_field_name.name if json_field_name else field.name
+        result[key] = value
 
     return result
 
