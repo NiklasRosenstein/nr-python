@@ -393,9 +393,37 @@ class StructConverter(object):
 @implements(IDeserializer, ISerializer)
 class DatetimeConverter(object):
 
+  DEFAULT_FORMAT = DatetimeType.Format(ISO_8601)
+
+  @classmethod
+  def _get_format(cls, context, location):
+    format = get_decoration(type(cls.DEFAULT_FORMAT), location, context)
+    if not format or not format.formats:
+      format = cls.DEFAULT_FORMAT
+    return format
+
+  @classmethod
+  def _get_parse_delegate(cls, context, location):
+    format = cls._get_format(context, location)
+    if isinstance(format.formats[0], str):
+      return lambda v: datetime.datetime.strptime(v, format.formats[0])
+    else:
+      # A format can also be an object with parse()/format() methods.
+      return format.formats[0].parse
+
+  @classmethod
+  def _get_format_delegate(cls, context, location):
+    format = cls._get_format(context, location)
+    if isinstance(format.formats[0], str):
+      return lambda v: datetime.datetime.strftime(v, format.formats[0])
+    else:
+      # A format can also be an object with parse()/format() methods.
+      return format.formats[0].format
+
   def deserialize(self, context, location):
     if isinstance(location.value, str):
-      return ISO_8601.parse(location.value)
+      parse = self._get_parse_delegate(context, location)
+      return parse(location.value)
     elif isinstance(location.value, int):
       return datetime.datetime.fromtimestamp(location.value)
     elif isinstance(location.value, datetime.datetime):
@@ -405,19 +433,26 @@ class DatetimeConverter(object):
 
   def serialize(self, context, location):
     if isinstance(location.value, datetime.datetime):
-      return ISO_8601.format(location.value)
+      format_ = self._get_format_delegate(context, location)
+      return format_(location.value)
     raise SerializationTypeError(location)
 
 
 @implements(IDeserializer, ISerializer)
-class DateConverter(object):
+class DateConverter(DatetimeConverter):
+
+  DEFAULT_FORMAT = DateType.Format('%Y-%m-%d')
 
   def __init__(self, serialize_as_date=False):
     self.serialize_as_date = False
 
   def deserialize(self, context, location):
     if isinstance(location.value, str):
-      return datetime.datetime.strptime(location.value, '%Y-%m-%d').date()
+      parse = self._get_parse_delegate(context, location)
+      value = parse(location.value)
+      if isinstance(value, datetime.datetime):
+        value = value.date()
+      return value
     elif isinstance(location.value, int):
       return datetime.datetime.fromtimestamp(location.value).date()
     elif isinstance(location.value, datetime.date):
@@ -430,7 +465,8 @@ class DateConverter(object):
       raise SerializationTypeError(location)
     if self.serialize_as_date:
       return location.value
-    return location.value.strftime('%Y-%m-%d')
+    format = self._get_format_delegate(context, location)
+    return format(location.value)
 
 
 @implements(IDeserializer, ISerializer)

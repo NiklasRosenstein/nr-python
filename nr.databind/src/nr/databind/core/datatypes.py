@@ -33,6 +33,7 @@ from nr.collections import abc
 from nr.commons.py import classdef
 from nr.commons.py.typing import is_generic, get_generic_args
 from nr.interface import implements
+from .decoration import Decoration
 from .interfaces import IDataType
 from .errors import InvalidTypeDefinitionError
 
@@ -280,6 +281,18 @@ class DatetimeType(object):
 
   classdef.comparable([])
 
+  class Format(Decoration):
+    """ A decoration that can be associated with the datatype on a field to
+    specify the format the this datetime is serialized/deserialized as.
+    Multiple formats are only used during deserialization (if supported by the
+    deserializer).
+
+    A format may instead of a string also be an object with a #parse() and
+    #format() function that accepts a datetime object. """
+
+    def __init__(self, *formats):  # type: (str)
+      self.formats = formats
+
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
     if py_type_def is datetime.datetime:
@@ -297,6 +310,8 @@ class DatetimeType(object):
 class DateType(object):
 
   classdef.comparable([])
+
+  Format = DatetimeType.Format
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
@@ -400,6 +415,8 @@ __all__ = [
   'BooleanType',
   'StringType',
   'IntegerType',
+  'DatetimeType',
+  'DateType',
   'DecimalType',
   'CollectionType',
   'ObjectType',
