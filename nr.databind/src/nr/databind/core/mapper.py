@@ -85,7 +85,7 @@ class SimpleModule(object):
     """ Analoguous to #deserializer_for(). """
 
     def decorator(func):
-      self.register_serializer(datatype_type, ISerializer(self._wrap_serializer_function(func)))
+      self.register_serializer(datatype_type, func)
       return func
 
     return decorator
@@ -110,6 +110,9 @@ class SimpleModule(object):
         True if the *deserializer* is applicable to the datatype
     """
 
+    if inspect.isfunction(deserializer):
+      deserializer = IDeserializer(self._wrap_serializer_function(deserializer))
+
     datatype_type = self._coerce_datatype_type(datatype_type)
 
     if not IDeserializer.provided_by(deserializer):
@@ -125,6 +128,9 @@ class SimpleModule(object):
 
   def register_serializer(self, datatype_type, serializer):
     """ Analoguous to #register_deserializer(). """
+
+    if inspect.isfunction(serializer):
+      serializer = ISerializer(self._wrap_serializer_function(serializer))
 
     datatype_type = self._coerce_datatype_type(datatype_type)
 
