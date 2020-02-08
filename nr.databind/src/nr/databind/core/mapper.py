@@ -245,28 +245,28 @@ class ModuleContext(object):
       if filename is not None:
         assert self._filename.pop() is filename, filename
 
-  def mklocation(self, value, datatype):
-    return Location(value, datatype, self.path, self.filename)
+  def mklocation(self, value, datatype, decorations):
+    return Location(value, datatype, self.path, self.filename, decorations)
 
   @override
-  def deserialize(self, value, datatype, key=None, filename=None):
+  def deserialize(self, value, datatype, key=None, filename=None, decorations=None):
     datatype = translate_type_def(datatype)
     with self._enter(key, filename):
       deserializer = self._module.get_deserializer(datatype)
       if deserializer is None:
         raise RuntimeError('no deserializer for {!r} found'.format(
           type(datatype).__name__))
-      return deserializer.deserialize(self, self.mklocation(value, datatype))
+      return deserializer.deserialize(self, self.mklocation(value, datatype, decorations))
 
   @override
-  def serialize(self, value, datatype, key=None, filename=None):
+  def serialize(self, value, datatype, key=None, filename=None, decorations=None):
     datatype = translate_type_def(datatype)
     with self._enter(key, filename):
       serializer = self._module.get_serializer(datatype)
       if serializer is None:
         raise RuntimeError('no serializer for {!r} found'.format(
           type(datatype).__name__))
-      return serializer.serialize(self, self.mklocation(value, datatype))
+      return serializer.serialize(self, self.mklocation(value, datatype, decorations))
 
   @override
   def iter_decorations(self):

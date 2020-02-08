@@ -107,12 +107,13 @@ class Location(object):
   """ A container for the position of a value in a nested structure as well
   as the value itself and the expected datatype for that value. """
 
-  def __init__(self, value, datatype, path, filename):
+  def __init__(self, value, datatype, path, filename, decorations=None):
     # type: (Any, IDataType, Path)
     self.value = value
     self.datatype = datatype
     self.path = path
     self.filename = filename
+    self.decorations = decorations
 
   def __repr__(self):
     return '<Location at {} of {}>'.format(self.path, self.datatype)

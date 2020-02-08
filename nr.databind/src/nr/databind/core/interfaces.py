@@ -96,16 +96,16 @@ class IBaseContext(Interface):
 class IDeserializeContext(IBaseContext):
   """ Context for deserializing values. """
 
-  def deserialize(self, value, datatype, key=None, filename=None):
-    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str])
+  def deserialize(self, value, datatype, key=None, filename=None, decorations=None):
+    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str], Optional[List[Decoration]])
     pass
 
 
 class ISerializeContext(IBaseContext):
   """ Context for serializing values. """
 
-  def serialize(self, value, datatype, key=None, filename=None):
-    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str])
+  def serialize(self, value, datatype, key=None, filename=None, decorations=None):
+    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str], Optional[List[Decoration]])
     pass
 
 

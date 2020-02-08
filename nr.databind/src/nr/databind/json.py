@@ -283,7 +283,8 @@ class StructConverter(object):
     if field.nullable and value is None:
       kwargs[field.name] = None
     else:
-      kwargs[field.name] = context.deserialize(value, field.datatype, key)
+      kwargs[field.name] = context.deserialize(value, field.datatype, key,
+        decorations=field.decorations)
 
     handled_keys.add(key)
 
@@ -375,7 +376,8 @@ class StructConverter(object):
 
         value = getattr(location.value, name)
         if not (field.nullable and value is None):
-          value = context.serialize(value, field.datatype, name)
+          value = context.serialize(value, field.datatype, name,
+            decorations=field.decorations)
 
         if field.default is not NotSet and self.skip_default_values and \
             value == field.get_default_value():
