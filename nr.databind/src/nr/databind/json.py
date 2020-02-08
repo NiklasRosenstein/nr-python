@@ -23,7 +23,6 @@
 Converts from and to JSON like nested structures.
 """
 
-from datetime import datetime
 from functools import partial
 from nr.commons.notset import NotSet
 from nr.commons.py import classdef
@@ -40,6 +39,7 @@ from .core.datatypes import (
   CollectionType,
   ObjectType,
   DatetimeType,
+  DateType,
   PythonClassType,
   MultiType,
   translate_type_def)
@@ -56,6 +56,7 @@ from .core.interfaces import IDeserializer, ISerializer
 from .core.mapper import SimpleModule, ObjectMapper
 from .core.struct import StructType
 from .core.union import UnionType, UnknownUnionTypeError
+import datetime
 import decimal
 import inspect
 import six
@@ -91,6 +92,7 @@ class JsonModule(SimpleModule):
     self.register_duplex(ObjectType, ObjectConverter())
     self.register_duplex(StructType, StructConverter())
     self.register_duplex(DatetimeType, DatetimeConverter())
+    self.register_duplex(DateType, DateConverter())
     self.register_duplex(PythonClassType, PythonClassConverter())
     self.register_duplex(MultiType, MultiTypeConverter())
     self.register_duplex(UnionType, UnionTypeConverter())
@@ -377,14 +379,40 @@ class DatetimeConverter(object):
     if isinstance(location.value, str):
       return ISO_8601.parse(location.value)
     elif isinstance(location.value, int):
-      return datetime.fromtimestamp(location.value)
+      return datetime.datetime.fromtimestamp(location.value)
+    elif isinstance(location.value, datetime.datetime):
+      return location.value
     else:
       raise SerializationTypeError(location)
 
   def serialize(self, context, location):
-    if isinstance(location.value, datetime):
+    if isinstance(location.value, datetime.datetime):
       return ISO_8601.format(location.value)
     raise SerializationTypeError(location)
+
+
+@implements(IDeserializer, ISerializer)
+class DateConverter(object):
+
+  def __init__(self, serialize_as_date=False):
+    self.serialize_as_date = False
+
+  def deserialize(self, context, location):
+    if isinstance(location.value, str):
+      return datetime.datetime.strptime(location.value, '%Y-%m-%d').date()
+    elif isinstance(location.value, int):
+      return datetime.datetime.fromtimestamp(location.value).date()
+    elif isinstance(location.value, datetime.date):
+      return location.value
+    else:
+      raise SerializationTypeError(location)
+
+  def serialize(self, context, location):
+    if not isinstance(location.value, datetime.date):
+      raise SerializationTypeError(location)
+    if self.serialize_as_date:
+      return location.value
+    return location.value.strftime('%Y-%m-%d')
 
 
 @implements(IDeserializer, ISerializer)
