@@ -701,7 +701,7 @@ class JsonMixin(object):
   @classmethod
   def from_json(cls, data, *args, **kwargs):
     mapper = ObjectMapper(JsonModule())
-    return mapper.dserialize(data, cls, *args, **kwargs)
+    return mapper.deserialize(data, cls, *args, **kwargs)
 
 
 class JsonEncoder(json.JSONEncoder):
