@@ -229,6 +229,15 @@ class UnionType(object):
   from the `__union_type_name__` or classname.
   """
 
+  #: Import these members on the UnionType to reduce the number of
+  #: imports that need to be made when implementing a custom type resolver
+  #: or creating one of the standard implementations.
+  UnknownUnionTypeError = UnknownUnionTypeError
+  ITypeMember = IUnionTypeMember
+  ITypeResolver = IUnionTypeResolver
+  StandardTypeResolver = StandardTypeResolver
+  EntrypointTypeResolver = EntrypointTypeResolver
+
   classdef.comparable(['type_resolver', 'type_key', 'nested'])
 
   def __init__(self, type_resolver, type_key='type', nested=False):
