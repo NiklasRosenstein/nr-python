@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 from .datatypes import PythonClassType, translate_type_def
+from .decoration import DeserializeAs, get_decoration
 from .errors import (
   InvalidTypeDefinitionError,
   SerializationTypeError,
@@ -251,6 +252,11 @@ class ModuleContext(object):
   @override
   def deserialize(self, value, datatype, key=None, filename=None, decorations=None):
     datatype = translate_type_def(datatype)
+    # Handle the DeserializeAs decoration.
+    if isinstance(datatype, PythonClassType):
+      deserialize_as = get_decoration(DeserializeAs, datatype.cls)
+      if deserialize_as:
+        datatype = deserialize_as.datatype
     with self._enter(key, filename):
       deserializer = self._module.get_deserializer(datatype)
       if deserializer is None:

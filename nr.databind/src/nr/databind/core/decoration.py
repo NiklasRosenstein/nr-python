@@ -28,7 +28,8 @@ __all__ = [
   'Decoration',
   'ClassDecoration',
   'DeserializationMetadataDecoration',
-  'LocationMetadataDecoration'
+  'LocationMetadataDecoration',
+  'DeserializeAs',
 ]
 
 
@@ -145,3 +146,15 @@ class LocationMetadataDecoration(DeserializationMetadataDecoration, ClassDecorat
 
   def enrich_object_metadata(self, metadata, context, location):
     metadata["location"] = location
+
+
+class DeserializeAs(ClassDecoration):
+  """ A class decoration to specify as what type it should be deserialized as.
+  This decoration is only consulted for classes that would be represented as a
+  #PythonClassType datatype. """
+
+  def __init__(self, datatype):  # type: (IDataType)
+    self.datatype = datatype
+
+  def __repr__(self):
+    return 'DeserializeAs({!r})'.format(self.datatype)

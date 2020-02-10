@@ -21,6 +21,7 @@
 
 from .collection import *
 from .datatypes import *
+from .decoration import DeserializeAs
 from .errors import *
 from .interfaces import *
 from .location import *
