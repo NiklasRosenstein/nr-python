@@ -56,12 +56,8 @@ class IUnionTypeMember(Interface):
   def get_type_name(self):  # type: () -> str
     pass
 
-  def get_struct(self):  # type: () -> Type[Struct]
-    """ Return the [[Struct]] subclass for this union type member. """
-    pass
-
   def create_instance(self, deserialized_struct):   # type: (Struct) -> Any
-    """ Create an instance of this union type member. A usualy implementation
+    """ Create an instance of this union type member. A typical implementation
     would be to just return the *deserialized_struct*, but in some use cases
     you may want to wrap it in another type. """
     pass
@@ -77,18 +73,18 @@ class IUnionTypeResolver(Interface):
 
   classdef.comparable([])
 
-  def resolve(self, type_name):  # type: (str) -> IUnionTypeResolver
+  def resolve(self, type_name):  # type: (str) -> IUnionTypeMember
     """ Resolve the *type_name* to a [[IUnionTypeMember]] instance. If the
     *type_name* is unknown, an [[UnknownUnionTypeError]] must be raised. """
     pass
 
-  def reverse(self, value):  # type: (Any) -> IUnionTypeResolver
+  def reverse(self, value):  # type: (Any) -> IUnionTypeMember
     """ Return the [[IUnionTypeResolver]] for the specified *value*, which is
     whatever [[IUnionTypeMember.create_instance()]] returns. Raises
     [[UnknownUnionTypeError]] if the value cannot be reversed. """
     pass
 
-  def members(self):  # type: () -> Iterable[IUnionTypeResolver]
+  def members(self):  # type: () -> Iterable[IUnionTypeMember]
     """ List up all the members of this resolver. If listing members is not
     supported, a [[NotImplementedError]] must be raised to indicate that. """
     pass
@@ -111,8 +107,6 @@ class StandardTypeResolver(object):
       return self._name
     def get_type_name(self):
       return self._cls.__name__
-    def get_struct(self):
-      return self._cls
     def create_instance(self, deserialized_struct):
       return deserialized_struct
     def isinstance_check(self, value):
@@ -192,6 +186,44 @@ class EntrypointTypeResolver(StandardTypeResolver):
 
   def _Member(self, name, cls):
     return self._EntrypointMember(self, name, cls)
+
+
+@implements(IUnionTypeResolver)
+class ImportTypeResolve(object):
+  """ This type resolver identifies a union type by their fully qualified
+  Python import name, constructed from the `__module__` and `__name__`
+  attributes of a type. """
+
+  @implements(IUnionTypeMember)
+  class _Member(object):
+    def __init__(self, type_name, cls):
+      self._type_name = type_name
+      self._cls = cls
+
+    def get_name(self): return self._type_name
+
+    def get_type_name(self): return self._type_name
+
+    def get_struct(self)
+
+  def resolve(self, type_name):  # type: (str) -> _Member
+    module_name, member = type_name.rpartition('.')[::2]
+    try:
+      module = importlib.import_module(module)
+    except ImportError:
+      raise UnknownUnionTypeError(type_name)
+    try:
+      return self._Member(type_name, getattr(module, member))
+    except AttributeError:
+      raise UnknownUnionTypeError(type_name)
+
+  def reverse(self, value):
+    module_name = type(value).__module__
+    member = type(value).__name__
+    return self._Member(module_name + '.' + member, type(value))
+
+  def members(self)
+    raise NotImplementedError
 
 
 @implements(IDataType)
