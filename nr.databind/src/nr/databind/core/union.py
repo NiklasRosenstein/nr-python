@@ -22,12 +22,14 @@
 """ This module provides a configurable [[UnionType]] for struct fields. """
 
 import typing
+import importlib
 
 from nr.collections import abc
 from nr.commons.py import classdef
 from nr.commons.py.typing import is_generic, get_generic_args
-from nr.interface import Interface, implements
+from nr.interface import attr, implements, Interface
 
+from .datatypes import PythonClassType, translate_type_def
 from .errors import InvalidTypeDefinitionError
 from .interfaces import IDataType
 from .struct import Struct, StructType
@@ -50,22 +52,18 @@ class IUnionTypeMember(Interface):
   [[IUnionTypeResolver]] when given a type name. This interface provides all
   the information about this union member. """
 
-  def get_name(self):  # type: () -> str
-    pass
+  #: The name of the type in the union.
+  name = attr()  # type: str
 
-  def get_type_name(self):  # type: () -> str
-    pass
+  #: A more easily identifiable name of the type (eg. the full import name
+  #: of te type, or an otherwise descriptive name, can be the same as #name).
+  type_name = attr()  # type: str
 
-  def create_instance(self, deserialized_struct):   # type: (Struct) -> Any
-    """ Create an instance of this union type member. A typical implementation
-    would be to just return the *deserialized_struct*, but in some use cases
-    you may want to wrap it in another type. """
-    pass
+  #: The #IDataType that is used to deserialize this union type member.
+  datatype = attr()  # typE: IDataType
 
   def isinstance_check(self, value):  # type: (Any) -> bool
-    """ Check if *value* is an instance of the type returned by
-    [[create_instance()]]. """
-    pass
+    """ Check if *value* is an instance of this union type member. """
 
 
 class IUnionTypeResolver(Interface):
@@ -76,41 +74,43 @@ class IUnionTypeResolver(Interface):
   def resolve(self, type_name):  # type: (str) -> IUnionTypeMember
     """ Resolve the *type_name* to a [[IUnionTypeMember]] instance. If the
     *type_name* is unknown, an [[UnknownUnionTypeError]] must be raised. """
-    pass
 
   def reverse(self, value):  # type: (Any) -> IUnionTypeMember
     """ Return the [[IUnionTypeResolver]] for the specified *value*, which is
     whatever [[IUnionTypeMember.create_instance()]] returns. Raises
     [[UnknownUnionTypeError]] if the value cannot be reversed. """
-    pass
 
   def members(self):  # type: () -> Iterable[IUnionTypeMember]
     """ List up all the members of this resolver. If listing members is not
     supported, a [[NotImplementedError]] must be raised to indicate that. """
-    pass
 
 
 @implements(IUnionTypeResolver)
 class StandardTypeResolver(object):
   """ This implementation of the [[IUnionTypeResolver]] uses a static mapping
-  of type names to [[Struct]] subclasses. It can be initialized from a list
-  of [[Struct]] objects or a dictionary. If a list is specified, the type name
-  is derived from the `__union_type_name__` attribute or the class name, in
-  that order. """
+  of type names to [[Struct]] subclasses. It has two forms of initialization:
+
+  1. A (potentially mixed) list of Python type objects, #StructType or
+     #PythonClassType objects. In this case the union type name is derived
+     from the `__union_type_name__` or `__name__` member (in this order).
+  2. A dictionary of union type names mapping to anything that can be
+     translated to an #IDataType with #translate_type_def().
+  """
 
   @implements(IUnionTypeMember)
   class _Member(object):
-    def __init__(self, name, cls):
-      self._name = name
-      self._cls = cls
-    def get_name(self):
-      return self._name
-    def get_type_name(self):
-      return self._cls.__name__
-    def create_instance(self, deserialized_struct):
-      return deserialized_struct
+    def __init__(self, name, datatype):
+      self.name = name
+      self.type_name = datatype.to_human_readable()
+      self.datatype = datatype
+
     def isinstance_check(self, value):
-      return isinstance(value, self._cls)
+      try:
+        self.datatype.check_value(value)
+      except TypeError:
+        return False
+
+  classdef.comparable(['types'])
 
   def __init__(self, types):
     if isinstance(types, abc.Mapping):
@@ -118,24 +118,22 @@ class StandardTypeResolver(object):
     elif isinstance(types, (list, tuple)):
       self.types = {}
       for item in types:
-        struct_cls = self._unpack_struct_item(item)
-        name = getattr(struct_cls, '__union_type_name__', struct_cls.__class__)
-        self.types[name] = struct_cls
+        if isinstance(item, StructType):
+          item = item.struct_cls
+        elif isinstance(item, PythonClassType):
+          item = item.cls
+        elif isinstance(item, type):
+          cls = item
+        else:
+          raise TypeError('expected StructType, PythonClassType or type '
+            'object, got {}'.format(type(item).__name__))
+        name = getattr(item, '__union_type_name__', item.__class__)
+        self.types[name] = item
     else:
       raise TypeError('expected list/tuple/dict, got {}'
                       .format(type(types).__name__))
 
-  classdef.comparable(['types'])
-
-  @staticmethod
-  def _unpack_struct_item(item):
-    if isinstance(item, StructType):
-      return item.struct_cls
-    elif isinstance(item, type) and issubclass(item, Struct):
-      return item
-    else:
-      raise TypeError('expected StructType instance or Struct class, '
-        'got {}'.format(type(item).__name__))
+    self.types.update({k: translate_type_def(v) for k, v in self.types.items()})
 
   def resolve(self, type_name):
     try:
@@ -144,12 +142,14 @@ class StandardTypeResolver(object):
       raise UnknownUnionTypeError(type_name)
 
   def reverse(self, value):
-    results = ((k, v) for k, v in self.types.items() if v == type(value))
-    try:
-      type_name, struct_type = next(results)
-    except StopIteration:
-      raise UnknownUnionTypeError(type(value))
-    return self._Member(type_name, struct_type)
+    result = None
+    for key, datatype in self.types.items():
+      try:
+        datatype.check_value(value)
+      except TypeError:
+        continue
+      return self._Member(key, datatype)
+    raise UnknownUnionTypeError(value)
 
   def members(self):
     try:
@@ -189,40 +189,42 @@ class EntrypointTypeResolver(StandardTypeResolver):
 
 
 @implements(IUnionTypeResolver)
-class ImportTypeResolve(object):
+class ImportTypeResolver(object):
   """ This type resolver identifies a union type by their fully qualified
   Python import name, constructed from the `__module__` and `__name__`
   attributes of a type. """
 
-  @implements(IUnionTypeMember)
-  class _Member(object):
-    def __init__(self, type_name, cls):
-      self._type_name = type_name
-      self._cls = cls
+  classdef.comparable([])
 
-    def get_name(self): return self._type_name
-
-    def get_type_name(self): return self._type_name
-
-    def get_struct(self)
-
-  def resolve(self, type_name):  # type: (str) -> _Member
+  def resolve(self, type_name):  # type: (str) -> IUnionTypeMember
     module_name, member = type_name.rpartition('.')[::2]
     try:
-      module = importlib.import_module(module)
+      module = importlib.import_module(module_name)
     except ImportError:
       raise UnknownUnionTypeError(type_name)
     try:
-      return self._Member(type_name, getattr(module, member))
+      cls = getattr(module, member)
     except AttributeError:
       raise UnknownUnionTypeError(type_name)
+    if not isinstance(cls, type):
+      raise UnknownUnionTypeError(type_name)
+    try:
+      datatype = translate_type_def(cls)
+    except InvalidTypeDefinitionError:
+      raise UnknownUnionTypeError(type_name)
+    return IUnionTypeMember(name=type_name, type_name=type_name,
+      datatype=datatype, isinstance_check=lambda x: isinstance(x, cls))
 
   def reverse(self, value):
     module_name = type(value).__module__
     member = type(value).__name__
-    return self._Member(module_name + '.' + member, type(value))
+    type_name = module_name + '.' + member
+    return IUnionTypeMember(
+      name=type_name, type_name=type_name,
+      datatype=translate_type_def(type(value)),
+      isinstance_check=lambda x: isinstance(x, type(value)))
 
-  def members(self)
+  def members(self):
     raise NotImplementedError
 
 
@@ -269,6 +271,7 @@ class UnionType(object):
   ITypeResolver = IUnionTypeResolver
   StandardTypeResolver = StandardTypeResolver
   EntrypointTypeResolver = EntrypointTypeResolver
+  ImportTypeResolver = ImportTypeResolver
 
   classdef.comparable(['type_resolver', 'type_key', 'nested'])
 
@@ -303,6 +306,27 @@ class UnionType(object):
       return py_value
     if not any(x.isinstance_check(py_value) for x in members):
       raise TypeError('expected {{{}}}, got {}'.format(
-        '|'.join(sorted(x.get_name() for x in members)),
+        '|'.join(sorted(x.name for x in members)),
         type(py_value).__name__))
     return py_value
+
+  @classmethod
+  def with_entrypoint_resolver(cls, *args, **kwargs):
+    """ Returns a #UnionType instance initialized with an
+    #EntrypointTypeResolver from the specified *args* and *kwargs*. The
+    *type_key* and *nested* keyword arguments are redirected to the
+    #UnionType constructor. """
+
+    union_kwargs = {
+      k: kwargs.pop(k) for k in ('type_key', 'nested') if k in kwargs}
+    return cls(EntrypointTypeResolver(*args, **kwargs), **union_kwargs)
+
+  @classmethod
+  def with_import_resolver(cls, *args, **kwargs):
+    """ Returns a #UnionType instance initialized with an #ImportTypeResolver
+    from the specified *args* and *kwargs*. The *type_key* and *nested*
+    keyword arguments are redirected to the #UnionType constructor. """
+
+    union_kwargs = {
+      k: kwargs.pop(k) for k in ('type_key', 'nested') if k in kwargs}
+    return cls(ImportTypeResolver(*args, **kwargs), **union_kwargs)

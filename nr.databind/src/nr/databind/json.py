@@ -24,6 +24,7 @@ Converts from and to JSON like nested structures.
 """
 
 from functools import partial
+from nr.collections import ChainDict
 from nr.commons.notset import NotSet
 from nr.commons.py import classdef
 from nr.collections import abc, OrderedDict
@@ -552,15 +553,15 @@ class UnionTypeConverter(object):
         'unknown union type: "{}"'.format(type_name))
 
     if datatype.nested:
-      struct_type = StructType(member.get_struct())
+      value = location.value[member.name]
       key = type_key
-      value = location.value[type_key]
     else:
-      struct_type = StructType(member.get_struct(), ignore_keys=[type_key])
+      # Hide the type_key from the forthcoming deserialization.
+      value = ChainDict({}, location.value)
+      value.pop(type_key)
       key = None
-      value = location.value
 
-    return context.deserialize(value, struct_type, key)
+    return context.deserialize(value, member.datatype, key)
 
   def serialize(self, context, location):
     datatype = location.datatype
@@ -574,21 +575,17 @@ class UnionTypeConverter(object):
         message = str(exc)
       else:
         message = 'expected {{{}}}, got {}'.format(
-          '|'.join(sorted(x.get_type_name() for x in members)),
+          '|'.join(sorted(x.type_name for x in members)),
           type(value).__name__)
       raise SerializationTypeError(location, message)
 
+    result = {datatype.type_key: member.name}
     if datatype.nested:
-      struct_type = StructType(member.get_struct())
-      key = type_key
-      value = location.value[type_key]
+      result[member.name] = context.serialize(
+        location.value, member.datatype, member.name)
     else:
-      struct_type = StructType(member.get_struct(), ignore_keys=[datatype.type_key])
-      key = None
-      value = location.value
+      result.update(context.serialize(location.value, member.datatype, None))
 
-    result = {datatype.type_key: member.get_name()}
-    result.update(context.serialize(value, struct_type, key))
     return result
 
 

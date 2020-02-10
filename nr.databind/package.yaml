@@ -3,6 +3,7 @@ version: "0.0.1"
 description: Bind structured data directly to typed objects.
 requirements:
   - python ^2.7|^3.4
+  - nr.collections ~0.0.1
   - nr.interface ~0.0.1
   - nr.parsing.date ~0.0.1
   - nr.stream ~0.0.1

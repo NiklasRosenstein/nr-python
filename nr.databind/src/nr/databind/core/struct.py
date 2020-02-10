@@ -59,6 +59,9 @@ class StructType(object):
     self.struct_cls = struct_cls
     self.ignore_keys = ignore_keys or []
 
+  def to_human_readable(self):
+    return self.struct_cls.__name__
+
   def propagate_field_name(self, name):
     if self.struct_cls.__name__ == self._INLINE_GENERATED_TYPENAME:
       self.struct_cls.__name__ = name.rpartition('.')[-1]
