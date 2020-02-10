@@ -27,7 +27,7 @@ import importlib
 from nr.collections import abc
 from nr.commons.py import classdef
 from nr.commons.py.typing import is_generic, get_generic_args
-from nr.interface import attr, implements, Interface
+from nr.interface import attr, default, implements, Interface
 
 from .datatypes import PythonClassType, translate_type_def
 from .errors import InvalidTypeDefinitionError
@@ -52,6 +52,8 @@ class IUnionTypeMember(Interface):
   [[IUnionTypeResolver]] when given a type name. This interface provides all
   the information about this union member. """
 
+  classdef.comparable(['name', 'type_name', 'datatype'], decorate=default)
+
   #: The name of the type in the union.
   name = attr()  # type: str
 
@@ -62,8 +64,15 @@ class IUnionTypeMember(Interface):
   #: The #IDataType that is used to deserialize this union type member.
   datatype = attr()  # typE: IDataType
 
+  @default
   def isinstance_check(self, value):  # type: (Any) -> bool
     """ Check if *value* is an instance of this union type member. """
+
+    try:
+      self.datatype.check_value(value)
+      return True
+    except TypeError:
+      return False
 
 
 class IUnionTypeResolver(Interface):
@@ -104,12 +113,6 @@ class StandardTypeResolver(object):
       self.type_name = datatype.to_human_readable()
       self.datatype = datatype
 
-    def isinstance_check(self, value):
-      try:
-        self.datatype.check_value(value)
-      except TypeError:
-        return False
-
   classdef.comparable(['types'])
 
   def __init__(self, types):
@@ -133,22 +136,24 @@ class StandardTypeResolver(object):
       raise TypeError('expected list/tuple/dict, got {}'
                       .format(type(types).__name__))
 
-    self.types.update({k: translate_type_def(v) for k, v in self.types.items()})
+    for key, value in self.types.items():
+      if not IUnionTypeMember.provided_by(value):
+        self.types[key] = self._Member(key, translate_type_def(value))
 
   def resolve(self, type_name):
     try:
-      return self._Member(type_name, self.types[type_name])
+      return self.types[type_name]
     except KeyError:
       raise UnknownUnionTypeError(type_name)
 
   def reverse(self, value):
     result = None
-    for key, datatype in self.types.items():
+    for key, member in self.types.items():
       try:
-        datatype.check_value(value)
+        member.datatype.check_value(value)
       except TypeError:
         continue
-      return self._Member(key, datatype)
+      return member
     raise UnknownUnionTypeError(value)
 
   def members(self):
@@ -156,7 +161,7 @@ class StandardTypeResolver(object):
       items = self.types.items()
     except NotImplementedError:
       raise NotImplementedError('wrapped "types" mapping does not support iteration')
-    return (self._Member(k, v) for k, v in items)
+    return (x[1] for x in items)
 
 
 @implements(IUnionTypeResolver)
@@ -166,26 +171,48 @@ class EntrypointTypeResolver(StandardTypeResolver):
   or implements it's interface (if *base_type* is a subclass of [[Interface]]).
   """
 
-  class _EntrypointMember(StandardTypeResolver._Member):
-    def __init__(self, resolver, name, cls):
-      super(EntrypointTypeResolver._EntrypointMember, self).__init__(name, cls)
-      self.resolver = resolver
-    # TODO (@NiklasRosenstein): Allow customatization of create_instance() ?
-    def get_struct(self):
-      return self._cls.load()
+  @implements(IUnionTypeMember)
+  class _Member(object):
+    def __init__(self, name, ep, base_type):
+      self.name = name
+      self._type_name = None
+      self._base_type = base_type
+      self._ep = ep
+      self._datatype = None
+      self._cls_cache = None
+
+    @property
+    def _cls(self):
+      if self._cls_cache is None:
+        cls = self._ep.load()
+        if not isinstance(cls, type):
+          raise TypeError('expected type object for entrypoint {}, got {}'
+            .format(self._ep, type(cls).__name__))
+        if self._base_type and not issubclass(cls, self._base_type):
+          raise TypeError('expected subclasss of {} for entrypoint {}, got {}'
+            .format(self._base_type.__name__, self._ep, cls.__name__))
+        self._cls_cache = cls
+      return self._cls_cache
+
+    @property
+    def type_name(self):
+      return self._cls.__name__
+
+    @property
+    def datatype(self):
+      if self._datatype is None:
+        self._datatype = translate_type_def(self._cls)
+      return self._datatype
+
+  classdef.comparable(['types', 'base_type'])
 
   def __init__(self, entrypoint_group, base_type=None):
     import pkg_resources
     types = {}
     for ep in pkg_resources.iter_entry_points(entrypoint_group):
-      types[ep.name] = ep
+      types[ep.name] = self._Member(ep.name, ep, base_type)
     super(EntrypointTypeResolver, self).__init__(types)
     self.base_type = base_type
-
-  classdef.comparable(['types', 'base_type'])
-
-  def _Member(self, name, cls):
-    return self._EntrypointMember(self, name, cls)
 
 
 @implements(IUnionTypeResolver)

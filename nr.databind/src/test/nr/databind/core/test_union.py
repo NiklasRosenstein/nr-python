@@ -11,6 +11,7 @@ from typing import Union
 from ..fixtures import mapper
 import pytest
 
+
 class Integer(Struct):
   __union_type_name__ = 'int'
   value = Field(int)
@@ -21,18 +22,18 @@ class String(Struct):
   value = Field(str)
 
 
-datatype = UnionType({'int': Integer, 'string': String})
+standard_datatype = UnionType({'int': Integer, 'string': String})
 
 
 def test_union_constructor():
-  assert datatype == UnionType([Integer, String])
+  assert standard_datatype == UnionType([Integer, String])
 
 
 def test_union_type_conversion():
-  assert datatype == translate_type_def(Union[Integer, String])
+  assert standard_datatype == translate_type_def(Union[Integer, String])
 
 
-def test_union_standard_type_resolver(mapper):
+def _test_integer_string(mapper, datatype):
   payload = {'type': 'int', 'value': 42}
   obj = mapper.deserialize(payload, datatype)
   assert obj == Integer(42)
@@ -46,6 +47,15 @@ def test_union_standard_type_resolver(mapper):
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize(42, datatype)
   assert str(excinfo.value) == 'at $: expected {Integer|String}, got int'
+
+
+def test_union_standard_type_resolver(mapper):
+  _test_integer_string(mapper, standard_datatype)
+
+
+def test_union_entrypoint_type_resolver(mapper):
+  _test_integer_string(mapper, UnionType.with_entrypoint_resolver(
+    'nr.databind.core.union.test_entrypoints'))
 
 
 class _Struct1(Struct):

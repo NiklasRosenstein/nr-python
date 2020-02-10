@@ -10,7 +10,7 @@ with io.open('src/nr/databind/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.interface >=0.0.1,<0.1.0', 'nr.parsing.date >=0.0.1,<0.1.0', 'nr.stream >=0.0.1,<0.1.0']
+requirements = ['nr.collections >=0.0.1,<0.1.0', 'nr.interface >=0.0.1,<0.1.0', 'nr.parsing.date >=0.0.1,<0.1.0', 'nr.stream >=0.0.1,<0.1.0']
 extras_require = {}
 extras_require['test'] = ['pytest', 'PyYAML']
 tests_require = []
@@ -39,6 +39,10 @@ setuptools.setup(
       'asdict = nr.databind.contrib.mixins.asdict:AsdictMixin',
       'json = nr.databind.json:JsonMixin',
       'tuple = nr.databind.contrib.mixins.tuple:TupleMixin',
+    ],
+    'nr.databind.core.union.test_entrypoints': [
+      'int = test.nr.databind.core.test_union:Integer',
+      'string = test.nr.databind.core.test_union:String',
     ]
   },
   cmdclass = {}
