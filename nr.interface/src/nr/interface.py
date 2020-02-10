@@ -541,6 +541,7 @@ class Interface(six.with_metaclass(InterfaceClass)):
       class lambda_type(Implementation):
         __implements__ = [cls]
         __required_members = frozenset(x.name for x in cls.members() if x.required)
+        __all_members = frozenset(x.name for x in cls.members())
 
         def __init__(self, *args, **kwargs):
           if args:
@@ -554,9 +555,9 @@ class Interface(six.with_metaclass(InterfaceClass)):
           missing = self.__required_members - given
           if missing:
             raise TypeError('missing keyword argument "{}"'.format(next(iter(missing))))
-          extra = given - self.__required_members
+          extra = given - self.__all_members
           if extra:
-            raise TypeError('extranous keyword argument "{}"'.format(next(iter(missing))))
+            raise TypeError('extranous keyword argument "{}"'.format(next(iter(extra))))
 
           # Wrap functions as static methods.
           for key, value in six.iteritems(kwargs):
