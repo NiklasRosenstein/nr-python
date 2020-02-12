@@ -179,14 +179,14 @@ class ModuleInfo(Struct):
 
   __annotations__ = [
     ('name', str),
-    ('filename', str),
+    ('filename', str, None),
     ('type', str),
     ('imported_from', set, lambda: set()),
     ('imports', list, None),
-    ('is_zippable', bool, None),
-    ('graph', 'ModuleGraph', None),
+    ('_zippable', bool, None),
+    ('graph', object, None),  # type: ModuleGraph
     ('handled', bool, False),
-    ('sparse', bool, None),
+    ('_sparse', bool, None),
     ('package_data', list, lambda: []),
     ('package_data_ignore', list, lambda: []),
     ('native_deps', list, lambda: []),
@@ -376,11 +376,16 @@ class ModuleInfo(Struct):
   @contextlib.contextmanager
   def replace_file(self, directory, mode='w'):
     path = nr.fs.join(directory, self.relative_filename)
+    if os.path.isfile(path):
+      self.graph.logger.warn('ModuleInfo(name=%r).replace_file() called on '
+            'file that already exists.', self.name)
     with nr.fs.tempfile(text='b' not in mode) as fp:
       yield fp
       if not fp.closed:
         fp.close()
       nr.fs.makedirs(nr.fs.dir(path))
+      if nr.fs.isfile(path):
+        nr.fs.remove(path)
       os.rename(fp.name, path)
       self.filename = path
 
