@@ -268,6 +268,7 @@ class StructConverter(object):
     json_default = get_decoration(JsonDefault, field)
     json_required = get_decoration(JsonRequired, field)
     json_field_name = get_decoration(JsonFieldName, field)
+    json_field_validator = get_decoration(JsonFieldValidator, field)
 
     key = json_field_name.name if json_field_name else field.name
     if key not in location.value:
@@ -286,6 +287,9 @@ class StructConverter(object):
     else:
       kwargs[field.name] = context.deserialize(value, field.datatype, key,
         decorations=field.decorations)
+
+    if json_field_validator:
+      kwargs[field.name] = json_field_validator(kwargs[field.name])
 
     handled_keys.add(key)
 
@@ -708,7 +712,7 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
         _path.pop()
 
 
-class JsonValidator(ClassDecoration, JsonDecoration):
+class JsonValidator(ClassDecoration):
   """ A class decoration for a validation function that is called after
   a #Struct has been deserialized. """
 
@@ -722,6 +726,19 @@ class JsonValidator(ClassDecoration, JsonDecoration):
 
   def __call__(self, instance):
     self._validator(instance)
+
+
+class JsonFieldValidator(JsonDecoration):
+  """ A decoration for a field validation function. Validators must return
+  the validated value. """
+
+  def __init__(self, validator):
+    assert callable(validator), 'expected callable for JsonFieldValidator'
+    self._validator = validator
+    super(JsonFieldValidator, self).__init__()
+
+  def __call__(self, value):
+    return self._validator(value)
 
 
 class JsonMixin(object):
