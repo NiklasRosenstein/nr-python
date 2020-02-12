@@ -7,6 +7,7 @@ requirements:
   - distlib ^0.2.7
   - nr.databind ^0.0.1
   - nr.fs ^1.3.1
+  - nr.sumtype ^0.0.1
   - nr.stream ^0.0.1
   - win32:
     - appdirs ^1.4.3
