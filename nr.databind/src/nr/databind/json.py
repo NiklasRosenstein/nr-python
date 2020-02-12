@@ -182,10 +182,6 @@ class CollectionConverter(object):
   unordered, the values will be sorted by their hash.
   """
 
-  def __init__(self, json_type=list):
-    super(CollectionConverter, self).__init__()
-    self.json_type = json_type
-
   def deserialize(self, context, location):
     # Check if the value we receive is actually a collection.
     try:
@@ -224,7 +220,8 @@ class CollectionConverter(object):
       result.append(context.serialize(item, item_type, index))
 
     # Convert to the designated JSON type.
-    json_type = self.json_type
+    serialize_as = get_decoration(JsonSerializeFieldAs, location, context)
+    json_type = serialize_as.cls if serialize_as else list
     if not isinstance(json_type, type) or not isinstance(result, json_type):
       result = json_type(result)
 
@@ -233,10 +230,6 @@ class CollectionConverter(object):
 
 @implements(IDeserializer, ISerializer)
 class ObjectConverter(object):
-
-  def __init__(self, json_type=dict):
-    super(ObjectConverter, self).__init__()
-    self.json_type = json_type
 
   def deserialize(self, context, location):
     if not isinstance(location.value, dict):
@@ -248,7 +241,8 @@ class ObjectConverter(object):
     return result
 
   def serialize(self, context, location):
-    result = self.json_type()
+    serialize_as = get_decoration(JsonSerializeFieldAs, location, context)
+    result = serialize_as.cls() if serialize_as else {}
     value_type = location.datatype.value_type
     for key in location.value:
       result[key] = context.serialize(location.value[key], value_type, key)
@@ -269,9 +263,6 @@ class StructConverter(object):
 
     def __init__(self, enabled=True):
       self.enabled = enabled
-
-  def __init__(self, skip_default_values=True):
-    self.skip_default_values = skip_default_values
 
   def _extract_kwargs(self, field, context, struct_cls, location, kwargs, handled_keys):
     assert field.name not in kwargs, (field, struct_cls, location)
@@ -387,8 +378,9 @@ class StructConverter(object):
 
     if not serializer:
       skip_default_values = get_decoration(self.SerializeSkipDefaultValues,
-        struct_cls, context) or self.SerializeSkipDefaultValues(True)
-      result = {}
+        location, struct_cls, context) or self.SerializeSkipDefaultValues(True)
+      serialize_as = get_decoration(JsonSerializeAs, struct_cls, location, context)
+      result = serialize_as.cls() if serialize_as else {}
       for name, field in struct_cls.__fields__.items():
         if field.hidden:
           continue
@@ -682,6 +674,25 @@ class JsonSerializer(ClassDecoration, JsonDecoration):
       raise SerializationValueError(location, exc)
     except TypeError as exc:
       raise SerializationTypeError(location, exc)
+
+
+class JsonSerializeFieldAs(JsonDecoration):
+  """ This decoration describes the type as which a value should be
+  serialized as. The default for this is the standard Python dictionary,
+  but for some use cases this may need to be changed to a different mapping
+  type. Note that this is not respected by all serializers but only for those
+  that convert to collection types (eg. #ObjectConverter, #StructConverter and
+  #CollectionConverter). """
+
+  classdef.comparable(['cls'])
+  classdef.repr(['cls'])
+
+  def __init__(self, cls=dict):
+    self.cls = cls
+
+
+class JsonSerializeAs(JsonSerializeFieldAs, ClassDecoration):
+  pass
 
 
 class JsonStrict(ClassDecoration, JsonDecoration):
