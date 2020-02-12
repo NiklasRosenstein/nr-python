@@ -1,5 +1,5 @@
 
-from nr.commons.algo.graph import CyclicGraphError, toposort
+from nr.algo.graph.toposort import CyclicGraphError, toposort
 import pytest
 
 

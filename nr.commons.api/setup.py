@@ -4,16 +4,16 @@ import re
 import setuptools
 import sys
 
-with io.open('src/nr/utils/ponyorm/__init__.py', encoding='utf8') as fp:
+with io.open('src/nr/commons/api/__init__.py', encoding='utf8') as fp:
   version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.pylang.utils >=0.0.1,<1.0.0', 'pony >=0.7.0,<1.0.0']
+requirements = []
 
 setuptools.setup(
-  name = 'nr.utils.ponyorm',
+  name = 'nr.commons.api',
   version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',

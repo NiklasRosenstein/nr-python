@@ -7,8 +7,9 @@ import subprocess
 import sys
 
 package_def = [
+  {"name": "nr.algo.graph", "requires": []},
   {"name": "nr.collections", "requires": []},
-  {"name": "nr.commons", "requires": []},
+  {"name": "nr.commons.api", "requires": []},
   {"name": "nr.fs", "requires": []},
   {"name": "nr.metaclass", "requires": []},
   {"name": "nr.parsing.core", "requires": []},
