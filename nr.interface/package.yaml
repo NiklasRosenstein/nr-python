@@ -3,7 +3,7 @@ version: "0.0.1"
 description: Interface definitions for Python.
 requirements:
   - nr.collections ~0.0.1
-  - nr.commons ~0.0.1
   - nr.metaclass ~0.0.1
+  - nr.pylang.utils ~0.0.1
   - python ^2.7|^3.4
   - six ^1.11.0

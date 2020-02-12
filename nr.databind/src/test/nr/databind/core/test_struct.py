@@ -2,7 +2,7 @@
 from nr.databind.core import *
 from nr.databind.core.decoration import LocationMetadataDecoration
 from nr.databind.json import JsonFieldName, JsonStrict, JsonDeserializer
-from nr.commons.notset import NotSet
+from nr.pylang.utils import NotSet
 from typing import Optional, List, Dict
 from ..fixtures import mapper
 import pytest

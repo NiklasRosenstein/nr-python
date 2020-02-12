@@ -25,8 +25,8 @@ import typing
 import importlib
 
 from nr.collections import abc
-from nr.commons.py import classdef
-from nr.commons.py.typing import is_generic, get_generic_args
+from nr.pylang.utils import classdef
+from nr.pylang.utils.typing import is_generic, get_generic_args
 from nr.interface import attr, default, implements, Interface
 
 from .datatypes import PythonClassType, translate_type_def

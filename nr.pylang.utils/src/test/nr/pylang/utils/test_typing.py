@@ -19,23 +19,35 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-""" Utils for exception handling and definition. """
-
-import functools
-import traceback
+from nr.pylang.utils.typing import is_generic, get_generic_args, extract_optional
+from typing import Dict, List, Optional, Union
 
 
-def return_formatted_traceback(func):
-  """ Decorator for Exception `__str__()` methods. If an exception occurrs
-  within the decorated function, the formatted traceback will be returned
-  instead. """
+def test_is_generic():
+  assert is_generic(List[str])
+  assert not is_generic(str)
+  assert is_generic(List[str], List)
+  assert is_generic(List[str], (Dict, List))
+  assert is_generic(List, List)
+  assert not is_generic(List, Dict)
+  assert not is_generic(List[str], Dict)
 
-  @functools.wraps(func)
-  def wrapper(*args, **kwargs):
-    try:
-      return func(*args, **kwargs)
-    except:
-      return '<exception {}() failed> -- traceback below\n\n'.format(func.__name__) \
-             + traceback.format_exc()
+  assert is_generic(Union)
+  assert is_generic(Union, Union)
+  assert not is_generic(Union, Dict)
+  assert is_generic(Union[int, str], Union)
 
-  return wrapper
+  assert is_generic(Optional[List[str]])
+  assert is_generic(Optional[List[str]], Optional)
+  assert get_generic_args(Optional[List[str]]) == (List[str],)
+
+
+def test_get_generic_args():
+  assert get_generic_args(List) == List.__parameters__
+  assert get_generic_args(List[str]) == (str,)
+
+
+def test_extract_optional():
+  assert extract_optional(Optional[List[str]]) == List[str]
+  assert extract_optional(Union[List[str], None]) == List[str]
+  assert extract_optional(Union[List[str], str]) is None

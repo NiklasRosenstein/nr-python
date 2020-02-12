@@ -28,7 +28,7 @@ import itertools
 import six
 
 from nr.collections.abc import Mapping
-from nr.commons.notset import NotSet
+from nr.pylang.utils import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'

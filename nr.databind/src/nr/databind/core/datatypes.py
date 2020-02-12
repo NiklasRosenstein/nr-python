@@ -30,8 +30,8 @@ import six
 import typing
 
 from nr.collections import abc
-from nr.commons.py import classdef
-from nr.commons.py.typing import is_generic, get_generic_args
+from nr.pylang.utils import classdef
+from nr.pylang.utils.typing import is_generic, get_generic_args
 from nr.interface import implements
 from .decoration import Decoration
 from .interfaces import IDataType

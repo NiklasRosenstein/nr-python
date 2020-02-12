@@ -25,8 +25,8 @@ Converts from and to JSON like nested structures.
 
 from functools import partial
 from nr.collections import ChainDict
-from nr.commons.notset import NotSet
-from nr.commons.py import classdef
+from nr.pylang.utils import NotSet
+from nr.pylang.utils import classdef
 from nr.collections import abc, OrderedDict
 from nr.interface import implements
 from nr.parsing.date import ISO_8601

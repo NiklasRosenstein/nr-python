@@ -43,11 +43,11 @@ import six
 import sys
 import types
 
-from nr.commons.py.classdef import make_singleton
 from nr.collections import OrderedSet
 from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
-from nr.commons.notset import NotSet
+from nr.pylang.utils import NotSet
+from nr.pylang.utils.classdef import make_singleton
 
 _NoCheckType = make_singleton('_NoCheckType')
 

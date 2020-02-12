@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
-# Copyright (c) 2019 Niklas Rosenstein
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -19,16 +21,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import pytest
-from nr.commons.py.funcdef import raise_kwargs
+"""
+Provides some fancy tools to augment module objects.
+"""
+
+import sys
 
 
-def test_raise_kwargs():
+def get_calling_module_name(depth=0):
+  """ Returns the name of the calling module. """
 
-  def my_function(**kwargs):
-    raise_kwargs(kwargs)
-
-  with pytest.raises(TypeError) as excinfo:
-    my_function(a=42)
-
-  assert str(excinfo.value) == "'a' is an invalid keyword argument for my_function()"
+  frame = sys._getframe(depth + 1)
+  try:
+    return frame.f_globals.get('__name__', frame.f_code.co_name)
+  finally:
+    del frame

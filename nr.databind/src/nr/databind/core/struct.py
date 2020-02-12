@@ -29,9 +29,9 @@ from .decoration import get_decoration, Decoration, ClassDecoration
 from .errors import InvalidTypeDefinitionError
 from .interfaces import IDataType
 from nr.collections import abc, OrderedDict
-from nr.commons.notset import NotSet
-from nr.commons.py import classdef, funcdef
-from nr.commons.py.typing import is_generic, get_generic_args, extract_optional
+from nr.pylang.utils import NotSet
+from nr.pylang.utils import classdef, funcdef
+from nr.pylang.utils.typing import is_generic, get_generic_args, extract_optional
 from nr.interface import implements
 from nr.stream import Stream
 

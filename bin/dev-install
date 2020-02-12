@@ -16,11 +16,12 @@ package_def = [
   {"name": "nr.proxy", "requires": []},
   {"name": "nr.pylang.ast", "requires": []},
   {"name": "nr.utils.process", "requires": []},
-  {"name": "nr.stream", "requires": ["nr.collections", "nr.commons"]},
-  {"name": "nr.utils.ponyorm", "requires": ["nr.commons"]},
-  {"name": "nr.interface", "requires": ["nr.collections", "nr.commons", "nr.metaclass"]},
+  {"name": "nr.pylang.utils", "requires": ["nr.collections"]},
+  {"name": "nr.interface", "requires": ["nr.collections", "nr.metaclass", "nr.pylang.utils"]},
+  {"name": "nr.stream", "requires": ["nr.collections", "nr.pylang.utils"]},
+  {"name": "nr.utils.ponyorm", "requires": ["nr.pylang.utils"]},
+  {"name": "nr.databind", "requires": ["nr.collections", "nr.interface", "nr.parsing.date", "nr.stream"]},
   {"name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
-  {"name": "nr.databind", "requires": ["nr.interface", "nr.parsing.date", "nr.stream"]},
   {"name": "nr.pylang.bundle", "requires": ["nr.databind", "nr.fs", "nr.stream"]},
 ]
 

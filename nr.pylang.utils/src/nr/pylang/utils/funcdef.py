@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
-# Copyright (c) 2019 Niklas Rosenstein
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -27,6 +29,57 @@ Provides tools for working with Python function objects, most prominently the
 from nr.collections import abc
 import functools
 import types
+import sys
+import traceback
+
+__all__ = [
+  'get_caller_name',
+  'raise_kwargs',
+  'except_format',
+  'make_closure_cell',
+  'new_closure',
+  'copy_function'
+]
+
+
+def get_caller_name(_stackdepth=0):
+  """
+  Gets the name of the calling function.
+  """
+
+  return sys._getframe(_stackdepth + 1).f_code.co_name
+
+
+def raise_kwargs(kwargs, name=None, _stackdepth=0):
+  """
+  Raises a [[TypeError]] indicating that the caller does not accept the
+  specified keyword arguments. If *name* is `None`, it will be derived
+  with [[get_caller_name()]].
+  """
+
+  if kwargs:
+    if name is None:
+      name = get_caller_name(_stackdepth + 1)
+    key = next(iter(kwargs.keys()))
+
+    raise TypeError('{!r} is an invalid keyword argument for {}()'
+                    .format(key, name))
+
+
+def except_format(func):
+  """ Decorator for Exception `__str__()` methods. If an exception occurrs
+  within the decorated function, the formatted traceback will be returned
+  instead. """
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    try:
+      return func(*args, **kwargs)
+    except:
+      return '<exception {}() failed> -- traceback below\n\n'.format(func.__name__) \
+             + traceback.format_exc()
+
+  return wrapper
 
 
 def make_closure_cell(x):
@@ -117,6 +170,3 @@ def copy_function(
   new_func = types.FunctionType(code, globals, name, argdefs, closure)
   functools.update_wrapper(new_func, function)
   return new_func
-
-
-__all__ = ['make_closure_cell', 'new_closure', 'copy_function']

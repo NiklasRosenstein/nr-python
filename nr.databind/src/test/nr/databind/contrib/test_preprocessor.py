@@ -1,7 +1,7 @@
 
 from nr.interface import implements
 from nr.databind.contrib.preprocessor import *
-from nr.commons.py import classdef
+from nr.pylang.utils import classdef
 from ..fixtures import mapper
 import textwrap
 import yaml

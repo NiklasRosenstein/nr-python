@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
-# Copyright (c) 2019 Niklas Rosenstein
+# The MIT License (MIT)
+#
+# Copyright (c) 2020 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -19,8 +21,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .py.classdef import make_singleton
-
 __all__ = ['NotSet']
+__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
+__version__ = '0.0.1'
 
-NotSet = make_singleton('NotSet', bool_value=False)
+from . import classdef
+NotSet = classdef.make_singleton('NotSet', bool_value=False)

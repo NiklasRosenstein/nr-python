@@ -21,7 +21,7 @@
 
 import string
 
-from nr.commons.py import classdef
+from nr.pylang.utils import classdef
 from nr.interface import Interface, attr, default
 from typing import ContextManager
 from .errors import InvalidTypeDefinitionError

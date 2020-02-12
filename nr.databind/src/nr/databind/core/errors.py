@@ -19,7 +19,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.commons.py.exc import return_formatted_traceback
 from .location import Location
 
 __all__ = [
@@ -39,7 +38,6 @@ class SerializationError(Exception):
     self.location = location
     self.message = message
 
-  @return_formatted_traceback
   def __str__(self):
     result = 'at {}'.format(self.location.path)
     if self.location.filename:

@@ -4,5 +4,5 @@ license: "MIT"
 description: "Package description here."
 requirements:
   - python ^3.4
-  - nr.commons ^0.0.1
+  - nr.pylang.utils ^0.0.1
   - pony ^0.7.0
