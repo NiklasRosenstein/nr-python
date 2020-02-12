@@ -258,6 +258,18 @@ class ObjectConverter(object):
 @implements(IDeserializer, ISerializer)
 class StructConverter(object):
 
+  class SerializeSkipDefaultValues(Decoration):
+    """ This decoration serves as a flag to indicate that during serialization
+    an optional field should be skipped if its value matches the default value.
+    The default value for this is #True. This decoration is checked on the
+    Struct class and the context. """
+
+    classdef.comparable(['enabled'])
+    classdef.repr(['enabled'])
+
+    def __init__(self, enabled=True):
+      self.enabled = enabled
+
   def __init__(self, skip_default_values=True):
     self.skip_default_values = skip_default_values
 
@@ -374,6 +386,8 @@ class StructConverter(object):
         serializer = None
 
     if not serializer:
+      skip_default_values = get_decoration(self.SerializeSkipDefaultValues,
+        struct_cls, context) or self.SerializeSkipDefaultValues(True)
       result = {}
       for name, field in struct_cls.__fields__.items():
         if field.hidden:
@@ -384,7 +398,7 @@ class StructConverter(object):
           value = context.serialize(value, field.datatype, name,
             decorations=field.decorations)
 
-        if field.default is not NotSet and self.skip_default_values and \
+        if field.default is not NotSet and skip_default_values.enabled and \
             value == field.get_default_value():
           continue
 

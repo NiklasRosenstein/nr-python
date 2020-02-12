@@ -1,6 +1,6 @@
 
 from nr.databind.core import Field, Struct
-from nr.databind.json import JsonValidator, JsonFieldValidator
+from nr.databind.json import JsonValidator, JsonFieldValidator, StructConverter
 from ..fixtures import mapper
 import pytest
 
@@ -32,3 +32,13 @@ def test_json_validator(mapper):
   with pytest.raises(Exception) as excinfo:
     mapper.deserialize({'a': 'fail'}, ValidateField)
   assert str(excinfo.value) == 'fail!'
+
+
+def test_serialize_skip_default_values(mapper):
+  class Test(Struct):
+    a = Field(str, default='foo')
+
+  assert mapper.serialize(Test(), Test) == {}
+  assert mapper.serialize(Test('bar'), Test) == {'a': 'bar'}
+  assert mapper.serialize(Test(), Test, decorations=[StructConverter.SerializeSkipDefaultValues(False)]) == {'a': 'foo'}
+  assert mapper.serialize(Test('bar'), Test, decorations=[StructConverter.SerializeSkipDefaultValues(False)]) == {'a': 'bar'}
