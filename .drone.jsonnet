@@ -7,7 +7,7 @@ local Pipeline(package) = {
       "name": "test",
       "image": "python:3.7",
       "commands": [
-        "bin/dev-install --no-develop --extras test $$package",
+        "bin/dev-install --no-develop --extras test " + package,
         "cd " + package,
         "pytest"
       ]
