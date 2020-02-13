@@ -72,6 +72,11 @@ def get_imports(filename, source=None):
   module = ast.parse(source, filename)
   result = []
 
+  def _is_import_call(x):
+    return isinstance(x, ast.Call) and isinstance(x.func, ast.Name) and \
+      x.func.id == '__import__' and x.args and isinstance(x.args[0], ast.Str)
+  for node in _find_nodes(module, _is_import_call):
+    result.append(ImportInfo(node.args[0].value, filename, node.lineno, False))
   for node in _find_nodes(module, lambda x: isinstance(x, ast.Import)):
     for alias in node.names:
       result.append(ImportInfo(alias.name, filename, node.lineno, False))
