@@ -7,5 +7,24 @@ steps:
 - name: test
   image: python:3.7
   commands:
-    - bin/dev-install --no-develop --extras test
-    - pytest
+    - bin/dev-install --no-develop --extras test $$package
+    - pushd $$package && pytest && popd
+
+matrix:
+  package:
+    - nr.algo.graph
+    - nr.collections
+    - nr.commons.api
+    - nr.databind
+    - nr.fs
+    - nr.interface
+    - nr.metaclass
+    - nr.parsing.core
+    - nr.parsing.date
+    - nr.proxy
+    - nr.pylang.ast
+    - nr.pylang.utils
+    - nr.stream
+    - nr.sumtype
+    - nr.utils.ponyorm
+    - nr.utils.process
