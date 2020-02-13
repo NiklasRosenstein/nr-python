@@ -1,7 +1,7 @@
 local Pipeline(package) = {
   kind: "pipeline",
   type: "docker",
-  name: "default",
+  name: package,
   steps: [
     {
       "name": "test",
