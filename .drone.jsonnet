@@ -5,7 +5,7 @@ local Pipeline(package) = {
   steps: [
     {
       "name": "test",
-      "image": "python:3.7"
+      "image": "python:3.7",
       "commands": [
         "bin/dev-install --no-develop --extras test $$package",
         "cd " + package,
