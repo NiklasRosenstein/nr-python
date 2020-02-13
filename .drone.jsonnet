@@ -10,7 +10,7 @@ local Pipeline(package) = {
         "bin/dev-install --no-develop --extras test " + package,
         "pip install pytest",
         "cd " + package,
-        "pytest --collect-only; if [ $? = 5 ]; then echo 'No tests found.'; exit 0; fi",
+        "pytest --collect-only || if [ $? = 5 ]; then echo 'No tests found.'; exit 0; fi",
         "pytest"
       ]
     }
