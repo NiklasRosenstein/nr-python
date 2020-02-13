@@ -724,6 +724,7 @@ class ModuleGraph(object):
     if module.imports is None:
       module.load_imports()
 
+    self.hook.extend_imports(module)
     for import_name in module.imports:
       if not self.import_filter.accept(import_name, module.name):
         continue
