@@ -74,9 +74,9 @@ if args.uninstall:
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-if args.verbose:
-  command.append('-v')
-  print('Running command in working directory', project_dir)
-  print('$', ' '.join(command))
-
+#if args.verbose:
+command.append('-v')
+print('Running command in working directory', project_dir)
+print('$', ' '.join(command))
+exit(1)
 sys.exit(subprocess.call(command, cwd=project_dir))
