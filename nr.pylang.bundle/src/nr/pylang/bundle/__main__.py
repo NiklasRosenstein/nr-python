@@ -73,7 +73,7 @@ def get_argument_parser(prog=None):
     dest='whitelist', metavar='GLOB',
     help='Only search and bundle modules matching the specified glob pattern.')
 
-  group = parser.add_argument_group('operations (dump)')
+  group = parser.add_argument_group('dependency dump')
   group.add_argument('--deps', action='store_true',
     help='Dump the dependency tree of the specified Python module(s) to '
          'stdout and exit.')
@@ -87,7 +87,7 @@ def get_argument_parser(prog=None):
   group.add_argument('--show-hooks-path', action='store_true',
     help='Print the hooks search path to stdout and exit.')
 
-  group = parser.add_argument_group('operations (build)')
+  group = parser.add_argument_group('collect & build')
   group.add_argument('--collect', action='store_true',
     help='Collect all modules in bundle/lib/. This is operation is '
          'is automatically implied with the --dist operation.')
@@ -113,7 +113,7 @@ def get_argument_parser(prog=None):
          'it defaults to res/{srcbasename}/. The path to the res/ directory '
          'can be retrieved with `sys.frozen_env["resource_dir"]`.')
 
-  group = parser.add_argument_group('optional arguments (build)')
+  group = parser.add_argument_group('optional arguments (build')
   group.add_argument('--bundle-dir', metavar='DIRECTORY', default='bundle',
     help='The name of the directory where collected modules and the '
          'standalone Python interpreter be placed. Defaults to bundle/.')
@@ -122,6 +122,12 @@ def get_argument_parser(prog=None):
          'of the listed package will also be excluded. You can also exact '
          'import chains as X->Y where Y is the module imported from X. This '
          'argument can be specified multiple times.')
+  group.add_argument('--exclude-stdlib', action='store_true',
+    help='Exclude dependencies from the standard library, even if they are '
+         'required by the listed modules.')
+  group.add_argument('--narrow', action='store_true',
+    help='Include only stdlib modules that are imported by any of the '
+         'listed modules.')
   group.add_argument('--no-default-includes', action='store_true',
     help='Do not add default module includes (the Python core library).')
   group.add_argument('--no-default-excludes', action='store_true',
@@ -165,12 +171,10 @@ def main(argv=None, prog=None):
   args, unknown = parser.parse_known_args(argv)
 
   if args.verbose == 0:
-    level = logging.ERROR
-  elif args.verbose == 1:
     level = logging.WARN
   else:
     level = logging.INFO
-  logging.basicConfig(level=level)
+  logging.basicConfig(format='%(levelname)s: %(message)s', level=level)
 
   hook_options = {}
   for x in unknown:
@@ -183,6 +187,10 @@ def main(argv=None, prog=None):
       value = 'true'
     hook_options[key.lower()] = value
 
+  if args.dist and args.exclude_stdlib:
+    logging.warning('using --exclude-stdlib with --dist may leave you with '
+      'will leave you with a non-functional distribution.')
+
   builder = DistributionBuilder(
     collect = args.collect,
     collect_to = args.collect_to,
@@ -192,6 +200,7 @@ def main(argv=None, prog=None):
     bundle_dir = args.bundle_dir,
     excludes = split_multiargs(args.exclude),
     default_excludes = not args.no_default_excludes,
+    exclude_stdlib = args.exclude_stdlib,
     includes = split_multiargs(args.args),
     whitelist = split_multiargs(args.whitelist),
     default_includes = not args.no_default_includes,
@@ -322,5 +331,7 @@ def main(argv=None, prog=None):
     return 0
 
 
+_entrypoint_main = lambda: exit(main())
+
 if __name__ == '__main__':
-  sys.exit(main())
+  _entrypoint_main()

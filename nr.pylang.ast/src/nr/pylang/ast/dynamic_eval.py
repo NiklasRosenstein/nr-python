@@ -29,15 +29,12 @@ instead. Non-global variables are left untouched.
 __all__ = ['dynamic_exec', 'dynamic_eval', 'transform']
 
 import ast
-import collections
 import textwrap
 import sys
 
+from nr.collections import abc
 from six import exec_, string_types
 from six.moves import builtins
-
-try: from collections import abc
-except ImportError: import collections as abc
 
 
 def get_argname(arg):

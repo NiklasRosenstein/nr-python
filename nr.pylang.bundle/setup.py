@@ -32,6 +32,10 @@ setuptools.setup(
   tests_require = [],
   python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
-  entry_points = {},
+  entry_points = {
+    'console_scripts': [
+      'nr-pylang-bundle = nr.pylang.bundle.__main__:_entrypoint_main',
+    ]
+  },
   cmdclass = {}
 )

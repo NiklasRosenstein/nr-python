@@ -46,6 +46,13 @@ class Hook(object):
 
     pass
 
+  def extend_imports(self, module):
+    """
+    Like #import_module() but called right before module imports are resolved.
+    """
+
+    pass
+
   def collect_data(self, module, bundle):
     """
     Called when the module was found by a #ModuleFinder before its imports
@@ -88,6 +95,8 @@ class ScriptHook(Hook):
       exec(compile(fp.read(), filename, 'exec'), vars(self.module))
     if hasattr(self.module, 'inspect_module'):
       self.inspect_module = self.module.inspect_module
+    if hasattr(self.module, 'extend_imports'):
+      self.extend_imports = self.module.extend_imports
     if hasattr(self.module, 'collect_data'):
       self.collect_data = self.module.collect_data
 
@@ -132,6 +141,10 @@ class DelegateHook(Hook):
   def inspect_module(self, module):
     for hook in self._hooks_for(module.name):
       hook.inspect_module(module)
+
+  def extend_imports(self, module):
+    for hook in self._hooks_for(module.name):
+      hook.extend_imports(module)
 
   def collect_data(self, module, bundle):
     for hook in self._hooks_for(module.name):

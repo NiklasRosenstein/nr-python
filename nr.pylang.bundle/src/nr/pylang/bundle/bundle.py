@@ -40,6 +40,19 @@ import textwrap
 import zipfile
 
 
+def ensure_module_in_list(modules, graph, module_name):
+  # type: (List[ModuleInfo], ModuleGraph, str)
+
+  for module in graph:
+    if module.type in (module.NOTFOUND, module.BUILTIN):
+      continue
+    if module.name == module_name or module.name.startswith(module_name + '.'):
+      if module not in modules:
+        modules.append(module)
+        for import_ in module.imports:
+          ensure_module_in_list(modules, graph, import_)
+
+
 class AppResource(Struct):
   """
   Represents a file or directory that that is an application resource file
@@ -399,8 +412,10 @@ class DistributionBuilder(Struct):
     ('bundle_dir', str, 'bundle'),
     ('excludes', list, ()),
     ('default_excludes', bool, True),
+    ('narrow', bool, False),
     ('exclude_stdlib', bool, False),
     ('exclude_in_path', list, lambda: []),
+    ('force_exclude_in_path', list, lambda: []),
     ('includes', list, ()),
     ('whitelist', list, ()),
     ('default_includes', bool, True),
@@ -446,16 +461,16 @@ class DistributionBuilder(Struct):
 
     if self.default_excludes:
       self.filter.excludes += get_common_excludes()
-    if self.exclude_stdlib:
+    if self.narrow or self.exclude_stdlib:
       # TODO @nrosenstein Determine all the stdlib paths. This is just a
       #      method that seems to work on OSX.
-      import os, contextlib, json
+      import os, contextlib
       try: import _pickle
       except ImportError: import cPickle as _pickle
-      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(os.__file__)))
-      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(contextlib.__file__)))
-      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(json.__file__)))
-      self.exclude_in_path.append(nr.fs.norm(nr.fs.dir(_pickle.__file__)))
+      target = self.force_exclude_in_path if self.exclude_stdlib else self.exclude_in_path
+      target.append(nr.fs.norm(nr.fs.dir(os.__file__)))
+      target.append(nr.fs.norm(nr.fs.dir(contextlib.__file__)))
+      target.append(nr.fs.norm(nr.fs.dir(_pickle.__file__)))
     if self.default_module_path:
       self.finder.path.insert(0, nr.fs.cwd())
       self.finder.path.extend(sys.path)
@@ -505,9 +520,11 @@ class DistributionBuilder(Struct):
           fp.write("__path__ = __import__('pkgutil').extend_path(__path__, __name__)\n")
         self.graph.add(parent)
 
-    # Remove modules that are inside the excluded paths.
+    # Remove modules that are inside the excluded paths. We remove modules
+    # from the bottom up (that's why we sort by name reversed).
     excluded_paths = set(nr.fs.norm(x) for x in self.exclude_in_path)
     for module in sorted(self.graph, key=lambda x: len(x.name), reverse=True):
+      # TODO: What does this do again exactly? :) Add some docs Niklas, ffs!
       parent = module
       while parent.parent and parent.type == parent.NOTFOUND:
         parent = parent.parent
@@ -517,8 +534,14 @@ class DistributionBuilder(Struct):
       if path in excluded_paths:
         module.exclude()
 
+    # Force remove modules inside specified paths.
+    excluded_paths = set(nr.fs.norm(x) for x in self.force_exclude_in_path)
+    for module in self.graph:
+      if module.original_filename and nr.fs.norm(module.get_lib_dir()) in excluded_paths:
+        module.exclude()
+
   def report_module_stats(self):
-    print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND)))
+    print('  {} modules found'.format(sum(1 for x in self.graph if x.type != x.NOTFOUND and x.type != x.BUILTIN)))
     print('  {} modules marked for exclusion'.format(sum(1 for x in self.graph.excluded() if x.type != x.NOTFOUND)))
     print('  {} modules not found (many of which may be member imports)'
           .format(sum(1 for x in self.graph if x.type == x.NOTFOUND)))
@@ -650,7 +673,12 @@ class DistributionBuilder(Struct):
       self.bundle.prepare()
 
     if self.dist or self.collect:
-      modules = [x for x in self.graph if x.type not in (x.NOTFOUND, x.BUILTIN)]
+      modules = [x for x in self.graph if x.type not in (x.NOTFOUND, x.BUILTIN) and not x.excludes]
+      if self.dist:
+        # We need the "os" module as Python uses it to determine where the
+        # standard library is located, as well as other core modules.
+        for name in (get_core_modules() if self.default_includes else []):
+          ensure_module_in_list(modules, self.graph, name.rstrip('+'))
       if self.compile_modules and modules:
         self.do_compile_modules(modules)
       if self.zip_modules and modules:

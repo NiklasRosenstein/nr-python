@@ -10,6 +10,10 @@ with io.open('src/nr/proxy.py', encoding='utf8') as fp:
 long_description = None
 
 requirements = ['six >=1.11.0,<2.0.0']
+extras_require = {}
+extras_require['test'] = ['nr.collections >=0.0.1,<0.1.0']
+tests_require = []
+tests_require = ['nr.collections >=0.0.1,<0.1.0']
 
 setuptools.setup(
   name = 'nr.proxy',
@@ -25,8 +29,8 @@ setuptools.setup(
   package_dir = {'': 'src'},
   include_package_data = False,
   install_requires = requirements,
-  extras_require = {},
-  tests_require = [],
+  extras_require = extras_require,
+  tests_require = tests_require,
   python_requires = None, # TODO: '>=2.6,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},
