@@ -58,6 +58,8 @@ else:
     [_resolve(x) for x in package['requires']]
     for extra in extras:
       [_resolve(x) for x in package['extra_requires'].get(extra, [])]
+    if extras:
+      pkgname += '[' + ','.join(extras) + ']'
     install_packages.append(pkgname)
   [_resolve(x, (args.extras or '').split(',')) for x in args.packages]
 
@@ -66,17 +68,15 @@ command = [python, '-m', 'pip', 'uninstall' if args.uninstall else 'install']
 for pkgname in install_packages:
   if not args.no_develop and not args.uninstall:
     command.append('-e')
-  if args.extras:
-    pkgname += '[' + args.extras + ']'
   command.append(pkgname if args.uninstall else './' + pkgname)
 if args.uninstall:
   command.append('-y')
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#if args.verbose:
-command.append('-v')
-print('Running command in working directory', project_dir)
-print('$', ' '.join(command))
-exit(1)
+if args.verbose:
+  command.append('-v')
+  print('Running command in working directory', project_dir)
+  print('$', ' '.join(command))
+
 sys.exit(subprocess.call(command, cwd=project_dir))
