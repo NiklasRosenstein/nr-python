@@ -23,7 +23,7 @@ package_def = [
   {"name": "nr.utils.ponyorm", "requires": ["nr.pylang.utils"]},
   {"name": "nr.databind", "requires": ["nr.collections", "nr.interface", "nr.parsing.date", "nr.stream"]},
   {"name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
-  {"name": "nr.pylang.bundle", "requires": ["nr.databind", "nr.fs", "nr.stream"]},
+  {"name": "nr.pylang.bundle", "requires": ["nr.databind", "nr.fs", "nr.sumtype", "nr.stream"]},
 ]
 
 parser = argparse.ArgumentParser()
