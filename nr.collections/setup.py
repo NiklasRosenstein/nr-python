@@ -10,6 +10,10 @@ with io.open('src/nr/collections/__init__.py', encoding='utf8') as fp:
 long_description = None
 
 requirements = ['nr.metaclass >=0.0.1,<0.1.0', 'six >=1.11.0,<2.0.0']
+extras_require = {}
+extras_require['test'] = ['nr.fs >=1.5.0,<2.0.0']
+tests_require = []
+tests_require = ['nr.fs >=1.5.0,<2.0.0']
 
 setuptools.setup(
   name = 'nr.collections',
@@ -25,8 +29,8 @@ setuptools.setup(
   package_dir = {'': 'src'},
   include_package_data = False,
   install_requires = requirements,
-  extras_require = {},
-  tests_require = [],
+  extras_require = extras_require,
+  tests_require = tests_require,
   python_requires = None, # TODO: None,
   data_files = [],
   entry_points = {},
