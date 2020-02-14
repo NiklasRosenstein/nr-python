@@ -331,5 +331,7 @@ def main(argv=None, prog=None):
     return 0
 
 
+_entrypoint_main = lambda: exit(main())
+
 if __name__ == '__main__':
-  sys.exit(main())
+  _entrypoint_main()

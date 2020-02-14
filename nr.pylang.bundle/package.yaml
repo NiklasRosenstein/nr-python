@@ -12,3 +12,6 @@ requirements:
   - win32:
     - appdirs ^1.4.3
     - pefile >=2017.11.5
+entrypoints:
+  console_scripts:
+    - nr-pylang-bundle = nr.pylang.bundle.__main__:_entrypoint_main
