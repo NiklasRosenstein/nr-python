@@ -9,7 +9,7 @@ with io.open('src/nr/collections/__init__.py', encoding='utf8') as fp:
 
 long_description = None
 
-requirements = ['six >=1.11.0,<2.0.0']
+requirements = ['nr.metaclass >=0.0.1,<0.1.0', 'six >=1.11.0,<2.0.0']
 
 setuptools.setup(
   name = 'nr.collections',

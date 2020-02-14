@@ -8,15 +8,15 @@ import sys
 
 package_def = [
   {"name": "nr.algo.graph", "requires": []},
-  {"name": "nr.collections", "requires": []},
   {"name": "nr.commons.api", "requires": []},
   {"name": "nr.fs", "requires": []},
   {"name": "nr.metaclass", "requires": []},
   {"name": "nr.parsing.core", "requires": []},
   {"name": "nr.parsing.date", "requires": []},
   {"name": "nr.proxy", "requires": []},
-  {"name": "nr.pylang.ast", "requires": []},
   {"name": "nr.utils.process", "requires": []},
+  {"name": "nr.collections", "requires": ["nr.metaclass"]},
+  {"name": "nr.pylang.ast", "requires": ["nr.collections"]},
   {"name": "nr.pylang.utils", "requires": ["nr.collections"]},
   {"name": "nr.interface", "requires": ["nr.collections", "nr.metaclass", "nr.pylang.utils"]},
   {"name": "nr.stream", "requires": ["nr.collections", "nr.pylang.utils"]},

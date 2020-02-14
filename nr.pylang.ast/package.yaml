@@ -4,4 +4,4 @@ license: "MIT"
 description: "Package description here."
 requirements:
   - python ^3.4
-  - test: []
+  - nr.collections ~0.0.1
