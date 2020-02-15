@@ -107,10 +107,13 @@ def get_argument_parser(prog=None):
     help='Create a Python EXecutable archive (see PEP 441) at the specified '
          'location. If --collect is not specified, implies --collect and '
          '--exclude-stdlib.')
-  group.add_argument('--pex-main', metavar='FILENAME',
+  group.add_argument('--pex-entrypoint', metavar='FILENAME',
     help='Specify the main entrypoint for the generated PEX archive. This '
          'will be copied to the `__main__.py` file of the archive. If not '
          'specified, the default script is a dispatcher for console_scripts.')
+  group.add_argument('--pex-root', metavar='PATH',
+    help='The root directory for the PEX when it needs to unpack files. '
+         'Defaults to "~/.pex" (the ~ is expanded at runtime).')
   group.add_argument('--entry', action='append', default=[], metavar='SPEC',
     help='Create an executable from a Python entrypoint specification '
          'and optional arguments in the standalone distribution directory. '
@@ -175,7 +178,7 @@ def main(argv=None, prog=None):
   Create standalone distributions of Python applications.
   """
 
-  parser = get_argument_parser(prog or 'nr.pylang.bundle')
+  parser = get_argument_parser(prog)
   args, unknown = parser.parse_known_args(argv)
 
   if args.verbose == 0:
@@ -211,7 +214,8 @@ def main(argv=None, prog=None):
     collect_to = args.collect_to,
     dist = args.dist,
     pex_out = args.pex,
-    pex_main = args.pex_main,
+    pex_entrypoint = args.pex_entrypoint,
+    pex_root = args.pex_root,
     entries = args.entry,
     resources = args.resource,
     bundle_dir = args.bundle_dir,

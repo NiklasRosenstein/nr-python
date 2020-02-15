@@ -736,7 +736,8 @@ class ModuleGraph(object):
 
     if sparse is None:
       sparse = self.sparse
-    temp_module = ModuleInfo('__temp__', filename=filename, type=ModuleInfo.SRC)
+    temp_module = ModuleInfo('__temp__', filename=filename,
+      type=ModuleInfo.SRC, graph=self)
     self._collect_module(temp_module, '*', None, 0, sparse)
 
   def collect_modules(self, module_name, source_module='*', callback=None,

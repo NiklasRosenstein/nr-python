@@ -30,8 +30,11 @@ from .utils.fs import copy_files_checked
 from . import nativedeps
 
 import distlib.scripts
+import json
 import logging
 import nr.fs
+import os
+import posixpath
 import py_compile
 import shlex
 import shutil
@@ -408,7 +411,9 @@ class DistributionBuilder(Struct):
     ('collect_to', str, None),
     ('dist', bool, False),
     ('pex_out', str, None),
-    ('pex_main', str, None),
+    ('pex_main', str, nr.fs.join(nr.fs.dir(__file__), 'pex_main.py')),
+    ('pex_entrypoint', str, None),
+    ('pex_root', str, None),
     ('entries', list, ()),
     ('resources', list, ()),
     ('bundle_dir', str, 'bundle'),
@@ -512,8 +517,10 @@ class DistributionBuilder(Struct):
     for ep in self.bundle.entry_points:
       if ep.is_file():
         self.graph.collect_from_source(ep.file)
-    if self.pex_main:
+    if self.pex_out and self.pex_main:
       self.graph.collect_from_source(self.pex_main)
+    if self.pex_out and self.pex_entrypoint:
+      self.graph.collect_from_source(self.pex_entrypoint)
 
     print('Collecting module data...')
     self.graph.collect_data(self.bundle)
@@ -569,7 +576,12 @@ class DistributionBuilder(Struct):
           nr.fs.makedirs(nr.fs.dir(dst))
           py_compile.compile(mod.filename, dst, doraise=True)
 
-  def do_zip_modules(self, modules, zip_out=None, shebang=None):
+  def do_zip_modules(
+      self,
+      modules,
+      zip_out=None,
+      shebang=None,
+  ):
     if not self.zip_file:
       self.zip_file = nr.fs.join(self.bundle_dir, 'libs.zip')
     zip_out = zip_out or self.zip_file
@@ -590,8 +602,10 @@ class DistributionBuilder(Struct):
       with open(zip_out, 'ab') as fp:
         fp.write(b'#!/usr/bin/env python\n')
       zip_open_mode = 'a'
+      zip_parent_dir = 'lib'
     else:
       zip_open_mode = 'w'
+      zip_parent_dir = None
 
     not_zippable = []
     with zipfile.ZipFile(zip_out, zip_open_mode, zipfile.ZIP_DEFLATED) as zipf:
@@ -600,7 +614,9 @@ class DistributionBuilder(Struct):
           continue
         if not mod.is_zippable:
           not_zippable.append(mod)
-          continue
+          if not shebang:
+            # We're not building a PEX, so we do not add this module to the ZIP.
+            continue
 
         if mod.type == mod.SRC:
           files = []
@@ -613,13 +629,67 @@ class DistributionBuilder(Struct):
           files = [(mod.relative_filename, mod.filename)]
 
         for arcname, filename in files:
+          if zip_parent_dir:
+            arcname = zip_parent_dir + '/' + arcname
           zipf.write(filename, arcname.replace(nr.fs.sep, '/'))
+
+        # Write package data.
+        ignore = gitignore.IgnoreList(mod.directory)
+        ignore.parse(mod.package_data_ignore)
+
+        def _write_package_data(filename):
+          assert mod.is_pkg(), (mod.name, filename)
+          rel = os.path.relpath(filename, mod.directory)
+          arcname = posixpath.normpath(os.path.join(
+            zip_parent_dir,
+            mod.name.replace('.', '/'),
+            rel).replace(nr.fs.sep, '/'))
+          zipf.write(filename, arcname)
+
+        for name in mod.package_data:
+          src = nr.fs.join(mod.directory, name)
+          if nr.fs.isfile(src):
+            _write_package_data(src)
+          elif nr.fs.isdir(src):
+            for root, dirs, files in os.walk(src):
+              for filename in files:
+                src_file = nr.fs.norm(nr.fs.join(root, filename))
+                rel_file = nr.fs.rel(src_file, src)
+                if ignore.is_ignored(rel_file, False):
+                  continue
+                _write_package_data(src_file)
+          else:
+            self.logger.warning('package_data "%s" for module "%s" does not '
+              'exist (full path: "%s")',
+              name, mod.name, src)
+
+      if shebang and self.pex_entrypoint:
+        zip_entrypoint = 'run/' + nr.fs.base(self.pex_entrypoint)
+        zipf.write(self.pex_entrypoint, zip_entrypoint)
+      else:
+        zip_entrypoint = None
+
+      if shebang:
+        zipf.write(self.pex_main, '__main__.py')
+        with nr.fs.tempfile(text=True) as fp:
+          fp.write(json.dumps({
+            'unzip_modules': list(set([x.get_namespace_root().name for x in not_zippable])),
+            'entrypoint': zip_entrypoint,
+            'root': self.pex_root,
+            'lib': zip_parent_dir
+          }))
+          fp.close()
+          zipf.write(fp.name, 'PEX-INFO')
 
     if shebang:
       nr.fs.chmod(zip_out, '+x')
 
-    if not_zippable:
+    if not_zippable and not shebang:
       print('Note: There are modules that can not be zipped, they will be copied into the lib/ folder.')
+    else:
+      print('Note: There are modules that cannot be used from inside the PEX.')
+      print('  They will be extracted into a temporary folder when the PEX is invoked.')
+
     return not_zippable
 
   def do_copy_modules(self, modules):
@@ -696,17 +766,11 @@ class DistributionBuilder(Struct):
           shutil.copy(dep.filename, dst)
 
   def do_pex(self):
-    if not self.pex_main:
-      raise NotImplementedError('no PEX main specified.')
-    print('Writing __main__.py (from {})'.format(self.pex_main))
-    nr.fs.makedirs(self.dirconfig.lib)
-    main_file = nr.fs.join(self.dirconfig.lib, '__main__.py')
-    with open(main_file, 'w') as fp:
-      with open(self.pex_main) as src:
-        fp.write(src.read())
     modules = [x for x in self.graph if not x.excludes]
-    modules.append(ModuleInfo('__main__', main_file, ModuleInfo.SRC))
-    self.do_zip_modules(modules, self.pex_out, shebang='/usr/bin/env python')
+    self.do_zip_modules(
+      modules,
+      zip_out=self.pex_out,
+      shebang='/usr/bin/env python')
 
   def build(self):
     did_stuff = False
