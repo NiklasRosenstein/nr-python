@@ -1,10 +1,14 @@
 
+import argparse
 import atexit
+import code
 import datetime
 import errno
+import inspect
 import json
 import logging
 import os
+import pkg_resources
 import shutil
 import sys
 import zipfile
@@ -47,6 +51,10 @@ def init_logging():
 
 def get_pex_filename():
   """ The code for this function is taken from the original PEX project. """
+
+  pex_file = os.getenv('PEX_FILE')
+  if pex_file:
+    return pex_file
 
   __entry_point__ = None
   if '__file__' in globals() and __file__ is not None:
@@ -92,40 +100,86 @@ def main():
     prefix = pex_info.get('lib', 'lib').rstrip('/') + '/'
     def _check_unpack(member):
       if not member.startswith(prefix):
-        return False
+        return None
       member = member[len(prefix):]
       for module in pex_info['unzip_modules']:
         module = module.replace('.', '/') + '/'
         if member.startswith(module):
-          return True
-      return False
+          return member
+      return None
 
     for member in zipf.namelist():
-      if _check_unpack(member):
-        target_dir = member.rpartition('/')[0].replace('/', os.path.sep)
-        logger.debug('Unpacking "%s" to "%s"', member, target_dir)
-        zipf.extract(member, os.path.join(tempdir, target_dir))
+      target_fn = _check_unpack(member)
+      if target_fn:
+        filename = os.path.join(tempdir, target_fn.replace('/', os.path.sep))
+      elif member.endswith('.egg-info/entry_points.txt'):
+        parent, basename = member.rpartition('/')[::2]
+        filename = os.path.join(tempdir, parent.rpartition('/')[-1], basename)
+      else:
+        continue
+      logger.debug('Unpacking "%s" to "%s"', member, filename)
+      makedirs(os.path.dirname(filename))
+      with zipf.open(member) as src:
+        with open(filename, 'wb') as dst:
+          shutil.copyfileobj(src, dst)
 
     sys.path.insert(0, tempdir)
 
     interactive = False
     if os.getenv('PEX_INTERACTIVE'):
-      logger.debug('PEX_INTERACTIVE is set, entering interactive shell.')
+      logger.debug('PEX_INTERACTIVE is set, enabling interactive mode.')
       interactive = True
     elif not pex_info['entrypoint']:
-      logger.debug('No entrypoint defined, entering interactive shell.')
       interactive = True
 
     if interactive:
-      import code
-      code.interact()
+      parser = argparse.ArgumentParser()
+      parser.add_argument('args', nargs='...')
+      parser.add_argument('-l', '--list', action='store_true')
+      parser.add_argument('-s', '--script')
+      parser.add_argument('-c', metavar='EXPR')
+      args = parser.parse_args()
+      if args.list:
+        if args.args:
+          parser.error('unexpected additional arguments with --list')
+        for ep in pkg_resources.iter_entry_points('console_scripts'):
+          print(ep.name)
+        return 0
+      elif args.script:
+        ep = next((x for x in pkg_resources.iter_entry_points('console_scripts')
+          if x.name == args.script), None)
+        if not ep:
+          parser.error('no entrypoint "{}" in console_scripts'.format(args.script))
+        sys.argv[1:] = args.args
+        entry_point = ep.load()
+        if 'prog' in inspect.getfullargspec(entry_point).args:
+          kwargs = {'prog': args.script}
+        else:
+          kwargs = {}
+        return entry_point(**kwargs)
+      elif args.c:
+        sys.argv[1:] = args.args
+        scope = {'__file__': pex_file, '__name__': '__main__'}
+        eval(args.code, scope, scope)
+        return 0
+      elif args.args:
+        with open(args.args[0]) as fp:
+          compiled_code = compile(fp.read(), args.args[0], 'exec')
+        scope = {'__file__': args.args[0], '__name__': '__main__'}
+        exec(compiled_code, scope, scope)  # TODO: Python 2 compat
+        return 0
+      else:
+        code.interact()
     else:
       logger.debug('Running entrypoint "%s"', pex_info['entrypoint'])
       filename = os.path.join(pex_file, pex_info['entrypoint'])
-      code = compile(zipf.open(pex_info['entrypoint']).read().decode(), filename, 'exec')
+      compiled_code = compile(zipf.open(pex_info['entrypoint']).read().decode(), filename, 'exec')
       scope = {'__file__': pex_info, '__name__': '__main__'}
-      exec(code, scope, scope)  # TODO: Python 2 compat
+      exec(compiled_code, scope, scope)  # TODO: Python 2 compat
+      return 0
+
+  return 0
 
 
 if __name__ == '__main__':
-  main()
+  sys.exit(main())

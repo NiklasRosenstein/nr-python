@@ -594,7 +594,7 @@ class DistributionBuilder(Struct):
       print('Creating module zipball at "{}" ...'.format(zip_out))
     else:
       print('Creating PEX at "{}" ...'.format(zip_out))
-    nr.fs.makedirs(nr.fs.dir(zip_out))
+    nr.fs.makedirs(nr.fs.dir(zip_out) or '.')
 
     if shebang:
       if nr.fs.isfile(zip_out):
@@ -662,6 +662,15 @@ class DistributionBuilder(Struct):
             self.logger.warning('package_data "%s" for module "%s" does not '
               'exist (full path: "%s")',
               name, mod.name, src)
+
+        # Write the entrypoints.
+        if mod.entry_points:
+          with nr.fs.tempfile(text=True) as fp:
+            print('Writing entrypoints for', mod.name)
+            fp.write(mod.entry_points)
+            fp.close()
+            arcname = posixpath.join(zip_parent_dir, mod.name + '.egg-info', 'entry_points.txt')
+            zipf.write(fp.name, arcname)
 
       if shebang and self.pex_entrypoint:
         zip_entrypoint = 'run/' + nr.fs.base(self.pex_entrypoint)
