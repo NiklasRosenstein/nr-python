@@ -684,26 +684,13 @@ class ModuleGraph(object):
       self.add(module)
     return module
 
-  def collect_modules(self, module_name, source_module='*', callback=None,
-                      depth=0, sparse=None):
+  def _collect_module(self, module, source_module, callback, depth, sparse):
+    # type: (ModuleInfo, str, Optional[Callable[[ModuleInfo, int], None]], int, bool)
     """
-    Collects the specified *module_name* and all of its imports into the
-    module graph. Modules are collected sparsely by default unless a `+` is
-    appended to the *module_name*, #sparse is set to #False or the module is
-    listed in #collect_whole. This can be overwritten with the *sparse*
-    argument.
-
-    When a module is collected sparsely, it's submodules are not automatically
-    collected as well (but its imports are).
+    Collects the imports of a module and calls hooks (`inspect_module()` and
+    `extend_imports()`).
     """
 
-    if module_name.endswith('+'):
-      module_name = module_name[:-1]
-      sparse = False if sparse is None else sparse
-    elif sparse is None:
-      sparse = self.sparse and module_name not in self.collect_whole
-
-    module = self.find_module(module_name)
     if source_module is not None:
       module.imported_from.add(source_module)
     if module.sparse in (None, True):
@@ -741,6 +728,38 @@ class ModuleGraph(object):
         import_name = import_name.rpartition('.')[0]
         if mod.type != mod.NOTFOUND:
           at_parent = True
+
+  def collect_from_source(self, filename, sparse=None):
+    """
+    Collects the imports for a given source file.
+    """
+
+    if sparse is None:
+      sparse = self.sparse
+    temp_module = ModuleInfo('__temp__', filename=filename, type=ModuleInfo.SRC)
+    self._collect_module(temp_module, '*', None, 0, sparse)
+
+  def collect_modules(self, module_name, source_module='*', callback=None,
+                      depth=0, sparse=None):
+    """
+    Collects the specified *module_name* and all of its imports into the
+    module graph. Modules are collected sparsely by default unless a `+` is
+    appended to the *module_name*, #sparse is set to #False or the module is
+    listed in #collect_whole. This can be overwritten with the *sparse*
+    argument.
+
+    When a module is collected sparsely, it's submodules are not automatically
+    collected as well (but its imports are).
+    """
+
+    if module_name.endswith('+'):
+      module_name = module_name[:-1]
+      sparse = False if sparse is None else sparse
+    elif sparse is None:
+      sparse = self.sparse and module_name not in self.collect_whole
+
+    module = self.find_module(module_name)
+    self._collect_module(module, source_module, callback, depth, sparse)
 
   def collect_data(self, bundle):
     """

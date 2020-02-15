@@ -127,7 +127,7 @@ class Entrypoint(Sumtype):
   """
 
   File = Constructor('name filename args gui')
-  Qid = Constructor('name module function args gui')
+  Module = Constructor('name module function args gui')
 
   def distlib_spec(self):
     if self.is_file():
@@ -150,7 +150,7 @@ class Entrypoint(Sumtype):
     if ':' in remainder:
       module, function = remainder.partition(':')[::2]
       if module and function:
-        return cls.Qid(name, module, function, args, gui)
+        return cls.Module(name, module, function, args, gui)
     else:
       return cls.File(name, remainder, args, gui)
     raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
@@ -406,7 +406,9 @@ class DistributionBuilder(Struct):
   __annotations__ = [
     ('collect', bool, False),
     ('collect_to', str, None),
-    ('dist', str, False),
+    ('dist', bool, False),
+    ('pex_out', str, None),
+    ('pex_main', str, None),
     ('entries', list, ()),
     ('resources', list, ()),
     ('bundle_dir', str, 'bundle'),
@@ -504,9 +506,14 @@ class DistributionBuilder(Struct):
     print('Resolving dependencies ...')
     modules = get_core_modules() if self.default_includes else []
     modules += self.includes
-    modules += [x.module for x in self.bundle.entry_points if x.is_qid()]
+    modules += [x.module for x in self.bundle.entry_points if x.is_module()]
     for module_name in modules:
       self.graph.collect_modules(module_name)
+    for ep in self.bundle.entry_points:
+      if ep.is_file():
+        self.graph.collect_from_source(ep.file)
+    if self.pex_main:
+      self.graph.collect_from_source(self.pex_main)
 
     print('Collecting module data...')
     self.graph.collect_data(self.bundle)
@@ -562,20 +569,35 @@ class DistributionBuilder(Struct):
           nr.fs.makedirs(nr.fs.dir(dst))
           py_compile.compile(mod.filename, dst, doraise=True)
 
-  def do_zip_modules(self, modules):
+  def do_zip_modules(self, modules, zip_out=None, shebang=None):
     if not self.zip_file:
       self.zip_file = nr.fs.join(self.bundle_dir, 'libs.zip')
+    zip_out = zip_out or self.zip_file
 
     # TODO: Exclude core modules that must be copied to the lib/
     #       directory anyway in the case of the 'dist' operation.
     # TODO: Also zip up package data?
 
-    print('Creating module zipball at "{}" ...'.format(self.zip_file))
-    nr.fs.makedirs(nr.fs.dir(self.zip_file))
+    if shebang:
+      print('Creating module zipball at "{}" ...'.format(zip_out))
+    else:
+      print('Creating PEX at "{}" ...'.format(zip_out))
+    nr.fs.makedirs(nr.fs.dir(zip_out))
+
+    if shebang:
+      if nr.fs.isfile(zip_out):
+        nr.fs.remove(zip_out)
+      with open(zip_out, 'ab') as fp:
+        fp.write(b'#!/usr/bin/env python\n')
+      zip_open_mode = 'a'
+    else:
+      zip_open_mode = 'w'
 
     not_zippable = []
-    with zipfile.ZipFile(self.zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(zip_out, zip_open_mode, zipfile.ZIP_DEFLATED) as zipf:
       for mod in modules:
+        if mod.type in (mod.BUILTIN, mod.NOTFOUND):
+          continue
         if not mod.is_zippable:
           not_zippable.append(mod)
           continue
@@ -592,6 +614,9 @@ class DistributionBuilder(Struct):
 
         for arcname, filename in files:
           zipf.write(filename, arcname.replace(nr.fs.sep, '/'))
+
+    if shebang:
+      nr.fs.chmod(zip_out, '+x')
 
     if not_zippable:
       print('Note: There are modules that can not be zipped, they will be copied into the lib/ folder.')
@@ -670,6 +695,19 @@ class DistributionBuilder(Struct):
         if self.copy_always or nr.fs.compare_timestamp(dep.filename, dst):
           shutil.copy(dep.filename, dst)
 
+  def do_pex(self):
+    if not self.pex_main:
+      raise NotImplementedError('no PEX main specified.')
+    print('Writing __main__.py (from {})'.format(self.pex_main))
+    nr.fs.makedirs(self.dirconfig.lib)
+    main_file = nr.fs.join(self.dirconfig.lib, '__main__.py')
+    with open(main_file, 'w') as fp:
+      with open(self.pex_main) as src:
+        fp.write(src.read())
+    modules = [x for x in self.graph if not x.excludes]
+    modules.append(ModuleInfo('__main__', main_file, ModuleInfo.SRC))
+    self.do_zip_modules(modules, self.pex_out, shebang='/usr/bin/env python')
+
   def build(self):
     did_stuff = False
     self.do_init_bundle()
@@ -699,6 +737,9 @@ class DistributionBuilder(Struct):
 
     if self.dist:
       self.do_dist()
+    if self.pex_out:
+      did_stuff = True
+      self.do_pex()
 
     if self.dirconfig.bundle:
       self.bundle.create_bundle(self.copy_always)

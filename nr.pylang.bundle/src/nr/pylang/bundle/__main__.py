@@ -103,6 +103,14 @@ def get_argument_parser(prog=None):
          'core libraries required by the Python interpreter and a modified '
          'site.py module. Additional arguments are treated as modules that '
          'are to be included in the distribution.')
+  group.add_argument('--pex', metavar='FILENAME',
+    help='Create a Python EXecutable archive (see PEP 441) at the specified '
+         'location. If --collect is not specified, implies --collect and '
+         '--exclude-stdlib.')
+  group.add_argument('--pex-main', metavar='FILENAME',
+    help='Specify the main entrypoint for the generated PEX archive. This '
+         'will be copied to the `__main__.py` file of the archive. If not '
+         'specified, the default script is a dispatcher for console_scripts.')
   group.add_argument('--entry', action='append', default=[], metavar='SPEC',
     help='Create an executable from a Python entrypoint specification '
          'and optional arguments in the standalone distribution directory. '
@@ -110,7 +118,7 @@ def get_argument_parser(prog=None):
          'is prefixed with an @ sign (as in @prog=module:fun).')
   group.add_argument('--resource', action='append', default=[], metavar='SRC[:DST]',
     help='Copy thepath(s) to the bundle directory. If DST is not specified, '
-         'it defaults to res/{srcbasename}/. The path to the res/ directory '
+         'it defaults to res/{basename(SRC)}/. The path to the res/ directory '
          'can be retrieved with `sys.frozen_env["resource_dir"]`.')
 
   group = parser.add_argument_group('optional arguments (build')
@@ -187,6 +195,13 @@ def main(argv=None, prog=None):
       value = 'true'
     hook_options[key.lower()] = value
 
+  if args.pex:
+    if args.dist:
+      parser.error('conflicting arguments: --pex and --dist')
+    if not args.collect:
+      args.collect = True
+      args.exclude_stdlib = True
+
   if args.dist and args.exclude_stdlib:
     logging.warning('using --exclude-stdlib with --dist may leave you with '
       'will leave you with a non-functional distribution.')
@@ -195,6 +210,8 @@ def main(argv=None, prog=None):
     collect = args.collect,
     collect_to = args.collect_to,
     dist = args.dist,
+    pex_out = args.pex,
+    pex_main = args.pex_main,
     entries = args.entry,
     resources = args.resource,
     bundle_dir = args.bundle_dir,
