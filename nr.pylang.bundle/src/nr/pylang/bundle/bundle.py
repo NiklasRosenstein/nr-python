@@ -507,6 +507,8 @@ class DistributionBuilder(Struct):
     modules += [x.module for x in self.bundle.entry_points if x.is_qid()]
     for module_name in modules:
       self.graph.collect_modules(module_name)
+
+    print('Collecting module data...')
     self.graph.collect_data(self.bundle)
 
     if self.fill_namespace_modules:
@@ -619,6 +621,14 @@ class DistributionBuilder(Struct):
         src = nr.fs.join(mod.directory, name)
         dst = nr.fs.join(lib_dir, mod.relative_directory, name)
         copy_files_checked(src, dst, self.copy_always, ignore)
+
+      # Write the entrypoints data.
+      if mod.entry_points:
+        dist_info_dir = nr.fs.join(lib_dir, mod.name + '.egg-info')
+        nr.fs.makedirs(dist_info_dir)
+        with open(nr.fs.join(dist_info_dir, 'entry_points.txt'), 'w') as fp:
+          print('Writing entrypoints for', mod.name)
+          fp.write(mod.entry_points)
 
   def do_dist(self):
     print('Analyzing native dependencies ...')

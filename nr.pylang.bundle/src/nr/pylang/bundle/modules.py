@@ -198,6 +198,7 @@ class ModuleInfo(Struct):
     ('skip_auto_native_deps', bool, False),
     ('original_filename', str, None),
     ('excludes', list, lambda: []),
+    ('entry_points', str, None),  #: Currently resolved in hooks/hook.py
   ]
 
   _is_namespace_pkg = None
