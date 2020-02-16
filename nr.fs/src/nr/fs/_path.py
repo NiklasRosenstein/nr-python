@@ -45,6 +45,7 @@ import os
 import platform
 import shutil
 import stat as _stat
+import sys
 
 from os import (
   sep,
@@ -78,7 +79,10 @@ except ImportError as exc:
   del exc
 
 
-is_case_sensitive = not (os.name == 'nt' or 'windows' in platform.platform().lower())
+# Determine if the os.path module treats files case-sensitive on this system.
+assert sys.executable != sys.executable.upper(), sys.executable
+assert os.path.isfile(sys.executable), sys.executable
+is_case_sensitive = not os.path.isfile(sys.executable.upper())
 
 
 def canonical(path, parent=None):
