@@ -390,6 +390,14 @@ class ModuleInfo(Struct):
       nr.fs.makedirs(nr.fs.dir(path))
     self.filename = path
 
+  @contextlib.contextmanager
+  def append_file(self, directory, mode='w'):
+    with open(self.filename, 'r') as fp:
+      content = fp.read()
+    with self.replace_file(directory, mode) as fp:
+      fp.write(content)
+      yield fp
+
   def exclude(self):
     frame = sys._getframe(1)
     # TODO @NiklasRosenstein Add more information on where this module was excluded.

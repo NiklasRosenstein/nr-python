@@ -359,7 +359,8 @@ class PythonAppBundle(object):
 
     mod = self.modules['site']
 
-    with mod.replace_file(nr.fs.join(self.dirconfig.temp, 'modules')) as fp:
+    with mod.append_file(nr.fs.join(self.dirconfig.temp, 'modules')) as fp:
+      fp.write('\n')
       # Load the original contents of the site module.
       with open(self.modules['site'].filename) as src:
         fp.write(src.read())
