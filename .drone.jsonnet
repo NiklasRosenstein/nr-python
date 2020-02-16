@@ -28,6 +28,8 @@ local NrPylangBundleTest(pyversion) = {
         if pyversion == "2.6" then "insynchq/python2.6"
         else "python:" + pyversion,
       "commands": [
+        if pyversion == "2.6" then "curl https://bootstrap.pypa.io/2.6/get-pip.py -o - | PYTHONWARNINGS=ignore python -"
+        else "echo Void",
         "bin/dev-install --no-develop nr.pylang.bundle",
         "nr-pylang-bundle --pex bundle.pex --pex-console-script nr-pylang-bundle",
         "./bundle.pex --version",
