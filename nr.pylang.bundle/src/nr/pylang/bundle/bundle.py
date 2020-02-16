@@ -225,7 +225,7 @@ class ScriptMaker(object):
 
     sh = nr.fs.join(self.target_dir, entrypoint.name)
     with open(sh, 'w') as fp:
-      fp.write('#!/bin/sh\nhere=`dirname "$0"`\n"$here/runtime/python" "$here/test.py"\n')
+      fp.write('#!/bin/sh\nhere=`dirname "$0"`\n"$here/runtime/python" "$here/{}.py"\n'.format(entrypoint.name))
     nr.fs.chmod(sh, '+x')
 
 
