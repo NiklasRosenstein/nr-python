@@ -20,11 +20,10 @@
 # IN THE SOFTWARE.
 
 from . import abc, generic
-from nr.metaclass.deconflict import deconflict_bases
+from nr.metaclass.deconflict import deconflicted_base
 
 
-class HashDict(*deconflict_bases(generic.Generic['key_hash'], abc.MutableMapping)):
-#class HashDict(generic.Generic['key_hash']):
+class HashDict(deconflicted_base(generic.Generic['key_hash'], abc.MutableMapping)):
   """
   This dictionary type can be specialized by specifying a hash function,
   allowing it to be used even with unhashable types as keys.
