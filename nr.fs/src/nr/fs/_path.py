@@ -164,6 +164,16 @@ def issub(path, at_curr=True):
   return True
 
 
+def ischild(src, dst):
+  src = os.path.abspath(src)
+  dst = os.path.abspath(dst)
+  if not src.endswith(os.path.sep):
+    src += os.path.sep
+  if not dst.endswith(os.path.sep):
+    dst += os.path.sep
+  return dst.startswith(src)
+
+
 def isglob(path):
   """
   Checks if *path* is a glob pattern. Returns #True if it is, #False if not.
@@ -515,6 +525,76 @@ def remove(path):
     shutil.rmtree(path)
   else:
     os.remove(path)
+
+
+# Stolen from shutil.move() in Python 3.5
+
+def samefile(src, dst):
+  # Macintosh, Unix.
+  if hasattr(os.path, 'samefile'):
+    try:
+      return os.path.samefile(src, dst)
+    except OSError:
+      return False
+
+  # All other platforms: check for same pathname.
+  return norm(src) == norm(dst)
+
+
+def move(src, dst, copy_function=shutil.copy2):
+  """Recursively move a file or directory to another location. This is
+  similar to the Unix "mv" command. Return the file or directory's
+  destination.
+
+  If the destination is a directory or a symlink to a directory, the source
+  is moved inside the directory. The destination path must not already
+  exist.
+
+  If the destination already exists but is not a directory, it may be
+  overwritten depending on os.rename() semantics.
+
+  If the destination is on our current filesystem, then rename() is used.
+  Otherwise, src is copied to the destination and then removed. Symlinks are
+  recreated under the new name if os.rename() fails because of cross
+  filesystem renames.
+
+  The optional `copy_function` argument is a callable that will be used
+  to copy the source or it will be delegated to `copytree`.
+  By default, copy2() is used, but any function that supports the same
+  signature (like copy()) can be used.
+
+  A lot more could be done here...  A look at a mv.c shows a lot of
+  the issues this implementation glosses over.
+  """
+
+  real_dst = dst
+  if isdir(dst):
+    if samefile(src, dst):
+      # We might be on a case insensitive filesystem,
+      # perform the rename anyway.
+      os.rename(src, dst)
+      return
+
+    real_dst = join(dst, base(src))
+    if exists(real_dst):
+      raise Error("Destination path '%s' already exists" % real_dst)
+  try:
+    os.rename(src, real_dst)
+  except OSError:
+    if os.path.islink(src):
+      linkto = os.readlink(src)
+      os.symlink(linkto, real_dst)
+      os.unlink(src)
+    elif os.path.isdir(src):
+      if ischild(src, dst):
+        raise Error("Cannot move a directory '%s' into itself"
+                    " '%s'." % (src, dst))
+      shutil.copytree(src, real_dst, copy_function=copy_function, symlinks=True)
+      shutil.rmtree(src)
+    else:
+      copy_function(src, real_dst)
+      os.unlink(src)
+  return real_dst
 
 
 # Backwards compatibility
