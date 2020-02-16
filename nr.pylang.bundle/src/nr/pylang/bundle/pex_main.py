@@ -4,7 +4,6 @@ import atexit
 import code
 import datetime
 import errno
-import imp
 import inspect
 import json
 import logging
@@ -13,6 +12,9 @@ import pkg_resources
 import shutil
 import sys
 import zipfile
+
+try: from importlib import reload
+except ImportError: from imp import reload
 
 logger = logging.getLogger('pex_main')
 
@@ -196,7 +198,7 @@ def main():
     unzip_modules(zipf, prefix, pex_info['unzip_modules'], tempdir)
     sys.path.insert(0, tempdir)
 
-  imp.reload(pkg_resources)
+  reload(pkg_resources)
 
   interactive = False
   if os.getenv('PEX_INTERACTIVE'):
