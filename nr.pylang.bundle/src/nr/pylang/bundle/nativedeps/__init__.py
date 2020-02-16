@@ -33,7 +33,8 @@ if system.is_win:
   from .windll import is_binary, get_dependencies, resolve_dependency
   is_available = True
 else:
-  warnings.warn('No nativedeps implementation available for current platform.')
+  is_available = True
+  warnings.warn('No nativedeps implementation available for current platform.', ImportWarning)
   from .shallow import is_binary, get_dependencies, resolve_dependency
 
 
