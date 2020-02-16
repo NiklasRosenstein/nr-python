@@ -11,14 +11,14 @@ def test_function_spec():
   assert c.conformity_check(a) is None
 
   c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=[])
-  assert c.conformity_check(a) == "missing kwonlyargs ({'c'})"
+  assert c.conformity_check(a) == "missing kwonlyargs ({})".format(set(['c']))
 
   c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', kwonlyargs=['c'])
   assert c.conformity_check(a) == "extranous positional arguments do not have default values (extranous arguments are ['d'])"
 
   a.kwonlydefaults = {'c': 42}
   c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=['c'])
-  assert c.conformity_check(a) == "missing kwonlydefaults ({'c'})"
+  assert c.conformity_check(a) == "missing kwonlydefaults ({})".format(set(['c']))
 
 
 def test_constructed():

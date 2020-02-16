@@ -7,6 +7,7 @@ requirements:
   - nr.interface ~0.0.1
   - nr.parsing.date ~0.0.1
   - nr.stream ~0.0.1
+  - nr.pylang.utils ~0.0.1
   - test:
     - pytest
     - PyYAML

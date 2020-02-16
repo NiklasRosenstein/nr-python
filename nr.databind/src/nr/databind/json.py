@@ -23,6 +23,7 @@
 Converts from and to JSON like nested structures.
 """
 
+from __future__ import absolute_import
 from functools import partial
 from nr.collections import ChainDict
 from nr.pylang.utils import NotSet
@@ -732,8 +733,8 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
       value = getattr(obj, field.name)
       if isinstance(value, Struct):
         _path.push(field.name)
-        yield from self.iter_paths(getattr(obj, field.name),
-          expect_has_metadata, _path)
+        for _ in self.iter_paths(getattr(obj, field.name), expect_has_metadata, _path):
+          yield _
         _path.pop()
 
 

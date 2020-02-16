@@ -19,6 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from __future__ import absolute_import
 from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
 from nr.stream import Stream
@@ -27,6 +28,12 @@ import re
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.1'
+
+
+def _merge_dicts(*dicts):
+  result = {}
+  [result.update(x) for x in dicts]
+  return result
 
 
 class _RemoveMe(object):
@@ -75,7 +82,7 @@ class Constructor(BaseConstructor):
       btype = self._fields
       name = sumtype.__name__ + '.' + name
     return copy_class(btype, btype.__bases__ + (sumtype,),
-      update_attrs={'__name__': name, **add_attrs, **self._members})
+      update_attrs=_merge_dicts({'__name__': name}, add_attrs, self._members))
 
 
 class Sumtype(InlineMetaclassBase):
@@ -94,7 +101,7 @@ class Sumtype(InlineMetaclassBase):
     # Inherit parent class constructors.
     cls.__constructors__ = Stream(bases)\
       .map(lambda x: getattr(x, '__constructors__', {}))\
-      .reduce(lambda a, b: dict(**a, **b))
+      .reduce(lambda a, b: _merge_dicts(a, b))
 
     # Find all constructors defined in the class.
     cls.__constructors__.update(Stream(vars(cls).items())\

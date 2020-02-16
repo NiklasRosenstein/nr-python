@@ -103,7 +103,7 @@ class FunctionSpec(object):
     else:
       argspec = inspect.getargspec(func)
       return cls(argspec.args, argspec.varargs, argspec.keywords,
-        list(args.defaults or []))
+        list(argspec.defaults or []))
 
   def conformity_check(self, other):  # type: (FunctionSpec) -> Optional[str]
     """ Checks if *self* conforms with the *other* function spec. The spec
@@ -250,6 +250,9 @@ class Method(_Member):
       return (self.argspec, self.final, self.hidden, self.static) == \
         (other.argspec, other.final, other.hidden, other.static)
     return False
+
+  def __ne__(self, other):
+    return not (self == other)
 
   @property
   def required(self):

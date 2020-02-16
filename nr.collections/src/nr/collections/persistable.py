@@ -21,6 +21,7 @@
 
 """ Provides a collection and map type that is persistable to disk. """
 
+from __future__ import absolute_import
 from abc import ABCMeta
 from . import abc
 from six.moves import cPickle as pickle

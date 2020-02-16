@@ -19,6 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from nr.pylang.utils import funcdef
 import sys
 
 
@@ -54,10 +55,14 @@ def iter_decorations(of_cls, *decoration_sources):
         yield sub_item
 
 
-def get_decoration(of_cls, *decoration_sources, default=None):
+def get_decoration(of_cls, *decoration_sources, **kwargs):
   # type: (Type[Decoration], Any) -> Optional[Decoration]
-  """ Returns the first decoration of the specified type from *items*. """
+  """ Returns the first decoration of the specified type from *items*.
+  The keyword-only argument "default" may be specified to control the
+  return value that is returned if no matching decoration was found. """
 
+  default = kwargs.pop('default', None)
+  funcdef.raise_kwargs(kwargs)
   return next(iter_decorations(of_cls, *decoration_sources), default)
 
 

@@ -21,8 +21,9 @@
 
 """ This module provides a configurable [[UnionType]] for struct fields. """
 
-import typing
 import importlib
+import six
+import typing
 
 from nr.collections import abc
 from nr.pylang.utils import classdef
@@ -225,6 +226,8 @@ class ImportTypeResolver(object):
 
   def resolve(self, type_name):  # type: (str) -> IUnionTypeMember
     module_name, member = type_name.rpartition('.')[::2]
+    if six.PY2 and module_name == 'builtins':
+      module_name = '__builtin__'
     try:
       module = importlib.import_module(module_name)
     except ImportError:
@@ -244,6 +247,8 @@ class ImportTypeResolver(object):
 
   def reverse(self, value):
     module_name = type(value).__module__
+    if six.PY2 and module_name == '__builtin__':
+      module_name = 'builtins'
     member = type(value).__name__
     type_name = module_name + '.' + member
     return IUnionTypeMember(

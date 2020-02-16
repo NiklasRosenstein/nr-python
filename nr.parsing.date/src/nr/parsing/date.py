@@ -100,13 +100,15 @@ class TimezoneFormatOption(BaseFormatOption):
 					off = -off
 				else:
 					sign = "+"
-				hh, mm = divmod(off, timedelta(hours=1))
-				mm, ss = divmod(mm, timedelta(minutes=1))
+				off = off.total_seconds()
+				hh, mm = divmod(off, 60 * 60)
+				mm, ss = divmod(mm, 60)
+				ss, ms = divmod(ss, 1)
 				string += "%s%02d:%02d" % (sign, hh, mm)
-				if ss or ss.microseconds:
-					string += ":%02d" % ss.seconds
-					if ss.microseconds:
-						string += '.%06d' % ss.microseconds
+				if ss or ms:
+					string += ":%02d" % ss
+					if ms:
+						string += '.%06d' % ms
 			return string
 
 
