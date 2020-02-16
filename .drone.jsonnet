@@ -25,7 +25,7 @@ local NrPylangBundleTest(pyversion) = {
     {
       "name": "test",
       "image":
-        if pyversion == "2.6" then "dalibo/python2.6:slim"
+        if pyversion == "2.6" then "insynchq/python2.6"
         else "python:" + pyversion,
       "commands": [
         "bin/dev-install --no-develop nr.pylang.bundle",
@@ -61,10 +61,8 @@ local ForPythonVersion(pyversion) = [
 
 [NrPylangBundleTest("2.6")] +
 ForPythonVersion("2.7") +
-ForPythonVersion("3.4") +
 ForPythonVersion("3.5") +
 ForPythonVersion("3.6") +
 ForPythonVersion("3.7") +
 ForPythonVersion("3.8") +
-ForPythonVersion("latest") +
-ForPythonVersion("nightly")
+ForPythonVersion("latest")
