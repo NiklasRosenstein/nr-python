@@ -392,7 +392,7 @@ class ModuleInfo(Struct):
       nr.fs.makedirs(nr.fs.dir(path))
       if nr.fs.isfile(path):
         nr.fs.remove(path)
-      os.rename(fp.name, path)
+      nr.fs.move(fp.name, path)
       self.filename = path
 
   def exclude(self):
