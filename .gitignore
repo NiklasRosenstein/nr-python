@@ -1,3 +1,7 @@
 .pytest_cache
 .venv
 *.egg-info
+
+# nr.pylang.bundle
+/bundle
+/.bundler-temp
