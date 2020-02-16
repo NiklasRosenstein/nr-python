@@ -91,7 +91,7 @@ def _get_exclude_module_files(modules):
 
 def inspect_module(module):
   if module.name == 'PyQt5':
-    module.zippable = False
+    module.is_zippable = False
     module.graph.collect_modules('sip', module.name)
     module.graph.collect_modules('PyQt5.sip', module.name)
     if options.get_bool('pyqt5:whole'):
