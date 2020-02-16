@@ -78,3 +78,12 @@ def deconflict_bases(*bases):  # type: (Tuple[Type]) -> Tuple[Type]
   name = 'deconflict_' + '_'.join(map(lambda x: x.__name__, bases))
   parent_cls = metaclass(name, bases, {})
   return (parent_cls,)
+
+
+def deconflicted_base(*bases):  # type: (Tuple[Type]) -> Type:
+  bases = deconflict_bases(*bases)
+  if len(bases) == 1:
+    return bases[0]
+  else:
+    name = '_' + '_'.join(x.__name__ for x in bases)
+    return type(name, bases, {})
