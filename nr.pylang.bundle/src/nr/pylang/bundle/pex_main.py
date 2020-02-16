@@ -1,4 +1,9 @@
 
+try: from importlib import reload
+except ImportError: from imp import reload
+
+from importlib import import_module
+
 import argparse
 import atexit
 import code
@@ -12,9 +17,6 @@ import pkg_resources
 import shutil
 import sys
 import zipfile
-
-try: from importlib import reload
-except ImportError: from imp import reload
 
 logger = logging.getLogger('pex_main')
 
@@ -138,17 +140,7 @@ def run_interactive(pex_filename):
     for ep in pkg_resources.iter_entry_points('console_scripts'):
       print(ep.name)
   elif args.script:
-    ep = next((x for x in pkg_resources.iter_entry_points('console_scripts')
-      if x.name == args.script), None)
-    if not ep:
-      parser.error('no entrypoint "{}" in console_scripts'.format(args.script))
-    sys.argv[1:] = args.args
-    entry_point = ep.load()
-    if 'prog' in inspect.getfullargspec(entry_point).args:
-      kwargs = {'prog': args.script}
-    else:
-      kwargs = {}
-    return entry_point(**kwargs)
+    return run_console_script(args.script, args.args)
   elif args.c:
     sys.argv[1:] = args.args
     scope = {'__file__': pex_filename, '__name__': '__main__'}
@@ -163,13 +155,37 @@ def run_interactive(pex_filename):
   return 0
 
 
+def run_console_script(name, args):
+  ep = next((x for x in pkg_resources.iter_entry_points('console_scripts')
+    if x.name == name), None)
+  if not ep:
+    raise ValueError('entrypoint "{}" does not exist in console_scripts'
+                     .format(name))
+  sys.argv[1:] = args
+  entry_point = ep.load()
+  if 'prog' in inspect.getfullargspec(entry_point).args:
+    kwargs = {'prog': name}
+  else:
+    kwargs = {}
+  return entry_point(**kwargs)
+
+
 def run_entrypoint(zipf, entrypoint):
-  logger.debug('Running entrypoint "%s"', pex_info['entrypoint'])
-  filename = os.path.join(pex_file, pex_info['entrypoint'])
-  compiled_code = compile(zipf.open(pex_info['entrypoint']).read().decode(), filename, 'exec')
-  scope = {'__file__': pex_info, '__name__': '__main__'}
-  exec_(compiled_code, scope, scope)
-  return 0
+  logger.debug('Running entrypoint "%s"', entrypoint)
+  sys.argv[1:1] = entrypoint.get('args', [])
+  if entrypoint['type'] == 'file':
+    filename = os.path.join(pex_file, entrypoint)
+    compiled_code = compile(zipf.open(entrypoint).read().decode(), filename, 'exec')
+    scope = {'__file__': pex_info, '__name__': '__main__'}
+    exec_(compiled_code, scope, scope)
+    return 0
+  elif entrypoint['type'] == 'module':
+    module = import_module(entrypoint['module'])
+    return getattr(module, entrypoint['member'])()
+  elif entrypoint['type'] == 'console_script':
+    return run_console_script(entrypoint['name'], sys.argv[1:])
+  else:
+    raise ValueError('invalid entrypoint definition: {!r}'.format(entrypoint))
 
 
 def main():

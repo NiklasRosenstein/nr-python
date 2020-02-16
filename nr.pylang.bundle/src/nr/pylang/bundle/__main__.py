@@ -111,6 +111,10 @@ def get_argument_parser(prog=None):
     help='Specify the main entrypoint for the generated PEX archive. This '
          'will be copied to the `__main__.py` file of the archive. If not '
          'specified, the default script is a dispatcher for console_scripts.')
+  group.add_argument('--pex-console-script', metavar='FILENAME',
+    help='The name of the entrypoint in the console_script group to use as '
+         'the main entrypoint of the PEX. Cannot be combined with '
+         '--pex-entrypoint.')
   group.add_argument('--pex-root', metavar='PATH',
     help='The root directory for the PEX when it needs to unpack files. '
          'Defaults to "~/.pex" (the ~ is expanded at runtime).')
@@ -215,6 +219,7 @@ def main(argv=None, prog=None):
     dist = args.dist,
     pex_out = args.pex,
     pex_entrypoint = args.pex_entrypoint,
+    pex_console_script = args.pex_console_script,
     pex_root = args.pex_root,
     entries = args.entry,
     resources = args.resource,

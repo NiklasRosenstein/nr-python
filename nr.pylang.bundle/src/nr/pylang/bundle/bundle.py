@@ -22,7 +22,7 @@
 # IN THE SOFTWARE.
 
 from nr.databind.core import Struct
-from nr.sumtype import Constructor, Sumtype
+from nr.sumtype import add_constructor_tests, Constructor, Sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
 from .utils import gitignore, system
@@ -34,11 +34,13 @@ import json
 import logging
 import nr.fs
 import os
+import pkg_resources
 import posixpath
 import py_compile
 import shlex
 import shutil
 import sys
+import tqdm
 import textwrap
 import zipfile
 
@@ -119,6 +121,7 @@ class DirConfig(Struct):
                nr.fs.join(bundle_dir, 'res'))
 
 
+@add_constructor_tests
 class Entrypoint(Sumtype):
   """
   Represents an entrypoint specification of the format
@@ -411,8 +414,16 @@ class DistributionBuilder(Struct):
     ('collect_to', str, None),
     ('dist', bool, False),
     ('pex_out', str, None),
+    #: The __main__.py for the generated PEX archive. This defaults to the
+    #: pex_main.py that comes with the nr.pylang.bundle module.
     ('pex_main', str, nr.fs.join(nr.fs.dir(__file__), 'pex_main.py')),
+    #: An entrypoint for the script. This is parsed with the #Entrypoint
+    #: class but it does not require the alias part (`xyz =`), and thus it
+    #: can be just `module:member` or `filename`.
     ('pex_entrypoint', str, None),
+    #: The name of the console script that should serve as the entrypoint.
+    #: This option cannot be used together with pex_entrypoint.
+    ('pex_console_script', str, None),
     ('pex_root', str, None),
     ('entries', list, ()),
     ('resources', list, ()),
@@ -488,6 +499,18 @@ class DistributionBuilder(Struct):
     self.hook.options.update(self.hook_options)
     self.hook.path += self.hooks_path
 
+    if isinstance(self.pex_entrypoint, str):
+      self.pex_entrypoint = Entrypoint.parse('alias=' + self.pex_entrypoint)
+    if self.pex_console_script and self.pex_entrypoint:
+      raise ValueError('pex_entrypoint and pex_console_script cannot be combined.')
+    if self.pex_console_script:
+      ep = next((x for x in pkg_resources.iter_entry_points('console_scripts')
+        if x.name == self.pex_console_script), None)
+      if not ep:
+        raise ValueError('entrypoint "{}" does not exist in console_scripts group'
+          .format(self.pex_console_script))
+      self.pex_entrypoint = Entrypoint.Module(ep.name, ep.module_name, ep.attrs[0], [], False)
+
     if not self.logger:
       self.logger = logging.getLogger(__name__)
 
@@ -508,19 +531,32 @@ class DistributionBuilder(Struct):
     if not self.srcs and not self.compile_modules:
       raise ValueError('need either srcs=True or compile_modules=True')
 
-    print('Resolving dependencies ...')
+    # Collect the list of modules to collect.
     modules = get_core_modules() if self.default_includes else []
     modules += self.includes
     modules += [x.module for x in self.bundle.entry_points if x.is_module()]
-    for module_name in modules:
-      self.graph.collect_modules(module_name)
+    if self.pex_out and self.pex_entrypoint and self.pex_entrypoint.is_module():
+      modules.append(self.pex_entrypoint.module)
+
+    # Collect a list of source files to collect from.
+    source_files = []
+    if self.pex_out:
+      if self.pex_main:
+        source_files.append(self.pex_main)
+      if self.pex_entrypoint and self.pex_entrypoint.is_file():
+        source_files.append(self.pex_entrypoint.file)
     for ep in self.bundle.entry_points:
       if ep.is_file():
-        self.graph.collect_from_source(ep.file)
-    if self.pex_out and self.pex_main:
-      self.graph.collect_from_source(self.pex_main)
-    if self.pex_out and self.pex_entrypoint:
-      self.graph.collect_from_source(self.pex_entrypoint)
+        source_files.append(ep.file)
+
+    # Collect the modules (with progress bar).
+    it = tqdm.tqdm([('module', x) for x in modules] + [('file', x) for x in source_files])
+    for kind, value in it:
+      it.desc = value
+      if kind == 'module':
+        self.graph.collect_modules(value)
+      else:
+        self.graph.collect_from_source(value)
 
     print('Collecting module data...')
     self.graph.collect_data(self.bundle)
@@ -672,18 +708,35 @@ class DistributionBuilder(Struct):
             arcname = posixpath.join(zip_parent_dir, mod.name + '.egg-info', 'entry_points.txt')
             zipf.write(fp.name, arcname)
 
-      if shebang and self.pex_entrypoint:
-        zip_entrypoint = 'run/' + nr.fs.base(self.pex_entrypoint)
-        zipf.write(self.pex_entrypoint, zip_entrypoint)
+      if shebang and self.pex_entrypoint and self.pex_entrypoint.is_file():
+        zip_entrypoint = 'run/' + nr.fs.base(self.pex_entrypoint.file)
+        zipf.write(self.pex_entrypoint.file, zip_entrypoint)
       else:
         zip_entrypoint = None
 
       if shebang:
+        if self.pex_entrypoint and self.pex_entrypoint.is_file():
+          entrypoint = {
+            'type': 'file',
+            'path': zip_entrypoint,
+            'args': self.pex_entrypoint.args,
+            'gui': self.pex_entrypoint.gui}
+        elif self.pex_entrypoint and self.pex_entrypoint.is_module():
+          entrypoint = {
+            'type': 'module',
+            'module': self.pex_entrypoint.module,
+            'member': self.pex_entrypoint.function,
+            'args': self.pex_entrypoint.args,
+            'gui': self.pex_entrypoint.gui}
+        elif self.pex_console_script:
+          entrypoint = {
+            'type': 'console_script',
+            'name': self.pex_console_script}
         zipf.write(self.pex_main, '__main__.py')
         with nr.fs.tempfile(text=True) as fp:
           fp.write(json.dumps({
             'unzip_modules': list(set([x.get_namespace_root().name for x in not_zippable])),
-            'entrypoint': zip_entrypoint,
+            'entrypoint': entrypoint,
             'root': self.pex_root,
             'lib': zip_parent_dir
           }))
