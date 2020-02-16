@@ -23,7 +23,7 @@ local NrPylangBundleTest(pyversion) = {
   name: "nr.pylang.bundle-py" + pyversion + "-ete",
   steps: [
     {
-      "name": "tets",
+      "name": "test",
       "image":
         if pyversion == "2.6" then "dalibo/python2.6:slim"
         else "python:" + pyversion,
