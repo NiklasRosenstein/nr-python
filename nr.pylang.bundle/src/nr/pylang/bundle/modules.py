@@ -385,15 +385,10 @@ class ModuleInfo(Struct):
     if os.path.isfile(path):
       self.graph.logger.warn('ModuleInfo(name=%r).replace_file() called on '
             'file that already exists.', self.name)
-    with nr.fs.tempfile(text='b' not in mode) as fp:
+    with nr.fs.atomic_file(path, text='b' not in mode) as fp:
       yield fp
-      if not fp.closed:
-        fp.close()
       nr.fs.makedirs(nr.fs.dir(path))
-      if nr.fs.isfile(path):
-        nr.fs.remove(path)
-      nr.fs.move(fp.name, path)
-      self.filename = path
+    self.filename = path
 
   def exclude(self):
     frame = sys._getframe(1)
