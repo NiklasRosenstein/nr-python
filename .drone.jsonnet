@@ -1,11 +1,11 @@
-local Pipeline(package) = {
+local Pipeline(package, pyversion) = {
   kind: "pipeline",
   type: "docker",
-  name: package,
+  name: package + "-py" + pyversion,
   steps: [
     {
       "name": "test",
-      "image": "python:3.7",
+      "image": "python:" + pyversion,
       "commands": [
         "bin/dev-install --no-develop --extras test " + package,
         "pip install pytest",
@@ -17,21 +17,54 @@ local Pipeline(package) = {
   ]
 };
 
-[
-  Pipeline("nr.algo.graph"),
-  Pipeline("nr.collections"),
-  Pipeline("nr.commons.api"),
-  Pipeline("nr.databind"),
-  Pipeline("nr.fs"),
-  Pipeline("nr.interface"),
-  Pipeline("nr.metaclass"),
-  Pipeline("nr.parsing.core"),
-  Pipeline("nr.parsing.date"),
-  Pipeline("nr.proxy"),
-  Pipeline("nr.pylang.ast"),
-  Pipeline("nr.pylang.utils"),
-  Pipeline("nr.stream"),
-  Pipeline("nr.sumtype"),
-  Pipeline("nr.utils.ponyorm"),
-  Pipeline("nr.utils.process")
-]
+local NrPylangBundleTest(pyversion) = {
+  kind: "pipeline",
+  type: "docker",
+  name: "nr.pylang.bundle-py" + pyversion + "-ete",
+  steps: [
+    {
+      "name": "tets",
+      "image":
+        if pyversion == "2.6" then "dalibo/python2.6:slim"
+        else "python:" + pyversion,
+      "commands": [
+        "bin/dev-install --no-develop nr.pylang.bundle",
+        "nr-pylang-bundle --pex bundle.pex --pex-console-script nr-pylang-bundle",
+        "./bundle.pex --version",
+        "python -m venv .venv",
+        ".venv/bin/python bundle.pex --version",
+      ]
+    }
+  ]
+};
+
+local ForPythonVersion(pyversion) = [
+  Pipeline("nr.algo.graph", pyversion),
+  Pipeline("nr.collections", pyversion),
+  Pipeline("nr.commons.api", pyversion),
+  Pipeline("nr.databind", pyversion),
+  Pipeline("nr.fs", pyversion),
+  Pipeline("nr.interface", pyversion),
+  Pipeline("nr.metaclass", pyversion),
+  Pipeline("nr.parsing.core", pyversion),
+  Pipeline("nr.parsing.date", pyversion),
+  Pipeline("nr.proxy", pyversion),
+  Pipeline("nr.pylang.ast", pyversion),
+  Pipeline("nr.pylang.bundle", pyversion),
+  NrPylangBundleTest(pyversion),
+  Pipeline("nr.pylang.utils", pyversion),
+  Pipeline("nr.stream", pyversion),
+  Pipeline("nr.sumtype", pyversion),
+  Pipeline("nr.utils.ponyorm", pyversion),
+  Pipeline("nr.utils.process", pyversion)
+];
+
+[NrPylangBundleTest("2.6")] +
+ForPythonVersion("2.7") +
+ForPythonVersion("3.4") +
+ForPythonVersion("3.5") +
+ForPythonVersion("3.6") +
+ForPythonVersion("3.7") +
+ForPythonVersion("3.8") +
+ForPythonVersion("latest") +
+ForPythonVersion("nightly")
