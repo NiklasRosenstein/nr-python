@@ -1,14 +1,15 @@
 
-from functools import lru_cache
 import pkg_resources
 import warnings
 
 
-@lru_cache()
-def _find_distribution_for_module(module_name):  # TODO: Performance bottleneck
+def _find_distribution_for_module(module_name, _cache={}):  # TODO: Performance bottleneck
   """ Attempts to find a #pkg_resources.Distribution for a module. This
   is done by checking if any of the distributions provide the module
   filename. """
+
+  if module_name in _cache:
+    return _cache[module_name]
 
   root = module_name.partition('.')[0]
   results = []
@@ -40,9 +41,12 @@ def _find_distribution_for_module(module_name):  # TODO: Performance bottleneck
   if len(finalists) > 1:
     warnings.warn('found multiple distributions providing "{}": {}'
       .format(module_name, finalists), UserWarning)
-    return None
+    result = None
+  else:
+    result = next(iter(finalists), None)
 
-  return next(iter(finalists), None)
+  _cache[module_name] = result
+  return result
 
 
 def _get_module_breadcrumbs(module):

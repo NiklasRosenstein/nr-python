@@ -152,9 +152,11 @@ class DelegateHook(Hook):
 
   def _hooks_for(self, module_name):
     self._ensure_hook(module_name)
-    yield from [x for x in self._module_hooks.values()
-        if x and x.matches(module_name)]
-    yield from self._general_hooks
+    for x in self._module_hooks.values():
+      if x and x.matches(module_name):
+        yield x
+    for _ in self._general_hooks:
+      yield _
 
   def _ensure_hook(self, module_name):
     """

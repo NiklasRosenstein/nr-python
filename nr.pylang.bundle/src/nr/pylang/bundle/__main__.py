@@ -46,7 +46,7 @@ def dump_list(lst, args):
 
 
 def get_argument_parser(prog=None):
-  parser = argparse.ArgumentParser(prog=prog, description=main.__doc__, allow_abbrev=False)
+  parser = argparse.ArgumentParser(prog=prog, description=main.__doc__)
   parser.add_argument('args', nargs='*',
     help='Additional positional arguments. The interpretation of these '
          'arguments depends on the selected operation.')

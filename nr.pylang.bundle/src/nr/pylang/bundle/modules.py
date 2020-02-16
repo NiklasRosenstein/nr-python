@@ -572,7 +572,8 @@ class ModuleFinder(object):
         if submodule:
           yield submodule
         if recursive and submodule:
-          yield from self.iter_package_modules(submodule)
+          for _ in self.iter_package_modules(submodule):
+            yield _
 
 
 class ModuleGraph(object):
