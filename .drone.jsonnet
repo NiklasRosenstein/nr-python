@@ -33,7 +33,8 @@ local NrPylangBundleTest(pyversion) = {
         "bin/dev-install --no-develop nr.pylang.bundle",
         "nr-pylang-bundle --pex bundle.pex --pex-console-script nr-pylang-bundle",
         "./bundle.pex --version",
-        "python -m venv .venv",
+        if (pyversion == "2.6" || pyversion == "2.7") then "pip install virtualenv && virtualenv .venv"
+        else "python -m venv .venv",
         ".venv/bin/python bundle.pex --version",
       ]
     }
