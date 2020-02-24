@@ -9,6 +9,17 @@
 
 ### Changes
 
+#### v1.6.0 (2020-02-24)
+
+* Change how a case-sensitive filesystem is detected (using `sys.executable`,
+  uppercasing and `os.path.isfile()`)
+* Add `ischild()`
+* Add `samefile()` (from `shutil.move()` in Python 3.5)
+* Add `move()` (from `shutil.move()` in Python 3.5)
+* Add `atomic_file.discard()`
+* Add `atomic_file.dispatch()`
+* Change `atomic_file.__enter__()`, now returns `self` instead of wrapped `tempfile`
+
 #### v1.5.0 (2019-09-27)
 
 * Add `mode` argument to `nr.fs.listdir()`
