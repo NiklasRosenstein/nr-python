@@ -30,9 +30,9 @@ import six
 import typing
 
 from nr.collections import abc
+from nr.interface import implements, override
 from nr.pylang.utils import classdef
 from nr.pylang.utils.typing import is_generic, get_generic_args
-from nr.interface import implements
 from .decoration import Decoration
 from .interfaces import IDataType
 from .errors import InvalidTypeDefinitionError
@@ -392,6 +392,45 @@ class MultiType(object):
     raise TypeError(errors)
 
 
+@implements(IDataType)
+class ProxyType(object):
+  """ Proxy for another datatype. Used with #forward_decl(). """
+
+  classdef.comparable(['wrapped_type'])
+  classdef.repr(['wrapped_type'])
+
+  def __init__(self, wrapped_type):  # type: Optional[IDataType]
+    self.wrapped_type = wrapped_type
+
+  @override
+  def to_human_readable(self):
+    return self.wrapped_type.to_human_readable()
+
+  @override
+  def propagate_field_name(self, name):
+    pass
+
+  @override
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  @override
+  def check_value(self, py_value):
+    return self.wrapped_type.check_value(py_value)
+
+
+def forward_decl(proxy=None):
+  if proxy is None:
+    return ProxyType(None)
+  if not isinstance(proxy, ProxyType):
+    raise TypeError('expected ProxyType, got {}'.format(type(proxy).__name__))
+  def decorator(cls):
+    proxy.wrapped_type = translate_type_def(cls)
+    return cls
+  return decorator
+
+
 def translate_type_def(py_type_def, fallback=None):
   if IDataType.provided_by(py_type_def):
     return py_type_def
@@ -422,5 +461,6 @@ __all__ = [
   'ObjectType',
   'PythonClassType',
   'MultiType',
-  'translate_type_def'
+  'forward_decl',
+  'translate_type_def',
 ]
