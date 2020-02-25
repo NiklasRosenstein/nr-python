@@ -41,7 +41,7 @@ Loading this type of configuration is as simple as this:
 
 ```py
 import yaml
-from nr.types.struct.contrib.config import preprocess
+from nr.databind.contrib.config import preprocess
 data = preprocess(
   yaml.safe_load(filename),
   init_variables={'$serviceRoot': os.path.dirname(__file__)},
@@ -54,14 +54,15 @@ version of the YAML string above. It can then be easily deserialized into an
 actual structure, for example:
 
 ```py
-from nr.types.struct import Struct, Field, JsonObjectMapper, deserialize
+from nr.databind.core import Struct, Field, ObjectMapper
+from nr.databind.json import JsonModule
 class RootConfig(Struct):
   runtime = Field({
     "media": Field({
       "path": Field(str)
     })
   })
-config = deserialize(JsonObjectMapper(), data, RootConfig)
+config = ObjectMapper(JsonModule()).deserialize(data, RootConfig)
 ```
 
 What the [[preprocess()]] function shown above does can also be done manually
@@ -69,7 +70,7 @@ like so:
 
 ```py
 import yaml
-from nr.types.struct.contrib.config import Preprocessor
+from nr.databind.contrib.config import Preprocessor
 data = yaml.safe_load(filename)
 preprocessor = Preprocessor()
 preprocessor['$serviceRoot'] = os.path.dirname(__file__)
