@@ -268,6 +268,26 @@ class StructConverter(object):
   def _extract_kwargs(self, field, context, struct_cls, location, kwargs, handled_keys):
     assert field.name not in kwargs, (field, struct_cls, location)
 
+    json_object_key = get_decoration(JsonObjectKey, field)
+    if json_object_key:
+      kwargs[field.name] = location.path[-1]
+      return
+
+    json_remainder = get_decoration(JsonRemainder, field)
+    if json_remainder:
+      if not isinstance(field.datatype, ObjectType):
+        raise RuntimeError('"{}.{}" expected ObjectType due to JsonRemainder '
+          'decoration, got {}'.format(struct_cls.__name__, field.name,
+            type(location.datatype).__name__))
+      result = {}
+      for key in location.value:
+        if key not in handled_keys:
+          result[key] = context.deserialize(location.value[key],
+            field.datatype.value_type, key, decorations=field.decorations)
+          handled_keys.add(key)
+      kwargs[field.name] = result
+      return
+
     # Retrieve decorations that will affect the deserialization of this field.
     json_default = get_decoration(JsonDefault, field)
     json_required = get_decoration(JsonRequired, field)
@@ -338,10 +358,17 @@ class StructConverter(object):
 
     kwargs = {}
     handled_keys = set(location.datatype.ignore_keys)
+    remainder_fields = []
     for name, field in fields.items().sortby(lambda x: x[1].get_priority()):
       if field.hidden:
         continue
+      if get_decoration(field, JsonRemainder):
+        remainder_fields.append(field)
+        continue
       assert name == field.name, "woops: {}".format((name, field))
+      self._extract_kwargs(field, context, struct_cls, location, kwargs, handled_keys)
+
+    for field in remainder_fields:
       self._extract_kwargs(field, context, struct_cls, location, kwargs, handled_keys)
 
     if strict or store_remaining_keys:
@@ -738,7 +765,7 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
         _path.pop()
 
 
-class JsonValidator(ClassDecoration):
+class JsonValidator(ClassDecoration, JsonDecoration):
   """ A class decoration for a validation function that is called after
   a #Struct has been deserialized. """
 
@@ -798,3 +825,14 @@ class JsonEncoder(json.JSONEncoder):
     else:
       return self._mapper.serialize(obj, datatype)
     return super(JsonEncoder, self).default(obj)
+
+
+class JsonObjectKey(JsonDecoration):
+  """ Decoration for a field to indicate that its value should be derived
+  from the key that the deserialized object is associated with in the parent
+  structure. """
+
+
+class JsonRemainder(JsonDecoration):
+  """ Decoration for an #ObjectType field to indicate that its values should
+  be filled with the remaining keys from the struct deserialization. """
