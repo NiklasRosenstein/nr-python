@@ -585,7 +585,8 @@ class Struct(six.with_metaclass(_StructMeta)):
     for field in self.__fields__.values().sortby(lambda x: x.get_priority()):
       if field.name not in kwargs and field.name not in vars(self):
         if field.default is NotSet:
-          raise TypeError('missing required argument "{}"'.format(field.name))
+          raise TypeError('{}: missing required argument "{}"'.format(
+            type(self).__name__, field.name))
         kwargs[field.name] = field.get_default_value()
       handled_keys.add(field.name)
 
