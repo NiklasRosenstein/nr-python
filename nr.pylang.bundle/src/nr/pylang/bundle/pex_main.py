@@ -203,13 +203,13 @@ def run_console_script(name, args):
   return entry_point(**kwargs)
 
 
-def run_entrypoint(zipf, entrypoint):
+def run_entrypoint(pex_file, zipf, entrypoint):
   logger.debug('Running entrypoint "%s"', entrypoint)
   sys.argv[1:1] = entrypoint.get('args', [])
   if entrypoint['type'] == 'file':
-    filename = os.path.join(pex_file, entrypoint)
-    compiled_code = compile(zipf.open(entrypoint).read().decode(), filename, 'exec')
-    scope = {'__file__': pex_info, '__name__': '__main__'}
+    filename = os.path.join(pex_file, entrypoint['path'])
+    compiled_code = compile(zipf.open(entrypoint['path']).read().decode(), filename, 'exec')
+    scope = {'__file__': filename, '__name__': '__main__'}
     exec_(compiled_code, scope, scope)
     return 0
   elif entrypoint['type'] == 'module':
@@ -259,7 +259,7 @@ def main():
   if interactive:
     return run_interactive(pex_file)
   else:
-    return run_entrypoint(zipf, pex_info['entrypoint'])
+    return run_entrypoint(pex_file, zipf, pex_info['entrypoint'])
 
 
 if __name__ == '__main__':
