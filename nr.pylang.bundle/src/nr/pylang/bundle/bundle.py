@@ -545,10 +545,10 @@ class DistributionBuilder(Struct):
       if self.pex_main:
         source_files.append(self.pex_main)
       if self.pex_entrypoint and self.pex_entrypoint.is_file():
-        source_files.append(self.pex_entrypoint.file)
+        source_files.append(self.pex_entrypoint.filename)
     for ep in self.bundle.entry_points:
       if ep.is_file():
-        source_files.append(ep.file)
+        source_files.append(ep.filename)
 
     # Collect the modules (with progress bar).
     it = tqdm.tqdm([('module', x) for x in modules] + [('file', x) for x in source_files])
@@ -710,8 +710,8 @@ class DistributionBuilder(Struct):
             zipf.write(fp.name, arcname)
 
       if shebang and self.pex_entrypoint and self.pex_entrypoint.is_file():
-        zip_entrypoint = 'run/' + nr.fs.base(self.pex_entrypoint.file)
-        zipf.write(self.pex_entrypoint.file, zip_entrypoint)
+        zip_entrypoint = 'run/' + nr.fs.base(self.pex_entrypoint.filename)
+        zipf.write(self.pex_entrypoint.filename, zip_entrypoint)
       else:
         zip_entrypoint = None
 
