@@ -118,6 +118,9 @@ def get_argument_parser(prog=None):
   group.add_argument('--pex-root', metavar='PATH',
     help='The root directory for the PEX when it needs to unpack files. '
          'Defaults to "~/.pex" (the ~ is expanded at runtime).')
+  group.add_argument('--pex-shebang', metavar='SHEBANG',
+    help='The shebang for the generated PEX file. Defaults to '
+         '"/usr/bin/env pythonX" where X is the Python major version.')
   group.add_argument('--entry', action='append', default=[], metavar='SPEC',
     help='Create an executable from a Python entrypoint specification '
          'and optional arguments in the standalone distribution directory. '
@@ -221,6 +224,7 @@ def main(argv=None, prog=None):
     pex_entrypoint = args.pex_entrypoint,
     pex_console_script = args.pex_console_script,
     pex_root = args.pex_root,
+    pex_shebang = args.pex_shebang,
     entries = args.entry,
     resources = args.resource,
     bundle_dir = args.bundle_dir,

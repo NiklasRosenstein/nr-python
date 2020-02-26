@@ -426,6 +426,7 @@ class DistributionBuilder(Struct):
     #: This option cannot be used together with pex_entrypoint.
     ('pex_console_script', str, None),
     ('pex_root', str, None),
+    ('pex_shebang', str, '/usr/bin/env python' + sys.version[0]),
     ('entries', list, ()),
     ('resources', list, ()),
     ('bundle_dir', str, 'bundle'),
@@ -511,6 +512,8 @@ class DistributionBuilder(Struct):
         raise ValueError('entrypoint "{}" does not exist in console_scripts group'
           .format(self.pex_console_script))
       self.pex_entrypoint = Entrypoint.Module(ep.name, ep.module_name, ep.attrs[0], [], False)
+    if not self.pex_shebang:
+      self.pex_shebang = self.__fields__['pex_shebang'].default
 
     if not self.logger:
       self.logger = logging.getLogger(__name__)
@@ -662,7 +665,7 @@ class DistributionBuilder(Struct):
       if nr.fs.isfile(zip_out):
         nr.fs.remove(zip_out)
       with open(zip_out, 'ab') as fp:
-        fp.write(b'#!/usr/bin/env python\n')
+        fp.write(b'#!' + shebang.encode('ascii') + b'\n')
       zip_open_mode = 'a'
       zip_parent_dir = 'lib'
     else:
@@ -858,7 +861,7 @@ class DistributionBuilder(Struct):
     self.do_zip_modules(
       modules,
       zip_out=self.pex_out,
-      shebang='/usr/bin/env python')
+      shebang=self.pex_shebang)
 
   def build(self):
     did_stuff = False
