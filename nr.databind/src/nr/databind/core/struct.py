@@ -616,9 +616,6 @@ class Struct(six.with_metaclass(_StructMeta)):
     attrs = ['{}={!r}'.format(k, getattr(self, k)) for k in self.__fields__]
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
-  def __getattr__(self, name):
-    return getattr(type(self), name)
-
 
 def create_struct_class(name, fields, base=None, mixins=()):
   """
