@@ -60,12 +60,8 @@ def _get_module_breadcrumbs(module):
 
 # This is hook is invoked for every module (even the ones not found).
 
-def collect_data(module, bundle):
-  if module.is_pkg() and not hook.has_handler(module.name):
-    # Include all package data by default.
-    module.package_data.append('.')
-    module.package_data_ignore.append('*.pyc')
-    module.package_data_ignore.append('*.py')
+def inspect_module(module):
+  assert module.graph, ('Module.graph is None for {!r}'.format(module.name), module.parent)
 
   # Find entry_points.txt for the parent module that is not a namespace
   # package and for which we can find a distribution.
@@ -76,3 +72,11 @@ def collect_data(module, bundle):
     if dist and dist.has_metadata('entry_points.txt'):
       item.entry_points = dist.get_metadata('entry_points.txt')
       break
+
+
+def collect_data(module, bundle):
+  if module.is_pkg() and not hook.has_handler(module.name):
+    # Include all package data by default.
+    module.package_data.append('.')
+    module.package_data_ignore.append('*.pyc')
+    module.package_data_ignore.append('*.py')

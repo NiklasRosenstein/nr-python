@@ -551,20 +551,45 @@ class DistributionBuilder(Struct):
         source_files.append(ep.filename)
 
     # Collect the modules (with progress bar).
-    it = tqdm.tqdm([('module', x) for x in modules] + [('file', x) for x in source_files])
-    for kind, value in it:
-      it.desc = value
-      if kind == 'module':
-        self.graph.collect_modules(value)
-      else:
-        self.graph.collect_from_source(value)
+    print('Resolving input modules and scripts ...')
+    progress = tqdm.tqdm(total=len(modules) + len(source_files))
+    with progress:
+      for module_name in modules:
+        progress.set_description(module_name)
+        progress.update(1)
+        self.graph.collect_modules(module_name)
+      for filename in source_files:
+        progress.set_description(filename)
+        progress.update(1)
+        self.graph.collect_from_source(filename)
+
+    # Make sure any entrypoints are collected as well.
+    fetch_entrypoint_modules = set()
+    for mod in self.graph:
+      if mod.entry_points:
+        for line in mod.entry_points.split('\n'):
+          line = line.strip()
+          if not line or line[0] in '[#' or '=' not in line:
+            continue
+          module = line.partition('=')[2].partition(':')[0].strip()
+          fetch_entrypoint_modules.add(module)
+
+    if fetch_entrypoint_modules:
+      print('Resolving entrypoint modules ...')
+      progress = tqdm.tqdm(total=len(fetch_entrypoint_modules))
+      with progress:
+        for module_name in fetch_entrypoint_modules:
+          progress.set_description(module_name)
+          progress.update(1)
+          self.graph.collect_modules(module_name)
 
     print('Collecting module data...')
     self.graph.collect_data(self.bundle)
 
     if self.fill_namespace_modules:
+      print('Filling up namespace modules ...')
       temp_modules_dir = nr.fs.join(self.dirconfig.temp, 'modules')
-      for module in list(self.graph):
+      for module in tqdm.tqdm(list(self.graph)):
         if module.parent or not module.parent_name:
           continue
         parent_name = module.name.rpartition('.')[0]

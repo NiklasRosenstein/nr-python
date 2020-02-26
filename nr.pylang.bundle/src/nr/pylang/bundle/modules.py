@@ -271,7 +271,7 @@ class ModuleInfo(Struct):
     return self.graph.get(self.name.partition('.')[0])
 
   def get_namespace_root(self):
-    # SKip "modules" that may just be member imports.
+    # Skip "modules" that may just be member imports.
     if self.type == self.NOTFOUND and self.parent and self.parent.type != self.NOTFOUND:
       self = self.parent
     while self.parent and not self.parent.is_namespace_pkg():
@@ -302,14 +302,16 @@ class ModuleInfo(Struct):
     self._zippable = value
 
   @property
-  def sparse(self):
+  def sparse(self):  # type: () -> Optional[bool]
     if self._sparse is not None:
       return self._sparse
     parent = self.parent
     if parent:
       return parent.sparse
-    else:
+    elif self.graph:
       return self.graph.sparse
+    else:
+      return None
 
   @sparse.setter
   def sparse(self, value):
@@ -318,7 +320,7 @@ class ModuleInfo(Struct):
   @property
   def parent(self):
     name = self.parent_name
-    if name:
+    if name and self.graph:
       return self.graph.get(name)
     return None
 
@@ -383,7 +385,8 @@ class ModuleInfo(Struct):
   def replace_file(self, directory, mode='w'):
     path = nr.fs.join(directory, self.relative_filename)
     if os.path.isfile(path):
-      self.graph.logger.warn('ModuleInfo(name=%r).replace_file() called on '
+      logger = self.graph.logger if self.graph else logging.getLogger(__name__)
+      logger.warn('ModuleInfo(name=%r).replace_file() called on '
             'file that already exists.', self.name)
     with nr.fs.atomic_file(path, text='b' not in mode) as fp:
       yield fp
@@ -618,6 +621,7 @@ class ModuleGraph(object):
     self.logger = logger or logging.getLogger(__name__)
     self.collect_whole = set(collect_whole or ())
     self._modules = {}
+    self._seen = set()
 
   def __getitem__(self, module_name):
     return self._modules[module_name]
@@ -695,18 +699,30 @@ class ModuleGraph(object):
     `extend_imports()`).
     """
 
+    if sparse is None:
+      sparse = self.sparse and module.name not in self.collect_whole
+
     if source_module is not None:
       module.imported_from.add(source_module)
     if module.sparse in (None, True):
       module.sparse = sparse
 
     if not module.sparse:
+      # Collect child modules.
       for sub_module in self.finder.iter_package_modules(module):
-        self.collect_modules(sub_module.name, None, callback, depth+1)
+        if sub_module.name not in self._seen:
+          self._seen.add(sub_module.name)
+          self._collect_module(sub_module, None, callback, depth+1, None)
+
+    # Collect parent modules sparsely.
+    if module.parent_name and module.parent_name not in self._seen:
+      self._seen.add(module.parent_name)
+      self.collect_modules(module.parent_name, None, callback, depth+1, True)
 
     if module.handled:
       return
     module.handled = True
+    module.graph = self
 
     if self.hook:
       self.hook.inspect_module(module)
@@ -760,8 +776,6 @@ class ModuleGraph(object):
     if module_name.endswith('+'):
       module_name = module_name[:-1]
       sparse = False if sparse is None else sparse
-    elif sparse is None:
-      sparse = self.sparse and module_name not in self.collect_whole
 
     module = self.find_module(module_name)
     self._collect_module(module, source_module, callback, depth, sparse)
