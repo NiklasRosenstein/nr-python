@@ -166,6 +166,15 @@ class Field(object):
     self.instance_index = Field._INSTANCE_INDEX_COUNTER
     Field._INSTANCE_INDEX_COUNTER += 1
 
+  def __call__(self, *args, **kwargs):
+    """ Syntactic sugar for fields that wrap a #StructType. Creates an
+    instance of the wrapped type. """
+
+    if isinstance(self.datatype, StructType):
+      return self.datatype.struct_cls(*args, **kwargs)
+    raise RuntimeError('{} cannot be called as it does not wrap a StructType'
+      .format(self))
+
   def get_priority(self):  # type: () -> int
     """ The priority determines when the field will have its chance to
     extract values from the source dictionary. The default priority
