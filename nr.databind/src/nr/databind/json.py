@@ -591,7 +591,11 @@ class UnionTypeConverter(object):
         'unknown union type: "{}"'.format(type_name))
 
     if datatype.nested:
-      value = location.value[member.name]
+      try:
+        value = location.value[member.name]
+      except KeyError:
+        raise SerializationValueError(location, 'incomplete union object, '
+          'missing "{}" key'.format(member.name))
       key = type_key
     else:
       # Hide the type_key from the forthcoming deserialization.
