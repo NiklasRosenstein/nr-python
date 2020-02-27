@@ -78,7 +78,7 @@ class StructType(object):
     raise InvalidTypeDefinitionError(py_type_def)
 
   def check_value(self, py_value):
-    if not isinstance(py_value, self.struct_cls):
+    if type(py_value) != self.struct_cls:
       raise TypeError('expected {} instance, got {}'.format(
         self.struct_cls.__name__, type(py_value).__name__))
 
