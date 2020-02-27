@@ -95,3 +95,37 @@ def test_union_import_type_builtins(mapper):
   payload = mapper.serialize(42, union_type)
   assert payload == {'type': 'builtins.int', 'builtins.int': 42}
   assert mapper.deserialize(payload, union_type) == 42
+
+
+def test_union_missing_nested_key(mapper):
+  class A(Struct):
+    value = Field(str)
+  datatype = UnionType({'a': A}, nested=True)
+
+  payload = {'type': 'a', 'a': {'value': 'bar'}}
+  assert mapper.deserialize(payload, datatype) == A('bar')
+
+  payload = {'type': 'a', 'b': {'value': 'bar'}}
+  with pytest.raises(SerializationValueError) as excinfo:
+    mapper.deserialize(payload, datatype)
+  assert str(excinfo.value) == 'at $: incomplete union object, missing "a" key'
+
+
+def test_union_with_subclasses(mapper):
+  class Parent(Struct):
+    value = Field(str)
+  class Child(Parent):
+    another_value = Field(str)
+
+  datatype = UnionType({
+    'parent': Parent,
+    'child': Child,
+  }, nested=True)
+
+  payload = {'type': 'parent', 'parent': {'value': 'foo'}}
+  assert mapper.deserialize(payload, datatype) == Parent('foo')
+  assert mapper.serialize(Parent('foo'), datatype) == payload
+
+  payload = {'type': 'child', 'child': {'value': 'foo', 'another_value': 'bar'}}
+  assert mapper.deserialize(payload, datatype) == Child('foo', 'bar')
+  assert mapper.serialize(Child('foo', 'bar'), datatype) == payload
