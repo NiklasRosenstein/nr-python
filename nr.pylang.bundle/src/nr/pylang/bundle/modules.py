@@ -470,7 +470,7 @@ class ModuleInfo(Struct):
     """
 
     deps = {}
-    if self.type == self.NOTFOUND:
+    if self.type == self.NOTFOUND or not self.imports:
       return deps
     for name in self.imports:
       if name not in self.graph: continue  # TODO
@@ -621,7 +621,6 @@ class ModuleGraph(object):
     self.logger = logger or logging.getLogger(__name__)
     self.collect_whole = set(collect_whole or ())
     self._modules = {}
-    self._seen = set()
 
   def __getitem__(self, module_name):
     return self._modules[module_name]
@@ -710,13 +709,12 @@ class ModuleGraph(object):
     if not module.sparse:
       # Collect child modules.
       for sub_module in self.finder.iter_package_modules(module):
-        if sub_module.name not in self._seen:
-          self._seen.add(sub_module.name)
+        if sub_module.name not in self._modules:
+          self.add(sub_module)
           self._collect_module(sub_module, None, callback, depth+1, None)
 
     # Collect parent modules sparsely.
-    if module.parent_name and module.parent_name not in self._seen:
-      self._seen.add(module.parent_name)
+    if module.parent_name and module.parent_name not in self._modules:
       self.collect_modules(module.parent_name, None, callback, depth+1, True)
 
     if module.handled:
