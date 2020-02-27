@@ -72,7 +72,6 @@ def deconflict_bases(*bases):  # type: (Tuple[Type]) -> Tuple[Type]
   ``` """
 
   if not get_conflicting_metaclasses(bases=bases):
-    print('>>>', bases)
     return bases
 
   metaclass = resolve_metaclass_conflict(bases=bases)
