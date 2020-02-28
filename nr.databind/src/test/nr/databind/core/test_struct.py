@@ -92,6 +92,20 @@ def test_struct(mapper):
   assert mapper.serialize(deserialized, [Person]) == payload
 
 
+def test_struct_args_vs_kwargs():
+  class MyStruct(Struct):
+    a = Field(str)
+    b = Field(int)
+
+  MyStruct('foo', 42)
+  with pytest.raises(TypeError):
+    MyStruct('foo', 'bar')
+
+  MyStruct('foo', b=42)
+  with pytest.raises(TypeError):
+    MyStruct('foo', b='bar')
+
+
 def test_struct_equality(mapper):
   class Obj(Struct):
     a = Field(int)

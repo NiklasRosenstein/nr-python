@@ -30,10 +30,11 @@ def test_json_validator(mapper):
   def _validate(value):
     if value == 'fail':
       raise Exception('fail!')
+    return value
   class ValidateField(Struct):
     a = Field(str, JsonFieldValidator(_validate))
 
-  mapper.deserialize({'a': 'foobar'}, ValidateField)
+  assert mapper.deserialize({'a': 'foobar'}, ValidateField) == ValidateField('foobar')
   with pytest.raises(Exception) as excinfo:
     mapper.deserialize({'a': 'fail'}, ValidateField)
   assert str(excinfo.value) == 'fail!'
