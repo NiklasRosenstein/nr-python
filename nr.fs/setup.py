@@ -31,5 +31,7 @@ setuptools.setup(
   python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},
-  cmdclass = {}
+  cmdclass = {},
+  keywords = [],
+  classifiers = [],
 )

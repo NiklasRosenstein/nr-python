@@ -4,7 +4,7 @@ import re
 import setuptools
 import sys
 
-with io.open('src/nr/utils/process.py', encoding='utf8') as fp:
+with io.open('src/nr/utils/process/__init__.py', encoding='utf8') as fp:
   version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 with io.open('README.md', encoding='utf8') as fp:
@@ -31,5 +31,7 @@ setuptools.setup(
   python_requires = None, # TODO: '>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},
-  cmdclass = {}
+  cmdclass = {},
+  keywords = [],
+  classifiers = [],
 )

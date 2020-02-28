@@ -37,5 +37,7 @@ setuptools.setup(
       'nr-pylang-bundle = nr.pylang.bundle.__main__:_entrypoint_main',
     ]
   },
-  cmdclass = {}
+  cmdclass = {},
+  keywords = [],
+  classifiers = [],
 )

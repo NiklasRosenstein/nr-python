@@ -45,5 +45,7 @@ setuptools.setup(
       'string = test.nr.databind.core.test_union:String',
     ]
   },
-  cmdclass = {}
+  cmdclass = {},
+  keywords = [],
+  classifiers = [],
 )
