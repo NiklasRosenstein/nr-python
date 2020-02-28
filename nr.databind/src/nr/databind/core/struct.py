@@ -578,6 +578,13 @@ class Struct(six.with_metaclass(_StructMeta)):
       raise TypeError('expected at max {} arguments, got {}'
                       .format(len(self.__fields__), argcount))
 
+    # Check the type of all keyword arguments.
+    for key, value in kwargs.items():
+      field = self.__fields__[key]
+      if value is None and field.nullable:
+        continue
+      kwargs[key] = field.check_value(struct_name, value)
+
     # Add all arguments to the kwargs for extraction.
     for field, arg in zip(self.__fields__.values(), args):
       if field.name in kwargs:
