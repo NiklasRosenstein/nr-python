@@ -81,6 +81,7 @@ class StructType(object):
     if type(py_value) != self.struct_cls:
       raise TypeError('expected {} instance, got {}'.format(
         self.struct_cls.__name__, type(py_value).__name__))
+    return py_value
 
 
 class Field(object):
