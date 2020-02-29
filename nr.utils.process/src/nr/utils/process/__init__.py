@@ -23,7 +23,7 @@ import os
 import sys
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 
 def process_exists(pid):  # type: (int) -> bool
