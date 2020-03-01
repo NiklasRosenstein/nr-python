@@ -1,5 +1,5 @@
 name: nr.databind
-version: "0.0.3"
+version: "0.0.4"
 description: Bind structured data directly to typed objects.
 requirements:
   - python ^2.7|^3.4
