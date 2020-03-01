@@ -48,6 +48,7 @@ from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
 from nr.pylang.utils import NotSet
 from nr.pylang.utils.classdef import make_singleton
+from typing import Any, Dict, List, Optional
 
 _NoCheckType = make_singleton('_NoCheckType')
 
@@ -571,6 +572,8 @@ class Interface(six.with_metaclass(InterfaceClass)):
         # to skip the type checking.
         locals().update({k: _NoCheckType for k in __required_members})
 
+      lambda_type.__name__ = cls.__name__
+      lambda_type.__qualname__ = cls.__name__
       cls._Interface__lambda_type = lambda_type
 
     return lambda_type(*args, **kwargs)
