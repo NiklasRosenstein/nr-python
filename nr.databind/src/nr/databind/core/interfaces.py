@@ -97,7 +97,7 @@ class IDeserializeContext(IBaseContext):
   """ Context for deserializing values. """
 
   def deserialize(self, value, datatype, key=None, filename=None, decorations=None):
-    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str], Optional[List[Decoration]])
+    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str], Optional[List[Decoration]]) -> Any
     pass
 
 
@@ -105,7 +105,7 @@ class ISerializeContext(IBaseContext):
   """ Context for serializing values. """
 
   def serialize(self, value, datatype, key=None, filename=None, decorations=None):
-    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str], Optional[List[Decoration]])
+    # type: (Any, IDataType, Union[str, Sequence, None], Optional[str], Optional[List[Decoration]]) -> Any
     pass
 
 

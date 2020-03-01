@@ -669,7 +669,7 @@ class JsonDeserializer(ClassDecoration, JsonDecoration):
   for the class. Can also be used to decorate methods that implementation
   the deserialization inside the class. """
 
-  def __init__(self, deserializer):  # type: (Callable, IDeserializer)
+  def __init__(self, deserializer):  # type: (Callable, IDeserializer) -> none
     if inspect.isfunction(deserializer):
       deserializer = IDeserializer(deserializer)
     if not IDeserializer.provided_by(deserializer):
@@ -691,7 +691,7 @@ class JsonSerializer(ClassDecoration, JsonDecoration):
   for the class. Can also be used to decorate methods that implementation
   the deserialization inside the class. """
 
-  def __init__(self, serializer):  # type: (Union[Callable, IDeserializer])
+  def __init__(self, serializer):  # type: (Union[Callable, IDeserializer]) -> None
     if inspect.isfunction(serializer):
       serializer = ISerializer(serializer)
     if not ISerializer.provided_by(serializer):
@@ -747,7 +747,7 @@ class JsonStoreRemainingKeys(ClassDecoration, JsonDecoration):
     self.field_name = field_name
 
   def iter_paths(self, obj, expect_has_metadata=False, _path=None):
-    # type: (Struct, Optional[MutablePath]) -> Iterable[Path]
+    # type: (Struct, Optional[MutablePath], Any) -> Iterable[Path]
     """ Yields a #Path for every key that is unhandled, starting from #obj. """
 
     from .core.location import MutablePath
