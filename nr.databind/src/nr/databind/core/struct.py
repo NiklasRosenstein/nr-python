@@ -77,8 +77,9 @@ class StructType(object):
       return cls(type(cls._INLINE_GENERATED_TYPENAME, (Struct,), py_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
-    if type(py_value) != self.struct_cls:
+  def isinstance_check(self, py_value, strict, coerce):  # type: (Any, bool, bool) -> Any
+    if (strict and type(py_value) != self.struct_cls) or \
+       (not strict and not isinstance(py_value, self.struct_cls)):
       raise TypeError('expected {} instance, got {}'.format(
         self.struct_cls.__name__, type(py_value).__name__))
     return py_value
@@ -219,9 +220,9 @@ class Field(object):
       return self.datatype.struct_cls()
     return self.default
 
-  def check_value(self, struct_name, py_value):
+  def check_value(self, struct_name, py_value, strict=False, coerce=True):
     try:
-      return self.datatype.check_value(py_value)
+      return self.datatype.isinstance_check(py_value, strict, coerce)
     except (TypeError, ValueError) as exc:
       raise type(exc)('{}.{}: {}'.format(struct_name, self.name, exc))
 

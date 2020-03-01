@@ -143,7 +143,7 @@ class IntegerConverter(object):
 
   def deserialize(self, context, location):
     try:
-      return location.datatype.check_value(location.value)
+      return location.datatype.isinstance_check(location.value, False, True)
     except TypeError as exc:
       raise SerializationTypeError(location, exc)
 
@@ -186,7 +186,7 @@ class CollectionConverter(object):
   def deserialize(self, context, location):
     # Check if the value we receive is actually a collection.
     try:
-      location.datatype.check_value(location.value, _convert=False)
+      location.datatype.isinstance_check(location.value, False, False)
     except TypeError:
       raise SerializationTypeError(location)
 
@@ -210,7 +210,7 @@ class CollectionConverter(object):
   def serialize(self, context, location):
     # Check if the value we receive is actually a collection.
     try:
-      location.datatype.check_value(location.value, _convert=False)
+      location.datatype.isinstance_check(location.value, False, False)
     except TypeError:
       raise SerializationTypeError(location)
 

@@ -70,7 +70,7 @@ class IUnionTypeMember(Interface):
     """ Check if *value* is an instance of this union type member. """
 
     try:
-      self.datatype.check_value(value)
+      self.datatype.isinstance_check(value, True, False)
       return True
     except TypeError:
       return False
@@ -151,7 +151,7 @@ class StandardTypeResolver(object):
     result = None
     for key, member in self.types.items():
       try:
-        member.datatype.check_value(value)
+        member.datatype.isinstance_check(value, True, False)
       except TypeError:
         continue
       return member
@@ -327,7 +327,7 @@ class UnionType(object):
       return UnionType([recursive(x) for x in py_type_def])
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     try:
       members = list(self.type_resolver.members())
     except NotImplementedError:

@@ -79,7 +79,7 @@ class IDataType(Interface):
     #InvalidTypeDefinitionError if the *py_type_def* cannot be translated to
     this datatype. """
 
-  def check_value(self, py_value):  # type: (Any) -> Any
+  def isinstance_check(self, py_value, strict, coerce):  # type: (Any, bool, bool) -> Any
     """ This method returns *py_value*, or an adaptation of *py_value*, if it
     matches the datatype. If it doesn't, a [[TypeError]] with the reason is
     raised.

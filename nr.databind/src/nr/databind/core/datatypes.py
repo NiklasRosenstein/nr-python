@@ -53,7 +53,7 @@ class AnyType(object):
       return cls()
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     return py_value
 
 
@@ -71,10 +71,10 @@ class BooleanType(object):
       return BooleanType()
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
-    if self.strict and not isinstance(py_value, bool):
+  def isinstance_check(self, py_value, strict, coerce):
+    if (self.strict or strict) and not isinstance(py_value, bool):
       raise TypeError('expected bool')
-    return bool(py_value)
+    return bool(py_value) if coerce else py_value
 
 
 @implements(IDataType)
@@ -91,14 +91,14 @@ class StringType(object):
       return StringType()
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     if isinstance(py_value, six.string_types):
       return py_value
     else:
-      if self.strict:
+      if self.strict or strict:
         raise TypeError('expected string, got {}'.format(
           type(py_value).__name__))
-      return str(py_value)
+      return str(py_value) if coerce else py_value
 
 
 @implements(IDataType)
@@ -115,13 +115,13 @@ class IntegerType(object):
       return IntegerType()
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     if isinstance(py_value, six.integer_types):
       return py_value
     else:
-      if self.strict:
+      if self.strict or strict:
         raise TypeError('expected int, got {}'.format(type(py_value).__name__))
-      return int(py_value)
+      return int(py_value) if coerce else py_value
 
 
 @implements(IDataType)
@@ -166,11 +166,11 @@ class DecimalType(object):
       return DecimalType(py_type_def)
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     if not isinstance(py_value, self.accepted_input_types):
       raise TypeError('expected {}'.format(
         '|'.join(x.__name__ for x in self.accepted_input_types)))
-    return self.coerce(py_value)
+    return self.coerce(py_value) if coerce else py_value
 
 
 @implements(IDataType)
@@ -219,11 +219,12 @@ class CollectionType(object):
       return py_type_def.datatype
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value, _convert=True):
+  def isinstance_check(self, py_value, strict, coerce):
     if isinstance(py_value, six.string_types) \
         or not isinstance(py_value, abc.Iterable):
-      raise TypeError('expected a collection type')
-    if _convert and (not isinstance(self.py_type, type) or
+      raise TypeError('expected a collection type, got {}'.format(
+        type(py_value).__name__))
+    if coerce and (not isinstance(self.py_type, type) or
         not isinstance(py_value, self.py_type)):
       py_value = self.py_type(py_value)
     return py_value
@@ -267,10 +268,10 @@ class ObjectType(object):
       return cls(recursive(value_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value, _convert=False):
+  def isinstance_check(self, py_value, strict, coerce):
     if not isinstance(py_value, abc.Mapping):
       raise TypeError('expected a mapping')
-    if _convert and (not isinstance(self.py_type, type) or
+    if coerce and (not isinstance(self.py_type, type) or
         not isinstance(py_value, self.py_type)):
       py_value = self.py_type(py_value)
     return py_value
@@ -299,7 +300,7 @@ class DatetimeType(object):
       return cls()
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     if not isinstance(py_value, datetime.datetime):
       raise TypeError('expected datetime.datetime, got {!r}'.format(
         type(py_value).__name__))
@@ -319,7 +320,7 @@ class DateType(object):
       return cls()
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     if not isinstance(py_value, datetime.date):
       raise TypeError('expected datetime.date, got {!r}'.format(
         type(py_value).__name__))
@@ -346,7 +347,7 @@ class PythonClassType(object):
       return cls(py_type_def)
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     if not isinstance(py_value, self.cls):
       raise TypeError('expected {} instance, got {}'.format(
         self.cls.__name__, type(py_value).__name__))
@@ -382,11 +383,11 @@ class MultiType(object):
       return MultiType([recursive(x) for x in py_type_def])
     raise InvalidTypeDefinitionError(py_type_def)
 
-  def check_value(self, py_value):
+  def isinstance_check(self, py_value, strict, coerce):
     errors = []
     for datatype in self.types:
       try:
-        return datatype.check_value(py_value)
+        return datatype.isinstance_check(py_value, strict, coerce)
       except TypeError as exc:
         errors.append(exc)
     raise TypeError(errors)
@@ -416,8 +417,8 @@ class ProxyType(object):
     raise InvalidTypeDefinitionError(py_type_def)
 
   @override
-  def check_value(self, py_value):
-    return self.wrapped_type.check_value(py_value)
+  def isinstance_check(self, py_value, strict, coerce):
+    return self.wrapped_type.isinstance_check(py_value, strict, coerce)
 
 
 def forward_decl(proxy=None):
