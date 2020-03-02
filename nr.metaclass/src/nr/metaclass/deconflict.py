@@ -61,6 +61,20 @@ def resolve_metaclass_conflict(metaclasses=(), bases=(), _cache={}):
   return result
 
 
+def reduce_mro(*classes):
+  """ Reduces a list of classes to the essential list, removing any redundent
+  parent classes. """
+
+  result = list(classes)
+  for x in classes:
+    for y in classes:
+      if x is y: continue
+      if issubclass(x, y):
+        result.remove(y)
+
+  return tuple(result)
+
+
 def deconflict_bases(*bases):  # type: (Tuple[Type]) -> Tuple[Type]
   """ If the metaclasses of *bases* conflict, the conflict will be resolved
   and a new parent class will be created. Otherwise, *bases* is returned as
@@ -71,6 +85,7 @@ def deconflict_bases(*bases):  # type: (Tuple[Type]) -> Tuple[Type]
     # ...
   ``` """
 
+  bases = reduce_mro(*bases)
   if not get_conflicting_metaclasses(bases=bases):
     return bases
 

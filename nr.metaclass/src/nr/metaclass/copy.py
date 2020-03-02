@@ -20,11 +20,12 @@
 # IN THE SOFTWARE.
 
 from .deconflict import get_conflicting_metaclasses, \
-  resolve_metaclass_conflict as _resolve_metaclass_conflict
+  resolve_metaclass_conflict as _resolve_metaclass_conflict, \
+  reduce_mro as _reduce_mro
 
 
 def copy_class(cls, new_bases=None, new_name=None, update_attrs=None,
-               resolve_metaclass_conflict=False):
+               resolve_metaclass_conflict=False, reduce_mro=False):
   """ Creates a copy of the class *cls*, optionally with new bases and a
   new class name. Additional attributes may be added with the *update_attrs*
   argument, which may be a dictionary or a callable that accepts the original
@@ -48,6 +49,11 @@ def copy_class(cls, new_bases=None, new_name=None, update_attrs=None,
 
   if resolve_metaclass_conflict is True:
     resolve_metaclass_conflict = _resolve_metaclass_conflict
+  if reduce_mro is True:
+    reduce_mro = _reduce_mro
+
+  if reduce_mro:
+    new_bases = reduce_mro(*new_bases)
 
   if new_bases is None:
     new_bases = cls.__bases__

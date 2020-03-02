@@ -1,6 +1,7 @@
 
 from nr.metaclass.inline import InlineMetaclassBase
-from nr.metaclass.deconflict import get_conflicting_metaclasses
+from nr.metaclass.deconflict import deconflict_bases, get_conflicting_metaclasses, reduce_mro
+import pytest
 
 
 def test_InlineMetaclassBase():
@@ -25,3 +26,27 @@ def test_get_conflicting_metaclasses():
   assert get_conflicting_metaclasses((A, B)) == [A, B]
   assert get_conflicting_metaclasses((A, C)) == [A, C]
   assert get_conflicting_metaclasses((B, C)) == []
+
+
+def test_reduce_mro():
+  class D(InlineMetaclassBase):
+    pass
+
+  with pytest.raises(TypeError) as excinfo:
+    type('Test', (object, D), {})
+  assert 'consistent method resolution' in str(excinfo.value)
+
+  type('Test', reduce_mro(object, D), {})
+
+  assert reduce_mro(object, D) == (D,)
+
+
+def test_deconflict_bases(*bases):
+  class A(InlineMetaclassBase):
+    pass
+
+  class B(A):
+    pass
+
+  print(deconflict_bases(object, B))
+  e
