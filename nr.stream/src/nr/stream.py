@@ -359,7 +359,7 @@ class Stream(object):
     if initial is NotSet:
       return functools.reduce(function, iterable)
     else:
-      return functools.reduce(function, iterable, NotSet)
+      return functools.reduce(function, iterable, initial)
 
 
 def _expose_members():
