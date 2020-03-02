@@ -1,5 +1,5 @@
 name: nr.stream
-version: "0.0.1"
+version: "0.0.2"
 description: Use iterators like Java streams.
 requirements:
   - nr.collections ^0.0.1
