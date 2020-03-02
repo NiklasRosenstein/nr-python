@@ -24,8 +24,9 @@ from .deconflict import get_conflicting_metaclasses, \
   reduce_mro as _reduce_mro
 
 
-def copy_class(cls, new_bases=None, new_name=None, update_attrs=None,
-               resolve_metaclass_conflict=False, reduce_mro=False):
+def copy_class(cls, new_bases=None, new_name=None, new_qualname=None,
+               module=None, update_attrs=None, resolve_metaclass_conflict=False,
+               reduce_mro=False):
   """ Creates a copy of the class *cls*, optionally with new bases and a
   new class name. Additional attributes may be added with the *update_attrs*
   argument, which may be a dictionary or a callable that accepts the original
@@ -46,6 +47,13 @@ def copy_class(cls, new_bases=None, new_name=None, update_attrs=None,
     attrs = update_attrs(attrs)
   elif update_attrs:
     attrs.update(update_attrs)
+
+  if new_name:
+    attrs['__name__'] = new_name
+  if new_qualname:
+    attrs['__qualname__'] = new_qualname
+  if module:
+    attrs['__module__'] = module
 
   if resolve_metaclass_conflict is True:
     resolve_metaclass_conflict = _resolve_metaclass_conflict
