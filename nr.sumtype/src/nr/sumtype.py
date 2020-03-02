@@ -81,8 +81,24 @@ class Constructor(BaseConstructor):
     else:
       btype = self._fields
       name = sumtype.__name__ + '.' + name
-    return copy_class(btype, btype.__bases__ + (sumtype,),
-      update_attrs=_merge_dicts({'__name__': name}, add_attrs, self._members))
+
+    if btype.__new__ == object.__new__:
+      # If __new__ is not overwritten in the class, it will fall back to
+      # Sumtype.__new__(), which will cause an infinite recursion when
+      # creating an instance of the constructor.
+      def __new__(cls, *args, **kwargs):
+        self = object.__new__(cls)
+        self.__init__(*args, **kwargs)
+        return self
+      add_attrs = add_attrs.copy()
+      add_attrs['__new__'] = __new__
+
+    return copy_class(
+      btype,
+      btype.__bases__ + (sumtype,),
+      update_attrs=_merge_dicts({'__name__': name}, add_attrs, self._members),
+      resolve_metaclass_conflict=True,
+      reduce_mro=True)
 
 
 class Sumtype(InlineMetaclassBase):
