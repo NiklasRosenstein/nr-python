@@ -192,3 +192,15 @@ def test_sort():
   values = [3, 2, 7]
   assert list(Stream(values).sort()) == [2, 3, 7]
   assert Stream(values).sort().collect() == [2, 3, 7]
+
+
+def test_reduce():
+  values = [{}, {'foo': 'bar'}, {'spam': 'egg'}]
+
+  result = Stream(values).reduce(lambda a, b: (a.update(b), a)[1], initial={})
+  assert result == {'foo': 'bar', 'spam': 'egg'}
+  assert values[0] == {}
+
+  result = Stream(values).reduce(lambda a, b: (a.update(b), a)[1])
+  assert result == {'foo': 'bar', 'spam': 'egg'}
+  assert values[0] is result
