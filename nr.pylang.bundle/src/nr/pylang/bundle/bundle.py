@@ -28,6 +28,7 @@ from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, 
 from .utils import gitignore, system
 from .utils.fs import copy_files_checked
 from . import nativedeps
+from typing import Optional
 
 import distlib.scripts
 import json
@@ -426,7 +427,7 @@ class DistributionBuilder(Struct):
     #: This option cannot be used together with pex_entrypoint.
     ('pex_console_script', str, None),
     ('pex_root', str, None),
-    ('pex_shebang', str, '/usr/bin/env python' + sys.version[0]),
+    ('pex_shebang', Optional[str], '/usr/bin/env python' + sys.version[0]),
     ('entries', list, ()),
     ('resources', list, ()),
     ('bundle_dir', str, 'bundle'),
