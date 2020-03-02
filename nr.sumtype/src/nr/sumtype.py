@@ -77,10 +77,11 @@ class Constructor(BaseConstructor):
   def create_type(self, sumtype, name, add_attrs):
     if isinstance(self._fields, (list, tuple, str)):
       btype = collections.namedtuple(name, self._fields)
-      name = sumtype.__name__ + '.' + name
     else:
       btype = self._fields
-      name = sumtype.__name__ + '.' + name
+
+    qualname = sumtype.__qualname__ + '.' + name if hasattr(sumtype, '__qualname__') else None
+    name = sumtype.__name__ + '.' + name
 
     if btype.__new__ == object.__new__:
       # If __new__ is not overwritten in the class, it will fall back to
@@ -97,6 +98,8 @@ class Constructor(BaseConstructor):
       btype,
       btype.__bases__ + (sumtype,),
       new_name=name,
+      new_qualname=qualname,
+      module=sumtype.__module__,
       update_attrs=_merge_dicts(add_attrs, self._members),
       resolve_metaclass_conflict=True,
       reduce_mro=True)
