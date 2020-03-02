@@ -49,4 +49,3 @@ def test_deconflict_bases(*bases):
     pass
 
   print(deconflict_bases(object, B))
-  e
