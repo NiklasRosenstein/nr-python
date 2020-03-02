@@ -101,7 +101,7 @@ class Sumtype(InlineMetaclassBase):
     # Inherit parent class constructors.
     cls.__constructors__ = Stream(bases)\
       .map(lambda x: getattr(x, '__constructors__', {}))\
-      .reduce(lambda a, b: _merge_dicts(a, b))
+      .reduce(lambda a, b: _merge_dicts(a, b), initial={})
 
     # Find all constructors defined in the class.
     cls.__constructors__.update(Stream(vars(cls).items())\

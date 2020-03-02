@@ -10,7 +10,7 @@ with io.open('src/nr/sumtype.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.metaclass >=0.0.1,<1.0.0', 'nr.stream >=0.0.1,<1.0.0']
+requirements = ['nr.metaclass >=0.0.3,<1.0.0', 'nr.stream >=0.0.2,<1.0.0']
 
 setuptools.setup(
   name = 'nr.sumtype',
