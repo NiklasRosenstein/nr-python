@@ -77,7 +77,7 @@ class Constructor(BaseConstructor):
   def create_type(self, sumtype, name, add_attrs):
     if isinstance(self._fields, (list, tuple, str)):
       btype = collections.namedtuple(name, self._fields)
-      btype.__name__ = sumtype.__name__ + '.' + name
+      name = sumtype.__name__ + '.' + name
     else:
       btype = self._fields
       name = sumtype.__name__ + '.' + name
@@ -96,7 +96,8 @@ class Constructor(BaseConstructor):
     return copy_class(
       btype,
       btype.__bases__ + (sumtype,),
-      update_attrs=_merge_dicts({'__name__': name}, add_attrs, self._members),
+      new_name=name,
+      update_attrs=_merge_dicts(add_attrs, self._members),
       resolve_metaclass_conflict=True,
       reduce_mro=True)
 
