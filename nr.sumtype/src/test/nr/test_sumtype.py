@@ -21,6 +21,7 @@
 
 from nr.sumtype import Constructor, Sumtype, add_constructor_tests
 import collections
+import pytest
 
 
 def test_sumtype_inheritance():
@@ -97,3 +98,22 @@ def test_sumtype_default():
   assert type(MySumtype.B(1, 2)) is MySumtype.B
   assert MySumtype.B(1, 2) == MySumtype.B(1, 2)
   assert MySumtype.B(1, 2).c == 2
+
+  class MyOtherSumtype(MySumtype):
+    __default__ = 'B'
+
+  assert MyOtherSumtype.B is not MySumtype.B
+  assert type(MyOtherSumtype(1, 2)) is MyOtherSumtype.B
+
+  with pytest.raises(ValueError) as excinfo:
+    class InvalidDefault(Sumtype):
+      A = Constructor('a')
+      __default__ = Constructor('b,c')
+  assert 'is not a constructor of this sumtype' in str(excinfo.value)
+
+  with pytest.raises(ValueError) as excinfo:
+    class InvalidDefault(Sumtype):
+      A = Constructor('a')
+      B = object()
+      __default__ = B
+  assert 'is not a constructor of this sumtype' in str(excinfo.value)

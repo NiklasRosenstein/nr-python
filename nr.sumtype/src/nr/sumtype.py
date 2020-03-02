@@ -125,14 +125,10 @@ class Sumtype(InlineMetaclassBase):
       .filter(lambda x: x[0] != '__default__')\
       .collect(dict))
 
-    # Create constructor types.
+    # Create constructor types (name -> Constructor)
     constructor_types = Stream(cls.__constructors__.items())\
       .map(lambda x: (x[0], x[1].create_type(cls, x[0], add_attrs)))\
       .collect(dict)
-
-    # Populate the class with the constructor types.
-    for key, value in constructor_types.items():
-      setattr(cls, key, value)
 
     # Translate the default constructor to a string reference, if any.
     default = getattr(cls, '__default__', None)
@@ -140,10 +136,20 @@ class Sumtype(InlineMetaclassBase):
       cls.__default__ = None
     else:
       if not isinstance(default, str):
-        default = Stream(cls.__constructors__.items())\
-          .filter(lambda x: x[1] == default)\
-          .next()[0]
+        try:
+          default = Stream(vars(cls).items())\
+            .filter(lambda x: x[0] != '__default__' and x[1] is default)\
+            .next()[0]
+          if default not in constructor_types:
+            raise StopIteration
+        except StopIteration:
+          raise ValueError('{}.default = {!r} is not a constructor of '
+            'this sumtype.'.format(cls.__name__, default))
       cls.__default__ = default
+
+    # Populate the class with the constructor types.
+    for key, value in constructor_types.items():
+      setattr(cls, key, value)
 
     # Remove unwanted attributes.
     for key in dir(cls):
