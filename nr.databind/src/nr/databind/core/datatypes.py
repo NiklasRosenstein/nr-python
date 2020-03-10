@@ -291,7 +291,7 @@ class DatetimeType(object):
     A format may instead of a string also be an object with a #parse() and
     #format() function that accepts a datetime object. """
 
-    def __init__(self, *formats):  # type: (str)
+    def __init__(self, *formats):  # type: (str) -> None
       self.formats = formats
 
   @classmethod
@@ -400,7 +400,7 @@ class ProxyType(object):
   classdef.comparable(['wrapped_type'])
   classdef.repr(['wrapped_type'])
 
-  def __init__(self, wrapped_type):  # type: Optional[IDataType]
+  def __init__(self, wrapped_type):  # type: (Optional[IDataType]) -> None
     self.wrapped_type = wrapped_type
 
   @override

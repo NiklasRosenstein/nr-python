@@ -260,8 +260,7 @@ class ModuleContext(object):
     with self._enter(key, filename):
       deserializer = self._module.get_deserializer(datatype)
       if deserializer is None:
-        raise RuntimeError('no deserializer for {!r} found'.format(
-          type(datatype).__name__))
+        raise RuntimeError('no deserializer for {!r} found'.format(type(datatype).__name__))
       return deserializer.deserialize(self, self.mklocation(value, datatype, decorations))
 
   @override
