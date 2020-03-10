@@ -25,7 +25,7 @@ declare entities in module level and bind them to a database at a later
 stage.
 """
 
-from nr.pylang.utils.function import copy_function
+from nr.pylang.utils.funcdef import copy_function
 from pony.orm import Database
 from pony.orm.core import Attribute, Index
 import pony.orm
