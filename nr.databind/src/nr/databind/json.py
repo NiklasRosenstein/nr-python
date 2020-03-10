@@ -44,6 +44,7 @@ from .core.datatypes import (
   DateType,
   PythonClassType,
   MultiType,
+  ProxyType,
   translate_type_def)
 from .core.decoration import (
   get_decoration,
@@ -98,6 +99,7 @@ class JsonModule(SimpleModule):
     self.register_duplex(PythonClassType, PythonClassConverter())
     self.register_duplex(MultiType, MultiTypeConverter())
     self.register_duplex(UnionType, UnionTypeConverter())
+    self.register_duplex(ProxyType, ProxyTypeConverter())
 
 
 @implements(IDeserializer, ISerializer)
@@ -629,6 +631,16 @@ class UnionTypeConverter(object):
       result.update(context.serialize(location.value, member.datatype, None))
 
     return result
+
+
+@implements(IDeserializer, ISerializer)
+class ProxyTypeConverter(object):
+
+  def deserialize(self, context, location):
+    return context.deserialize(location.value, location.datatype.wrapped_type)
+
+  def serialize(self, context, location):
+    return context.serialize(location.value, location.datatype.wrapped_type)
 
 
 class JsonDecoration(Decoration):
