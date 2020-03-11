@@ -539,7 +539,7 @@ class PythonClassConverter(object):
     return deserializer(context, location)
 
   def serialize(self, context, location):
-    deserializer = get_decoration(JsonSerializer, location.datatype.cls)
+    serializer = get_decoration(JsonSerializer, location.datatype.cls)
     if not serializer:
       raise SerializationTypeError(location, 'No JsonSerializer found '
         'on class {}'.format(location.datatype.cls.__name__))
