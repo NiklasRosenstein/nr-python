@@ -729,3 +729,24 @@ def test_interface_lambda_instantiation():
   assert impl2.hello('John') == 'Bye, John!'
 
   assert type(impl) is type(impl2)
+
+
+def test_interface_implemented_by_metaclass():
+  class IFoo(Interface):
+    def foo(self):
+      pass
+
+  @implements(IFoo)
+  class MyMetaclass(type):
+    def foo(self):
+      return 42
+
+  assert IFoo.implemented_by(MyMetaclass)
+
+  @six.add_metaclass(MyMetaclass)
+  class MyObject(object):
+    pass
+
+  assert IFoo.provided_by(MyObject)
+
+  assert MyObject.foo() == 42
