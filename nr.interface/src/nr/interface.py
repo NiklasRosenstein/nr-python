@@ -34,7 +34,8 @@ __all__ = [
   'staticattr',
   'default',
   'final',
-  'override'
+  'override',
+  'optional',
 ]
 
 import inspect
@@ -160,6 +161,7 @@ class Decoration(object):
     self.is_default = False
     self.is_final = False
     self.is_override = False
+    self.is_optional = False
     self.skip = False
 
   @classmethod
@@ -223,13 +225,14 @@ class Method(_Member):
   """
 
   def __init__(self, interface, name, argspec, default=None, final=False,
-               hidden=False, static=False):
+               hidden=False, static=False, optional=False):
     super(Method, self).__init__(interface, name)
     self.argspec = argspec
     self.default = default
     self.final = final
     self.hidden = hidden
     self.static = static
+    self.optional = optional
 
   def __repr__(self):
     s = super(Method, self).__repr__()[1:]
@@ -283,7 +286,15 @@ class Method(_Member):
       default = value if props.is_default or hidden else None
       static = isinstance(value, (staticmethod, classmethod))
       spec = FunctionSpec.from_function(value)
-      return Method(interface, name, spec, default, props.is_final, hidden, static)
+      return Method(
+        interface,
+        name,
+        spec,
+        default,
+        props.is_final,
+        hidden,
+        static,
+        props.is_optional)
     return None
 
 
@@ -738,7 +749,8 @@ class Implementation(InlineMetaclassBase):
             impl_error.add(interface, 'implemented final method: {}()'.format(member.name))
             continue
           if value is NotSet:
-            impl_error.add(interface, 'missing method: {}()'.format(member.name))
+            if not member.optional:
+              impl_error.add(interface, 'missing method: {}()'.format(member.name))
           elif not isinstance(value, (types.FunctionType, types.MethodType)):
             impl_error.add(interface, 'expected method, got {}: {}()'.format(
               type(value).__name__, member.name))
@@ -893,3 +905,10 @@ def overrides(interface):
     return override(func)
 
   return decorator
+
+
+def optional(func):
+  """ Decorator for functions to indicate that the interface member is optional
+  and is not required to be available on implementations of the interface. """
+
+  return Decoration.wrap(func, is_optional=True)

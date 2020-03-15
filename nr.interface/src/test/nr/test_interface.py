@@ -750,3 +750,43 @@ def test_interface_implemented_by_metaclass():
   assert IFoo.provided_by(MyObject)
 
   assert MyObject.foo() == 42
+
+
+def test_optional_method():
+  class IFoo(Interface):
+    def a(self):
+      pass
+    @optional
+    def b(self):
+      pass
+    @optional
+    @default
+    def c(self):
+      return 'bar'
+
+  @implements(IFoo)
+  class A(object):
+    @override
+    def a(self):
+      return 42
+
+  @implements(IFoo)
+  class B(object):
+    @override
+    def a(self):
+      return 43
+    @override
+    def b(self):
+      return 'foo'
+
+  with pytest.raises(ImplementationError) as excinfo:
+    @implements(IFoo)
+    class C(object):
+      @override
+      def b(self):
+        return 'foo'
+  assert 'missing method: a()' in str(excinfo.value)
+
+  assert A().a() == 42
+  assert not hasattr(A(), 'b')
+  assert A().c() == 'bar'
