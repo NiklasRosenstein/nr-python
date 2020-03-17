@@ -10,14 +10,15 @@ with io.open('src/nr/parsing/date.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['python-dateutil >=2.8.1,<3.0.0']
+requirements = []
+tests_require = ['python-dateutil']
 
 setuptools.setup(
   name = 'nr.parsing.date',
   version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'A simple and fast date parsing library. Uses dateutil for timezone offset support.',
+  description = 'A simple and fast date parsing library with basic timezone support.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs',
@@ -27,7 +28,7 @@ setuptools.setup(
   include_package_data = False,
   install_requires = requirements,
   extras_require = {},
-  tests_require = [],
+  tests_require = tests_require,
   python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},

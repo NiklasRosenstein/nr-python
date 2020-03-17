@@ -23,11 +23,12 @@
 A fast date parser library with timezone offset support.
 """
 
-from dateutil import tz
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
+import abc
 import importlib
 import io
 import os
+import six
 import warnings
 
 # Python 2 compatibility
@@ -41,6 +42,53 @@ re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.1'
+
+
+class timezone(tzinfo):
+	"""
+	A simple implementation of #datetime.tzinfo.
+	"""
+
+	_ZERO = timedelta(0)
+
+	def __init__(self, name, offset):  # type: (Optional[str], Union[timedelta, int]) -> None
+		offset = offset.total_seconds() if hasattr(offset, 'total_seconds') else int(offset)
+		self._offset = timedelta(seconds=offset)
+		self._name = name
+		if offset == 0 and not self._name:
+			self._name = 'UTC'
+
+	def dst(self, dt):
+		return self._ZERO
+
+	def utcoffset(self, dt):
+		return self._offset
+
+	def tzname(self, dt):
+		return self._name
+
+	def fromutc(self, dt):
+		return dt + self._offset
+
+	def __repr__(self):
+		if self._name == 'UTC':
+			return 'timezone.utc'
+		else:
+			return 'timezone({!r}, {!r})'.format(self._name, self._offset.total_seconds())
+
+	def __eq__(self, other):
+		if not isinstance(other, timezone):
+			return NotImplemented
+		return self._offset == other._offset
+
+	def __ne__(self, other):
+		return not (self == other)
+
+	def __hash__(self):
+		return hash((type(self), self._offset))
+
+
+timezone.utc = timezone('UTC', 0)
 
 
 class BaseFormatOption(object):
@@ -76,19 +124,19 @@ class TimezoneFormatOption(BaseFormatOption):
 		if not match:
 			raise ValueError('not a timezone string: {!r}'.format(string))
 		if string == 'Z':
-			return tz.UTC
+			return timezone.utc
 		else:
 			string = string.replace(':', '')
 			sign = -1 if string[0] == '-' else 1
 			hours = int(string[1:3])
 			minutes = int(string[3:5])
 			seconds = sign * (hours * 3600 + minutes * 60)
-			return tz.tzoffset(None, seconds)
+			return timezone(None, seconds)
 
 	def render(self, date):
 		if date.tzinfo == None:
 			return ''
-		elif date.tzinfo == tz.UTC:
+		elif date.tzinfo == timezone.utc:
 			return 'Z'
 		else:
 			off = date.utcoffset()
@@ -145,7 +193,7 @@ class FormatOptionSet(object):
 			return obj
 
 	def create_format_set(self, name, formats):
-		formats = [self.create_date_format(x) for x in formats]
+		formats = [self.create_date_format(x) if not isinstance(x, DateFormat) else x for x in formats]
 		return DateFormatSet(name, formats)
 
 	def parse(self, string, fmt):
@@ -272,27 +320,8 @@ def format_date(date, fmt):
 	return root_option_set.format(date, fmt)
 
 
-def create_format_set(name, formats):
-	return root_option_set.create_format_set(name, formats)
-
-
-ISO_8601 = create_format_set('ISO_8601', [
-	'%Y-%m-%dT%H:%M:%S.%f%z',  # RFC 3339
-	'%Y-%m-%dT%H:%M:%S.%f',    # ISO 8601 extended format
-	'%Y%m%dT%H%M%S.%f',        # ISO 8601 basic format
-	'%Y%m%d',                  # ISO 8601 basic format, date only
-])
-
-JAVA_OFFSET_DATETIME = create_format_set('JAVA_OFFSET_DATETIME', [
-	'%Y-%m-%dT%H:%M:%S.%f%z',
-	'%Y-%m-%dT%H:%M:%S%z',
-	'%Y-%m-%dT%H:%M%z',
-])
-
-
 def parse_iso8601_duration(d):  # type: (str) -> int
-	""" Parses an ISO8601 duration to seconds. Thanks to
-	https://stackoverflow.com/a/35936407 """
+	" Parses an ISO8601 duration to seconds. Thanks to https://stackoverflow.com/a/35936407 "
 
 	if d[0] != 'P':
 		raise ValueError('Not an ISO 8601 Duration string')
@@ -320,3 +349,53 @@ def parse_iso8601_duration(d):  # type: (str) -> int
 				this = number
 			seconds = seconds + this
 	return seconds
+
+
+@six.add_metaclass(abc.ABCMeta)
+class DatetimeFormat(object):
+
+	@abc.abstractmethod
+	def parse(self, string):  # type: (str) -> datetime
+		pass
+
+	@abc.abstractmethod
+	def format(self, datetime):  # type: (datetime) -> str
+		pass
+
+
+class Iso8601(DatetimeFormat):
+
+	_format_set = root_option_set.create_format_set('Iso8601', [
+		'%Y-%m-%dT%H:%M:%S.%f%z',  # RFC 3339
+		'%Y-%m-%dT%H:%M:%S.%f',    # ISO 8601 extended format
+		'%Y%m%dT%H%M%S.%f',        # ISO 8601 basic format
+		'%Y%m%d',                  # ISO 8601 basic format, date only
+	])
+
+	def parse(self, string):
+		return self._format_set.parse(string)
+
+	def format(self, datetime):
+		return self._format_set.format(datetime)
+
+
+class JavaOffsetDatetime(DatetimeFormat):
+
+	_standard = root_option_set.create_format_set('JavaOffsetDatetime', [
+		'%Y-%m-%dT%H:%M:%S.%f%z',
+		'%Y-%m-%dT%H:%M:%S%z',
+		'%Y-%m-%dT%H:%M%z',
+	])
+
+	_optional_tz = root_option_set.create_format_set('JavaOffsetDatetime',
+		_standard + [x.string[:-2] for x in _standard])
+
+	def __init__(self, require_timezone=True):
+		self.require_timezone = require_timezone
+		self._format_set = self._standard if require_timezone else self._optional_tz
+
+	def parse(self, string):
+		return self._format_set.parse(string)
+
+	def format(self, datetime):
+		return self._format_set.format(datetime)
