@@ -36,4 +36,6 @@ def test_java_offset_datetime_timezone():
 
   with pytest.raises(ValueError) as excinfo:
     JavaOffsetDatetime().format(dt)
-  assert str(excinfo.value) == 'no tzinfo in date: datetime.datetime(2020, 4, 1, 3, 12)'
+  assert 'Date "2020-04-01 03:12:00" cannot be formatted with any of the \'JavaOffsetDatetime\' formats.' in str(excinfo.value)
+
+  assert JavaOffsetDatetime(require_timezone=False).format(dt) == '2020-04-01T03:12:00.0'

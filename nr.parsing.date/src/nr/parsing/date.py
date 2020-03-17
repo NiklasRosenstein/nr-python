@@ -24,6 +24,7 @@ A fast date parser library with timezone offset support.
 """
 
 from datetime import datetime, timedelta, tzinfo
+from itertools import chain
 import abc
 import importlib
 import io
@@ -293,7 +294,15 @@ class DateFormatSet(list):
 		raise ValueError(msg.format(string, self.name, formats))
 
 	def format(self, date):
-		return self[0].format(date)
+		errors = []
+		for fmt in self:
+			try:
+				return fmt.format(date)
+			except ValueError as exc:
+				errors.append(exc)
+		msg = 'Date "{}" cannot be formatted with any of the {!r} formats.\n- {}'
+		formats = '\n- '.join('{}: {}'.format(x.string, e) for x, e in zip(self, errors))
+		raise ValueError(msg.format(date, self.name, formats))
 
 
 root_option_set = FormatOptionSet([
@@ -388,7 +397,7 @@ class JavaOffsetDatetime(DatetimeFormat):
 	])
 
 	_optional_tz = root_option_set.create_format_set('JavaOffsetDatetime',
-		_standard + [x.string[:-2] for x in _standard])
+		chain(*zip(_standard, [x.string[:-2] for x in _standard])))
 
 	def __init__(self, require_timezone=True):
 		self.require_timezone = require_timezone
