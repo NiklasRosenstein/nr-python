@@ -135,7 +135,7 @@ class TimezoneFormatOption(BaseFormatOption):
 
 	def render(self, date):
 		if date.tzinfo == None:
-			return ''
+			raise ValueError('no tzinfo in date: {!r}'.format(date))
 		elif date.tzinfo == timezone.utc:
 			return 'Z'
 		else:
