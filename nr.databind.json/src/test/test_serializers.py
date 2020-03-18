@@ -245,3 +245,19 @@ def test_struct_serializer(mapper):
   assert str(excinfo.value) == 'at $: expected "C", got "int"'
 
   assert mapper.serialize(C('foo'), C) == 'foo'
+
+
+def test_struct_serializer_raw(mapper):
+  from nr.databind.core import Field, Struct, StringType, Raw
+
+  class A(Struct):
+    name = Field(str)
+
+  class B(Struct):
+    a = Field(A)
+    raw_data = Field({}, Raw())
+
+  payload = {'a': {'name': 'Foo Bar'}, 'b': 42}
+  obj = mapper.deserialize(payload, B)
+  assert obj == B(A('Foo Bar'), payload)
+  assert mapper.serialize(obj, B) == {'a': {'name': 'Foo Bar'}}

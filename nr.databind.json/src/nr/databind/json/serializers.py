@@ -201,6 +201,10 @@ class StructSerializer(object):
   def _extract_kwargs(self, mapper, field, context, struct_cls, node, kwargs, handled_keys):
     assert field.name not in kwargs, (field, struct_cls, node)
 
+    if get_decoration(Raw, field.decorations):
+      kwargs[field.name] = node.value
+      return
+
     json_remainder = get_decoration(Remainder, field.decorations)
     if json_remainder:
       if not isinstance(field.datatype, ObjectType):
@@ -230,7 +234,7 @@ class StructSerializer(object):
         return
       if field.required or (field.default is NotSet and not json_default):
         msg = 'member "{}" is missing for {} object'.format(key, struct_cls.__name__)
-        raise SerializationValueError(node, msg)
+        raise node.value_error(msg)
       if json_default:
         value = json_default.value
       else:
@@ -344,7 +348,7 @@ class StructSerializer(object):
       serialize_as = node.get_local_decoration(SerializeAs)
       result = serialize_as.cls() if serialize_as else {}
       for name, field in struct_cls.__fields__.items():
-        if field.hidden:
+        if field.hidden or get_decoration(Raw, field.decorations):
           continue
 
         value = getattr(node.value, name)
