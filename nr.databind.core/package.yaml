@@ -1,0 +1,22 @@
+name: nr.databind.core
+version: "0.0.1"
+description: Bind structured data directly to typed objects.
+requirements:
+  - python ^2.7|^3.4
+  - nr.collections ~0.0.1
+  - nr.interface ~0.0.1
+  - nr.parsing.date ~0.0.1
+  - nr.stream ~0.0.1
+  - nr.pylang.utils ~0.0.1
+  - test:
+    - pytest
+    - PyYAML
+
+entrypoints:
+  nr.databind.core.struct.MixinDecoration:
+    - asdict = nr.databind.contrib.mixins.asdict:AsdictMixin
+    - json = nr.databind.json:JsonMixin
+    - tuple = nr.databind.contrib.mixins.tuple:TupleMixin
+  nr.databind.core.union.test_entrypoints:
+    - int = test.nr.databind.core.test_union:Integer
+    - string = test.nr.databind.core.test_union:String
