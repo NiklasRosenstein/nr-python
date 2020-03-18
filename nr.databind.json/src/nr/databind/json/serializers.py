@@ -141,6 +141,9 @@ class CollectionSerializer(object):
     if not isinstance(py_type, type) or not isinstance(result, py_type):
       result = py_type(result)
 
+    if node.get_decoration(StoreNode) and hasattr(result, '__databind__'):
+      result.__databind__['node'] = node
+
     return result
 
   def serialize(self, mapper, context, node):
@@ -275,7 +278,7 @@ class StructSerializer(object):
       try:
         validator(obj)
       except ValueError as exc:
-        raise SerializationValueError(node, exc)
+        raise node.value_error(exc)
       except TypeError as exc:
         raise node.type_error(exc)
 
@@ -307,23 +310,22 @@ class StructSerializer(object):
     for field in remainder_fields:
       self._extract_kwargs(mapper, field, context, struct_cls, node, kwargs, handled_keys)
 
-    if strict or context.collect:
-      remaining_keys = set(node.value.keys()) - handled_keys
-      if remaining_keys and strict:
-        raise SerializationValueError(node, "strict object type \"{}\" does not "
-          "allow additional keys on extract, but found {!r}".format(
-            struct_cls.__name__, remaining_keys))
+    remaining_keys = set(node.value.keys()) - handled_keys
+    if remaining_keys and strict:
+      raise node.value_error(
+        'strict object type "{}" does not allow additional keys on extract, but found {!r}'
+        .format(struct_cls.__name__, remaining_keys))
+    node.unknowns.update(remaining_keys)
 
     obj = object.__new__(struct_cls)
-    obj.__databind__ = {}
 
     try:
       obj.__init__(**kwargs)
     except TypeError as exc:
       raise node.type_error(exc)
 
-    if context.collect:
-      node.unknowns.update(remaining_keys)
+    if node.get_decoration(StoreNode):
+      obj.__databind__['node'] = node
 
     return obj
 

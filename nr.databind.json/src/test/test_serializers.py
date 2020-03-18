@@ -261,3 +261,35 @@ def test_struct_serializer_raw(mapper):
   obj = mapper.deserialize(payload, B)
   assert obj == B(A('Foo Bar'), payload)
   assert mapper.serialize(obj, B) == {'a': {'name': 'Foo Bar'}}
+
+
+def test_store_node_decoration(mapper):
+  from nr.databind.core import Collection, Field, Struct, StringType, StoreNode
+
+  class I(Collection, list):
+    item_type = StringType()
+
+  class A(Struct):
+    items = Field(I, StoreNode())
+
+  payload = {'items': ['a', 'b', 'c']}
+
+  obj = mapper.deserialize(payload, A)
+  assert obj.__databind__ == {}
+  assert obj.items.__databind__['node'].result is obj.items
+  assert obj.items.__databind__['node'].value is payload['items']
+
+  obj = mapper.deserialize(payload, A, decorations=[StoreNode()])
+  assert obj.__databind__['node'].value is payload
+  assert obj.items.__databind__['node'].result is obj.items
+  assert obj.items.__databind__['node'].value is payload['items']
+
+
+def test_context_collect(mapper):
+  from nr.databind.core import StringType, Collect
+
+  collect = Collect()
+  mapper.deserialize('foo', StringType(), decorations=[collect])
+  assert len(collect.nodes) == 1
+  assert collect.nodes[0].value == 'foo'
+  assert collect.nodes[0].result == 'foo'
