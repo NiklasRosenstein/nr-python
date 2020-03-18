@@ -23,6 +23,7 @@
 
 from nr.databind.core import Decoration, IDataType
 from nr.databind.core.datatypes import IntegerType, ObjectType, StringType, translate_type_def
+from nr.pylang.utils import classdef
 
 
 # Base classes for decorations.
@@ -109,6 +110,17 @@ def get_decoration(decoration_cls, *decorations_lists):
 
 # Common concrete decorations.
 
+class Collect(GlobalDecoration):
+  """
+  A global decoration that, if present, will be used to collect all nodes
+  that are passed into #ObjectMapper.deserialize_node() or
+  #ObjectMapper.serialize_node().
+  """
+
+  def __init__(self):
+    self.nodes = []
+
+
 class FieldName(FieldDecoration):
   """
   A decoration that indicates the name of the field for deserialization and
@@ -172,6 +184,17 @@ class Remainder(FieldDecoration):
       raise TypeError('Field({!r}).datatype should be ObjectType when decorated with '
                       'Remainder(), got {} instead.'.format(field.name,
                         field.datatype.to_human_readable()))
+
+
+class StoreNode(GlobalDecoration, ClassDecoration, FieldDecoration):
+  """
+  This decoration is used to have a deserializer store the #Node instance
+  of a #Struct or #Collection in the resulting object's `__databind__`
+  metadata under the "node" key.
+
+  Note that this will create a cyclic reference as the #Node references
+  the result and the result references the #Node.
+  """
 
 
 class SerializeAs(FieldDecoration, ClassDecoration):

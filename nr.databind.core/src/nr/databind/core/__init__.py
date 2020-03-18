@@ -229,7 +229,7 @@ class Context(object):
   :param decorations: A list of decorations that apply to the context.
   """
 
-  def __init__(self, parent, filename, decorations=None, collect=False):
+  def __init__(self, parent, filename, decorations=None):
     # type: (Optional[Context], Optional[str], Optional[List[Decoration]]) -> None
     if parent is not None and not isinstance(parent, Context):
       raise TypeError('parent must be None or Context, got "{}"'.format(type(parent).__name__))
@@ -238,8 +238,6 @@ class Context(object):
     self.parent = parent
     self.filename = filename
     self.decorations = decorations or []
-    self.collect = collect
-    self.nodes = []
 
 
 class Node(object):
@@ -277,8 +275,9 @@ class Node(object):
     self.decorations = decorations or []
     self.result = None
     self.unknowns = set()
-    if context.collect:
-      context.nodes.append(self)
+    collect = get_decoration(Collect, context.decorations)
+    if collect:
+      collect.nodes.append(self)
 
   def __repr__(self):
     return 'Node(locator={!r}, datatype={!r})'.format(self.locator, self.datatype)
@@ -496,10 +495,10 @@ class ObjectMapper(Module):
     return self.serialize_node(make_node(*args, **kwargs))
 
 
-def make_node(value, datatype, filename=None, decorations=None, collect=False):
+def make_node(value, datatype, filename=None, decorations=None):
   # type: (Any, Any, Optional[str], Optional[List[Decoration]]) -> (Context, Node)
   datatype = translate_type_def(datatype)
-  context = Context(None, filename, decorations, collect)
+  context = Context(None, filename, decorations)
   node = Node(None, context, Locator([]), datatype, value)
   return node
 

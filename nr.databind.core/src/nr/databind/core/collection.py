@@ -61,4 +61,6 @@ class Collection(six.with_metaclass(_CollectionMeta)):
   ```
   """
 
-  __databind__ = None
+  def __init__(self, *args, **kwargs):
+    super(Collection, self).__init__(*args, **kwargs)
+    self.__databind__ = {}

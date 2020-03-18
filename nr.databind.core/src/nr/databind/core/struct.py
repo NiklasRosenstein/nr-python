@@ -521,7 +521,6 @@ class Struct(six.with_metaclass(_StructMeta)):
   """
 
   __fields__ = FieldSpec()
-  __databind__ = None  # type: Optional[dict]
 
   def __init__(self, *args, **kwargs):
     struct_name = type(self).__name__
@@ -565,6 +564,7 @@ class Struct(six.with_metaclass(_StructMeta)):
       raise TypeError('unexpected keyword arguments: {!r}'.format(unhandled_keys))
 
     vars(self).update(kwargs)
+    self.__databind__ = {}
 
   def __eq__(self, other):
     if type(other) != type(self):
