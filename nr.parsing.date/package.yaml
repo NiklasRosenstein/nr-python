@@ -1,5 +1,5 @@
 name: nr.parsing.date
-version: "0.0.2"
+version: "0.1.0"
 description: |
   A simple and fast date parsing library. Uses dateutil for timezone
   offset support.

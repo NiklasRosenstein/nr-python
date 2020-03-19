@@ -42,7 +42,7 @@ except NameError:
 re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.2'
+__version__ = '0.1.0'
 
 
 class timezone(tzinfo):
