@@ -1,7 +1,12 @@
+# Python
 .pytest_cache
 .venv
 *.egg-info
+/nr.*/build
 
 # nr.pylang.bundle
 /bundle
 /.bundler-temp
+
+# VSCode
+/.vscode
