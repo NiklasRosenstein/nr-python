@@ -77,9 +77,17 @@ Formats the *date* using the specified *fmt* into a string.
 
 Creates a new `DateFormatSet` with the specified *formats*.
 
-### `ISO_8601`
+### `Iso8601()`
 
-### `JAVA_OFFSET_DATETIME`
+#### `Iso8601.parse(s)`
+
+#### `Iso8601.format(dt)`
+
+### `JavaOffsetDatetime(require_timezone=True)`
+
+#### `JavaOffsetDatetime.parse(s)`
+
+#### `JavaOffsetDatetime.format(dt)`
 
 ## Benchmarks
 
@@ -91,12 +99,14 @@ TODO
 
 ## Changelog
 
-### v1.1.0 (2019-04-16)
+### v0.1.0 (2020-03-19)
 
-* Fix microsecond (`%f`) formatting
-* Fix parsing of timezone offset with colon (`%z`)
-* Use `pkgutil` instead of `pkg_resources` namespace packages
+* `ISO_8601` and `JAVA_OFFSET_DATETIME` renamed to `Iso8601` and `JavaOffsetDatetime`
+* `Iso8601` and `JavaOffsetDatetime` are now classes
+* `JavaOffsetDatetime()` can now be instantiated passing `require_timezone=False` to make
+    the timezone specified in the date optional.
+* `TimezoneFormatOption` now raises an error if `datetime.tzinfo` is `None`
 
-### v1.0.0 (2019-04-06)
+### v0.0.1 (2020-02-24)
 
-* Initial release
+* Initial version
