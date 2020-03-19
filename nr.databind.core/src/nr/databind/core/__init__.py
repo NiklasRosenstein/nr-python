@@ -128,14 +128,14 @@ class IDataType(nr.interface.Interface):
 class IDeserializer(nr.interface.Interface):
   " Interface for deserializing values of a given #IDataType. "
 
-  def deserialize(self, mapper, context, node):  # type: (ObjectMapper, Context, Node) -> Any
+  def deserialize(self, mapper, node):  # type: (ObjectMapper, Node) -> Any
     pass
 
 
 class ISerializer(nr.interface.Interface):
   " Interface for serializing values of a given #IDataType. "
 
-  def serialize(self, mapper, context, node):  # type: (ObjectMapper, Context, Node) -> Any
+  def serialize(self, mapper, node):  # type: (ObjectMapper, Node) -> Any
     pass
 
 
@@ -464,18 +464,18 @@ class ObjectMapper(Module):
   functions to dispatch the (de-) serialization from an initial state.
   """
 
-  def deserialize_node(self, node):
+  def deserialize_node(self, node):  # type: (Node) -> Any
     deserializer = self.get_deserializer(node.datatype)
     if not deserializer:
       raise node.type_error('no deserializer was found for datatype {!r}'.format(node.datatype))
-    node.result = deserializer.deserialize(self, node.context, node)
+    node.result = deserializer.deserialize(self, node)
     return node.result
 
-  def serialize_node(self, node):
+  def serialize_node(self, node):  # type: (Node) -> Any
     serializer = self.get_serializer(node.datatype)
     if not serializer:
       raise node.type_error('no serializer was found for datatype {!r}'.format(node.datatype))
-    node.result = serializer.serialize(self, node.context, node)
+    node.result = serializer.serialize(self, node)
     return node.result
 
   def deserialize_to_node(self, *args, **kwargs):  # type: (...) -> Node

@@ -229,13 +229,13 @@ def test_struct_serializer(mapper):
     name = Field(str)
 
     @classmethod
-    def deserialize(cls, mapper, context, node):
+    def deserialize(cls, mapper, node):
       if isinstance(node.value, str):
         return cls(node.value)
       raise NotImplementedError
 
     @classmethod
-    def serialize(cls, mapper, context, node):
+    def serialize(cls, mapper, node):
       return node.value.name
 
   assert mapper.deserialize({'name': 'foo'}, C) == C('foo')

@@ -8,7 +8,7 @@ import pytest
 @implements(IDeserializer, ISerializer)
 class IntegerToStringSerializer(object):
 
-  def deserialize(self, mapper, context, node):
+  def deserialize(self, mapper, node):
     if not isinstance(node.value, str):
       raise node.type_error('expected str, got "{}"'.format(type(node.value).__name__))
     try:
@@ -16,7 +16,7 @@ class IntegerToStringSerializer(object):
     except ValueError as exc:
       raise node.value_error(exc)
 
-  def serialize(self, mapper, context, node):
+  def serialize(self, mapper, node):
     if not isinstance(node.value, int):
       raise node.type_error('expected int, got "{}"'.format(type(node.value).__name__))
     return str(node.value)

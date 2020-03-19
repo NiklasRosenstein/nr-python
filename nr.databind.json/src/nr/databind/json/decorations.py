@@ -33,9 +33,9 @@ class _Wrapper(object):
   def __init__(self, func):
     self._func = func
 
-  def deserialize(self, mapper, context, node):
+  def deserialize(self, mapper, node):
     try:
-      return self._func(mapper, context, node)
+      return self._func(mapper, node)
     except ValueError as e:
       raise node.value_error(e)
     except TypeError as e:
