@@ -10,7 +10,7 @@ with io.open('src/nr/pylang/bundle/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['distlib >=0.2.7,<1.0.0', 'nr.databind >=0.0.1,<1.0.0', 'nr.fs >=1.3.1,<2.0.0', 'nr.sumtype >=0.0.1,<1.0.0', 'nr.stream >=0.0.1,<1.0.0', 'tqdm >=4.42.1,<5.0.0']
+requirements = ['distlib >=0.2.7,<1.0.0', 'nr.databind.core >=0.0.1,<0.1.0', 'nr.fs >=1.3.1,<2.0.0', 'nr.sumtype >=0.0.1,<1.0.0', 'nr.stream >=0.0.1,<1.0.0', 'tqdm >=4.42.1,<5.0.0']
 if sys.platform.startswith('win32'):
   requirements += ['appdirs >=1.4.3,<2.0.0', 'pefile >=2017.11.5']
 
