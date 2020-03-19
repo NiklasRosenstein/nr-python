@@ -10,7 +10,7 @@ with io.open('src/nr/databind/json/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.collections >=0.0.1,<0.1.0', 'nr.databind.core >=0.0.1,<0.1.0', 'nr.interface >=0.0.1,<0.1.0', 'nr.parsing.date >=0.0.2,<0.1.0', 'nr.pylang.utils >=0.0.1,<0.1.0']
+requirements = ['nr.collections >=0.0.1,<0.1.0', 'nr.databind.core >=0.0.1,<0.1.0', 'nr.interface >=0.0.1,<0.1.0', 'nr.parsing.date >=0.1.0,<0.2.0', 'nr.pylang.utils >=0.0.1,<0.1.0']
 extras_require = {}
 extras_require['test'] = ['pytest', 'PyYAML']
 tests_require = []

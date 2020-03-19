@@ -6,7 +6,7 @@ requirements:
   - nr.collections ~0.0.1
   - nr.databind.core ~0.0.1
   - nr.interface ~0.0.1
-  - nr.parsing.date ~0.0.2
+  - nr.parsing.date ~0.1.0
   - nr.pylang.utils ~0.0.1
   - test:
     - pytest
