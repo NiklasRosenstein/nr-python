@@ -259,8 +259,11 @@ class FieldSpec(object):
     fields.sort(key=lambda x: x.instance_index)
 
     self._fields = OrderedDict((x.name, x) for x in fields)
-    self._fields_indexable = fields
-    self._fields_prominent = [f for f in fields if f.prominent]
+    self._update_cache()
+
+  def _update_cache(self):
+    self._fields_indexable = list(self._fields.values())
+    self._fields_prominent = [f for f in self._fields_indexable if f.prominent]
 
   @classmethod
   def from_dict(cls, fields_dict):
@@ -385,8 +388,7 @@ class FieldSpec(object):
 
     for key, value in fields._fields.items():
       self._fields[key] = value
-    self._fields_indexable = list(self._fields.values())
-
+    self._update_cache()
     return self
 
   def get(self, key, default=None):
