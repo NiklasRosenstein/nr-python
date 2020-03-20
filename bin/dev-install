@@ -16,6 +16,7 @@ package_def = [
   {"extra_requires": {"test": ["nr.collections"]}, "name": "nr.proxy", "requires": []},
   {"extra_requires": {}, "name": "nr.utils.process", "requires": []},
   {"extra_requires": {"test": ["nr.fs"]}, "name": "nr.collections", "requires": ["nr.metaclass"]},
+  {"extra_requires": {}, "name": "nr.config", "requires": ["nr.collections"]},
   {"extra_requires": {}, "name": "nr.pylang.ast", "requires": ["nr.collections"]},
   {"extra_requires": {}, "name": "nr.pylang.utils", "requires": ["nr.collections"]},
   {"extra_requires": {}, "name": "nr.interface", "requires": ["nr.collections", "nr.metaclass", "nr.pylang.utils"]},
