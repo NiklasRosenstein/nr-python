@@ -489,6 +489,10 @@ class PythonClassSerializer(object):
   """
 
   def deserialize(self, mapper, node):
+    serialize_as = node.get_local_decoration(SerializeAs) or SerializeAs.get(node.datatype.cls)
+    if serialize_as:
+      return mapper.deserialize_node(node.replace(datatype=serialize_as.datatype))
+
     decoration = JsonSerializer.get(node.datatype.cls)
     deserializer = decoration.get_deserializer(node.datatype.cls) if decoration else None
 
@@ -508,6 +512,10 @@ class PythonClassSerializer(object):
       node.datatype.cls.__name__))
 
   def serialize(self, mapper, node):
+    serialize_as = node.get_local_decoration(SerializeAs) or SerializeAs.get(node.datatype.cls)
+    if serialize_as:
+      return mapper.serialize_node(node.replace(datatype=serialize_as.datatype))
+
     if not isinstance(node.value, node.datatype.cls):
       raise node.value_error('Unexpected value of type "{}" found, expected "{}"'.format(
         type(node.value).__name__, node.datatype.cls.__name__))

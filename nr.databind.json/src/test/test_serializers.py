@@ -293,3 +293,22 @@ def test_context_collect(mapper):
   assert len(collect.nodes) == 1
   assert collect.nodes[0].value == 'foo'
   assert collect.nodes[0].result == 'foo'
+
+
+def test_serialize_as(mapper):
+  from nr.databind.core import SerializeAs, StringType
+
+  @SerializeAs(StringType())
+  class Foo(object):
+    pass
+
+  assert mapper.deserialize('foo', Foo) == 'foo'
+  with pytest.raises(SerializationTypeError) as excinfo:
+    mapper.deserialize(10, Foo)
+  assert str(excinfo.value) == 'at $: expected "StringType", got "int"'
+
+
+  assert mapper.serialize('foo', Foo) == 'foo'
+  with pytest.raises(SerializationTypeError) as excinfo:
+    mapper.serialize(10, Foo)
+  assert str(excinfo.value) == 'at $: expected "StringType", got "int"'
