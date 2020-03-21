@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 from .processor import Vars, Include, Envvars, Processor, process_config, merge_config
 from .reloader import ConfigReloaderTask
