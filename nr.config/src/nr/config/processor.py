@@ -220,3 +220,18 @@ class Processor(object):
 
 def process_config(data, plugins):
   return Processor(plugins)(data)
+
+
+def merge_config(a, b, path='$'):
+  if isinstance(a, abc.Mapping):
+    if not isinstance(b, abc.Mapping):
+      raise ValueError('Unable to merge incompatible types "{}" and "{}" at {}'
+                       .format(type(a).__name__, type(b).__name__, path))
+    a = copy.copy(a)
+    for key in b:
+      if key in a:
+        a[key] = merge_config(a[key], b[key], path + '.' + key)
+      else:
+        a[key] = b[key]
+    return a
+  return b
