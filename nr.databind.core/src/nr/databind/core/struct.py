@@ -470,13 +470,20 @@ class _StructMeta(type):
     self.__fields__ = fields
 
   def __getattr__(self, name):
+    field = self.__fields__.get(name)
+
     if self.__has_static_fields is None:
       self.__has_static_fields = bool(StaticFields.get(self))
-    field = self.__fields__.get(name)
+
     if field and self.__has_static_fields and field.default is not NotSet:
       return field.default
+
     if field and not self.__has_static_fields:
-      return field
+      if isinstance(field.datatype, StructType):
+        return field.datatype.struct_cls
+      else:
+        return field
+
     raise AttributeError('{} has no attribute {}'.format(self.__name__, name))
 
 
