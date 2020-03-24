@@ -129,6 +129,12 @@ def test_datetime_serializer(mapper):
   dt = PythonClassType(datetime)
   time = datetime.now(timezone.utc)
 
+  # Test default (de-) serialization.
+  assert mapper.deserialize(Iso8601().format(time), dt) == time
+  assert mapper.serialize(time, dt) == Iso8601().format(time)
+
+  # Test custom (de-) serialization.
+
   def _test_custom_format(fmt):
     if isinstance(fmt, str):
       time_s = time.strftime(fmt)

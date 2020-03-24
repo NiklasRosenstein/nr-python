@@ -383,7 +383,7 @@ class StructSerializer(object):
 @implements(IDeserializer, ISerializer)
 class DatetimeSerializer(object):
 
-  DEFAULT_FORMAT = Format(Iso8601)
+  DEFAULT_FORMAT = Format(Iso8601())
   _TYPE = datetime.datetime
 
   def __init__(self, serialize_as_string=True):
