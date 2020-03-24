@@ -39,7 +39,7 @@ __all__ = [
   'FieldSpec',
   'Struct',
   'StructType',
-  'create_struct_class'
+  'make_struct'
 ]
 
 
@@ -600,7 +600,7 @@ class Struct(six.with_metaclass(_StructMeta)):
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
 
 
-def struct(name, fields, base=None, mixins=()):
+def make_struct(name, fields, base=None, mixins=()):
   """
   Creates a new #Struct subclass with the specified fields. The fields must
   be a dictionary of bound #Field objects or a dictionary of unbound ones.
