@@ -442,7 +442,7 @@ class DateSerializer(DatetimeSerializer):
 
   @classmethod
   def _get_parse_delegate(cls, node):
-    fun = super(DateSerializer, self)._get_parse_delegate(node)
+    fun = super(DateSerializer, cls)._get_parse_delegate(node)
     def parse(v):
       result = fun(v)
       if isinstance(result, datetime.datetime):
