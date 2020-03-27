@@ -274,7 +274,7 @@ class ObjectType(object):
 
   def isinstance_check(self, py_value, strict, coerce):
     if not isinstance(py_value, abc.Mapping):
-      raise TypeError('expected a mapping')
+      raise TypeError('expected a mapping, got {!r}'.format(type(py_value).__name__))
     if coerce and (not isinstance(self.py_type, type) or
         not isinstance(py_value, self.py_type)):
       py_value = self.py_type(py_value)
