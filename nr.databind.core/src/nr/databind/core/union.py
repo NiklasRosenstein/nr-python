@@ -137,8 +137,12 @@ class StandardTypeResolver(object):
                       .format(type(types).__name__))
 
     for key, value in self.types.items():
-      if not IUnionTypeMember.provided_by(value):
-        self.types[key] = self._Member(key, translate_type_def(value))
+      self.register_union_member(key, value, override=True)
+
+  def register_union_member(self, key, value, override=False):
+    if not IUnionTypeMember.provided_by(value):
+      value = self._Member(key, translate_type_def(value))
+    self.types[key] = value
 
   def resolve(self, type_name):
     try:
