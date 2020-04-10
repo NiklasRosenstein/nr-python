@@ -23,7 +23,7 @@ from . import abc, generic
 from nr.metaclass.deconflict import deconflicted_base
 
 
-class HashDict(deconflicted_base(generic.Generic['key_hash'], abc.MutableMapping)):
+class HashDict(deconflicted_base(generic.Generic, abc.MutableMapping)):
   """
   This dictionary type can be specialized by specifying a hash function,
   allowing it to be used even with unhashable types as keys.
@@ -59,8 +59,11 @@ class HashDict(deconflicted_base(generic.Generic['key_hash'], abc.MutableMapping
     def __ne__(self, other):
       return self.key != other.key
 
+  def __generic_init__(cls, key_hash):
+    cls.key_hash = staticmethod(key_hash)
+
   def __init__(self):
-    generic.assert_initialized(self)
+    assert not self.__is_generic__
     self._dict = {}
 
   def __repr__(self):
