@@ -1,5 +1,5 @@
 name: nr.collections
-version: "0.0.1"
+version: "0.1.0"
 description: Useful container datatypes for Python 2 and 3.
 requirements:
   - nr.metaclass ~0.0.1
