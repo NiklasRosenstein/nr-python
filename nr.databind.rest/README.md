@@ -9,7 +9,7 @@ annotations and `nr.databind` object mapping features.
 
 ### Example
 
-Resources are defined by defining an `Interface` subclass and decorating its
+Resources are created by defining an `Interface` subclass and decorating its
 methods with the `@Route` decorator. The subclass can then be used to
 automatically generate client code and to implement a server based on the
 same interface.
