@@ -221,11 +221,11 @@ class Method(_Member):
   Represents a method on an interface. A method is considered static if it is
   a [[classmethod]] or [[staticmethod]].
 
-  *Changed in 2.5.0*: Added *static* argument and member.
+  *Changed in 0.0.2*: Added *original* argument and member.
   """
 
   def __init__(self, interface, name, argspec, default=None, final=False,
-               hidden=False, static=False, optional=False):
+               hidden=False, static=False, optional=False, original=None):
     super(Method, self).__init__(interface, name)
     self.argspec = argspec
     self.default = default
@@ -233,6 +233,7 @@ class Method(_Member):
     self.hidden = hidden
     self.static = static
     self.optional = optional
+    self.original = original
 
   def __repr__(self):
     s = super(Method, self).__repr__()[1:]
@@ -294,7 +295,8 @@ class Method(_Member):
         props.is_final,
         hidden,
         static,
-        props.is_optional)
+        props.is_optional,
+        value)
     return None
 
 
