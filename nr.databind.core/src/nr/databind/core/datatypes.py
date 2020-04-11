@@ -47,7 +47,7 @@ class AnyType(object):
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
-    if py_type_def is object:
+    if py_type_def is object or py_type_def is typing.Any:
       return cls()
     raise InvalidTypeDefinitionError(py_type_def)
 
