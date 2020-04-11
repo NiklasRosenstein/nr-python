@@ -31,7 +31,7 @@ import uuid
 
 from nr.collections.abc import Mapping
 from nr.collections.generic import Generic
-from nr.databind.core import ObjectMapper, Field, FieldName, Struct
+from nr.databind.core import ObjectMapper, Field, FieldName, Struct, OptionalType
 from nr.databind.json import JsonModule, JsonSerializer
 from nr.interface import Interface, Method as _InterfaceMethod
 from nr.pylang.utils import classdef, NotSet
@@ -343,6 +343,8 @@ class ParametrizedRoute:
       if hasattr(param, 'name') and not param.name:
         param.name = parameter.name
       if hasattr(param, 'default') and parameter.default is not inspect._empty:
+        if parameter.default is None and not isinstance(param.type_annotation, OptionalType):
+          param.type_annotation = OptionalType(param.type_annotation)
         param.default = parameter.default
       if hasattr(param, 'content_type') and not param.content_type:
         param.content_type = route.content_type
