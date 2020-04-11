@@ -3,7 +3,7 @@ import flask
 import unittest
 
 from nr.databind.core import Field, Struct
-from nr.databind.rest import get_routes, Route, QueryParameter, InvalidArgument
+from nr.databind.rest import get_routes, Route, RouteParam, InvalidArgument
 from nr.databind.rest.flask import bind_resource
 from nr.interface import implements, Interface
 
@@ -24,11 +24,11 @@ class MyResource(Interface):
     ...
 
   @Route('PUT /no-response')
-  def query_param_no_response(self, param: QueryParameter(int)) -> None:
+  def query_param_no_response(self, param: RouteParam.Query(int)) -> None:
     ...
 
   @Route('PUT /no-response/optional')
-  def query_param_no_response_optional(self, param: QueryParameter(int) = 0) -> None:
+  def query_param_no_response_optional(self, param: RouteParam.Query(int) = 0) -> None:
     ...
 
 
@@ -80,17 +80,17 @@ class FlaskResourceTest(unittest.TestCase):
     assert response.status_code == 400
     assert response.is_json
     assert response.get_json() == {
-      'errorCode': 'InvalidArgument',
-      'message': 'Expected value of "param" to be 3.',
+      'errorType': 'nr.databind.rest:InvalidArgument',
+      'errorMessage': 'Expected value of "param" to be 3.',
     }
 
     response = self.client.put('/no-response')
     assert response.status_code == 400
     assert response.is_json
     assert response.get_json() == {
-      'errorCode': 'BadRequest',
-      'message': 'missing required query parameter',
-      'parameters': {'parameterName': 'param'}
+      'errorType': 'nr.databind.rest:BadRequest',
+      'errorMessage': 'missing required query parameter',
+      'errorParameters': {'queryParam': 'param'}
     }
 
   def test_query_param_no_response_optional(self):
@@ -98,14 +98,14 @@ class FlaskResourceTest(unittest.TestCase):
     assert response.status_code == 400
     assert response.is_json
     assert response.get_json() == {
-      'errorCode': 'InvalidArgument',
-      'message': 'This matches the default argument',
+      'errorType': 'nr.databind.rest:InvalidArgument',
+      'errorMessage': 'This matches the default argument',
     }
 
     response = self.client.put('/no-response/optional', query_string={'param': 3})
     assert response.status_code == 400
     assert response.is_json
     assert response.get_json() == {
-      'errorCode': 'InvalidArgument',
-      'message': 'This matches 3',
+      'errorType': 'nr.databind.rest:InvalidArgument',
+      'errorMessage': 'This matches 3',
     }

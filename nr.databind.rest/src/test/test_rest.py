@@ -1,8 +1,7 @@
 
 import pytest
 
-from nr.databind.rest import HttpData, Path, ParametrizedRoute, PathParameter, \
-  RouteData, Route, VoidRouteReturn, get_routes
+from nr.databind.rest import *
 from nr.interface import Interface
 from nr.pylang.utils import NotSet
 
@@ -41,13 +40,13 @@ def test_route_decorator():
     'foo',
     RouteData(HttpData.parse('GET /{a}/foo/{b}'), 'application/json'),
     MyResource,
-    {'a': PathParameter(NotSet, 'a'), 'b': PathParameter(str, 'b')},
-    VoidRouteReturn()
+    {'a': RouteParam.Path(NotSet, 'a'), 'b': RouteParam.Path(str, 'b')},
+    RouteReturn.Void()
   )
   assert routes[1] == ParametrizedRoute(
     'set',
     RouteData(HttpData.parse('POST /set'), 'application/json'),
     MyResource,
     {},
-    VoidRouteReturn()
+    RouteReturn.Void()
   )

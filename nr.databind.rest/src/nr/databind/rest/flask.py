@@ -19,11 +19,23 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.databind.rest import get_routes, MimeTypeMapper, Path, ParametrizedRoute, RequestWrapper, ServiceException, VoidRouteReturn
-from nr.databind.core import ObjectMapper
+from nr.databind.rest import (
+  PATH_PARAMETER_CONTENT_TYPE,
+  get_routes,
+  MimeTypeMapper,
+  Path,
+  ParametrizedRoute,
+  RouteParam,
+  RouteReturn,
+  ParamVisitor,
+  ServiceException,
+  BadRequest,
+)
+from nr.databind.core import CollectionType, ObjectMapper, translate_type_def
 from nr.databind.json import JsonModule
 from nr.interface import Implementation
-from typing import BinaryIO, Callable, Dict, List, Optional, TextIO
+from nr.pylang.utils import NotSet
+from typing import Any, BinaryIO, Callable, Dict, List, Optional, TextIO
 
 import flask
 import logging
@@ -35,28 +47,47 @@ def get_default_mappers() -> Dict[str, ObjectMapper]:
   return {'application/json': ObjectMapper(JsonModule())}
 
 
-class FlaskRequestWrapper(RequestWrapper):
+class FlaskParamVisitor(ParamVisitor):
 
-  def __init__(self, path_parameters: Dict[str, str]):
+  def __init__(self, mapper: MimeTypeMapper, path_parameters: Dict[str, str]) -> None:
+    self.mapper = mapper
     self.path_parameters = path_parameters
 
-  def get_body(self) -> TextIO:
+  def visit_Path(self, param: RouteParam.Path) -> Any:
+    value: str = self.path_parameters[param.name]
+    return self.mapper.dd(PATH_PARAMETER_CONTENT_TYPE, value, param.type_annotation)
+
+  def visit_Body(self, param: RouteParam.Body) -> Any:
     if flask.request.stream:
-      return flask.request.stream
+      fp = flask.request.stream
     else:
-      return
+      raise NotImplementedError('not sure how to implement this yet')
+    return self.mapper.dd(param.content_type, fp, param.type_annotation)
 
-  def get_path_param(self, name: str) -> str:
-    return self.path_parameters[name]
+  def visit_Header(self, param: RouteParam.Header) -> Any:
+    value: Optional[str] = flask.request.headers.get(param.name)
+    if value is None:
+      if param.default is not NotSet:
+        return param.default
+      raise BadRequest('missing required header', parameters={'header': param.name})
+    return self.mapper.dd(PATH_PARAMETER_CONTENT_TYPE, value, param.type_annotation)
 
-  def get_query_param(self, name: str) -> List[str]:
-    return flask.request.args.getlist(name)
+  def visit_Query(self, param: RouteParam.Query) -> Any:
+    value: List[str] = flask.request.args.getlist(param.name)
+    if not value:
+      if param.default is not NotSet:
+        return param.default
+      raise BadRequest('missing required query parameter', parameters={'queryParam': param.name})
+    type_def = translate_type_def(param.type_annotation)
+    if not isinstance(type_def, CollectionType):
+      value = value[0]
+    return self.mapper.dd(PATH_PARAMETER_CONTENT_TYPE, value, type_def)
 
-  def get_header(self, name: str) -> Optional[str]:
-    return flask.request.headers.get(name)
-
-  def get_file(self, name: str) -> BinaryIO:
+  def visit_File(self, param: RouteParam.File) -> Any:
     return flask.request.files[name]
+
+  def visit_Custom(self, param: RouteParam.Custom) -> Any:
+    return param.read(self)
 
 
 class FlaskRouteWrapper:
@@ -80,35 +111,45 @@ class FlaskRouteWrapper:
         raise RuntimeError('unexpected path parameter for Flask route {!r}')
 
     content_type = self.route.route.content_type
-    request = FlaskRequestWrapper(kwargs)
+    visitor = FlaskParamVisitor(self.mapper, kwargs)
 
     try:
-      result = self.route.invoke(self.mapper, self.impl, request)
-    except ServiceException as exc:
-      result = exc
+      kwargs = self.route.build_parameters(visitor)
+      result = self.impl(**kwargs)
     except Exception as exc:
-      logger.exception('An unhandled exception ocurred.')
-      result = ServiceException('An unhandled exception ocurred.')
+      if not isinstance(exc, ServiceException):
+        logger.exception('An unhandled exception ocurred.')
+        exc = ServiceException('An unhandled exception ocurred.')
+      result = exc
       if self.debug:
         result.parameters['debug:stackTrace'] = traceback.format_exc()
 
     if isinstance(result, ServiceException):
       status_code = result.http_status_code
       result = self.mapper.se(content_type, result, ServiceException)
-    elif isinstance(self.route.return_, VoidRouteReturn):
+    elif self.route.return_.is_void():
       if result is not None:
         logger.warning('discarding return value of %s', self)
       status_code = 201
       result = ''
-    else:
+    elif self.route.return_.is_passthrough():
+      return result
+    elif self.route.return_.is_mapped():
       status_code = 200
+      result = self.mapper.se(content_type, result, self.route.return_.type_annotation)
+    else:
+      raise RuntimeError('unknown return type: {!r}'.format(self.route.return_))
 
     response = flask.make_response(result, status_code)
     response.headers['Content-type'] = content_type
     return response
 
 
-def bind_resource(app: flask.Flask, prefix: str, resource: Implementation):
+def bind_resource(
+    app: flask.Flask,
+    prefix: str,
+    resource: Implementation,
+    mapper: MimeTypeMapper = None):
   """
   Bind a resource to a flask application under the specified prefix. The
   prefix may be an empty string.
@@ -132,7 +173,7 @@ def bind_resource(app: flask.Flask, prefix: str, resource: Implementation):
     return x
 
   prefix = Path(prefix)
-  mapper = MimeTypeMapper.default()
+  mapper = mapper or MimeTypeMapper.default()
   for route in routes:
     path = (prefix + route.route.http.path).sub(_sub_param)
     impl = getattr(resource, route.name)

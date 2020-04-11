@@ -16,7 +16,7 @@ same interface.
 
 ```py
 from my.service.api.types import MyRequest, MyResponse
-from nr.databind.rest import Route, QueryParameter as QP
+from nr.databind.rest import Route, RouteParam
 from nr.interface import Interface
 
 class MyResource(Interface):

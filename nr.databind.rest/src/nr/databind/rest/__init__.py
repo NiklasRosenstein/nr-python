@@ -27,23 +27,117 @@ import json
 import io
 import re
 
-from nr.databind.core import CollectionType, ObjectMapper, translate_type_def
+from nr.collections.generic import Generic
+from nr.databind.core import ObjectMapper, Field, FieldName, Struct
 from nr.databind.json import JsonModule, JsonSerializer
 from nr.interface import Interface, Method as _InterfaceMethod
 from nr.pylang.utils import classdef, NotSet
+from nr.sumtype import Constructor, Sumtype, add_constructor_tests
 from typing import Any, BinaryIO, Callable, Dict, List, Optional, TextIO, Type, TypeVar, Union
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.1'
 
-DEFAULT_CONTENT_TYPE = 'application/json'
+JSON_CONTENT_TYPE = 'application/json'
+PATH_PARAMETER_CONTENT_TYPE = 'x-path-param'
 
 #: Can be used in a return annotation of a route to denote that this
 #: route returns a value that should be passed through to the framework.
 Response = TypeVar('Response')
 
 
+# (De-) serializable exceptions that can be thrown by services that will
+# propagate to the client.
+
+@JsonSerializer(serialize='_serialize', deserialize='_deserialize')
+class ServiceException(Exception):
+  " Generic exception type. "
+
+  http_status_code = 500
+
+  def __init__(self, message: str, parameters: dict = None) -> None:
+    self.message = message
+    self.parameters = parameters or {}
+
+  def __str__(self):
+    return '{} ({})'.format(self.message, self.parameters)
+
+  @staticmethod
+  def _serialize(mapper, node):
+    fqn =  type(node.value).__module__ + ':' + type(node.value).__name__
+    result = {'errorType': fqn}
+    if node.value.message:
+      result['errorMessage'] = node.value.message
+    if node.value.parameters:
+      result['errorParameters'] = node.value.parameters
+    return result
+
+  @staticmethod
+  def _deserialize(mapper, node):
+    if not isinstance(node.value, abc.Mapping):
+      raise node.type_error()
+    if 'errorType' not in node.value:
+      raise node.value_error('missing "errorType" key')
+    fqn = node.value['errorType']
+    module, member = fqn.split(':')
+    exception_cls = getattr(importlib.import_module(module), member)
+    return exception_cls(node.value.get('errorMessage'), node.value.get('errorParameters', {}))
+
+
+class BadRequest(ServiceException):
+  http_status_code = 400
+
+
+class InvalidArgument(BadRequest):
+  pass
+
+
 # Route data and decoration
+
+@add_constructor_tests
+class RouteParam(Sumtype):
+  class _AnnotatedParam(Struct):
+    type_annotation = Field(Any)
+
+  @Constructor
+  class Path(_AnnotatedParam):
+    name = Field(str, default=None)
+
+  @Constructor
+  class Body(_AnnotatedParam):
+    content_type = Field(str, default=None)
+
+  @Constructor
+  class Query(_AnnotatedParam):
+    name = Field(str, default=None)
+    default = Field(Any, default=lambda: NotSet)
+
+  @Constructor
+  class Header(_AnnotatedParam):
+    name = Field(str, default=None)
+    default = Field(Any, default=lambda: NotSet)
+
+  @Constructor
+  class File(Struct):
+    name = Field(str, default=None)
+
+  @Constructor
+  class Custom(Struct):
+    """
+    Can be used to implement custom route parameters that are tied to a
+    specific framework and they cannot be properly supported in the client
+    generation without custom code additions.
+    """
+
+    read = Field(Any)  # type: Callable[[Any], Any]
+
+
+@add_constructor_tests
+class RouteReturn(Sumtype):
+  Void = Constructor()
+  Passthrough = Constructor()
+  Mapped = Constructor('type_annotation,content_type')
+
 
 class Path:
   """
@@ -97,6 +191,13 @@ class Path:
     self.components = list(map(map_function, self.components))
     self.parameters = [x['parameter'] for x in self.components if x['type'] == 'parameter']
     return self
+
+  def render(self, parameters: Dict[str, str]) -> str:
+    def func(x):
+      if x['type'] == 'parameter':
+        return {'type': 'text', 'text': parameters[x['parameter']]}
+      return x
+    return str(self.sub(func))
 
 
 class HttpData:
@@ -157,7 +258,7 @@ class ParametrizedRoute:
       name: str,
       route: RouteData,
       interface: Type[Interface],
-      parameters: Dict[str, 'RouteParameter'],
+      parameters: Dict[str, 'RouteParam'],
       return_: 'RouteReturn'
       ) -> None:
     self.name = name
@@ -187,11 +288,11 @@ class ParametrizedRoute:
 
     # Determine the return-type of the route from the annotation.
     if sig.return_annotation in (inspect._empty, None):
-      return_ = VoidRouteReturn()
+      return_ = RouteReturn.Void()
     elif sig.return_annotation is Response:
-      return_ = PassthroughRouteReturn()
+      return_ = RouteReturn.Passthrough()
     else:
-      return_ = MappedRouteReturn(sig.return_annotation, route.content_type)
+      return_ = RouteReturn.Mapped(sig.return_annotation, route.content_type)
 
     parameters = {}
 
@@ -203,30 +304,33 @@ class ParametrizedRoute:
       annotation = sig.parameters[parameter].annotation
       if annotation is inspect._empty:
         annotation = NotSet
-      parameters[parameter] = PathParameter(annotation, parameter)
+      parameters[parameter] = RouteParam.Path(annotation, parameter)
 
     # Other parameter types.
     for parameter in sig.parameters.values():
       if parameter.name in parameters or parameter.name == 'self':
         continue
-      if isinstance(parameter.annotation, RouteParameter):
+      if isinstance(parameter.annotation, RouteParam):
         if getattr(parameter.annotation, 'name', '???') is None:
           parameter.annotation.name = parameter.name
         parameters[parameter.name] = parameter.annotation
       elif isinstance(parameter.annotation, type) and \
-          issubclass(parameter.annotation, RouteParameter):
-        raise TypeError('RouteParameter implementation must be instantiated '
-          'in route annotations, found type object instead in "{}.{}" named '
-          '{}.'.format(interface.__name__, func.__name__, parameter.name))
+          issubclass(parameter.annotation, RouteParam):
+        parameters[parameter.name] = parameter.annotation()
       else:
-        parameters[parameter.name] = BodyParameter(parameter.annotation)
-      # Fill in the default value.
+        parameters[parameter.name] = RouteParam.Body(parameter.annotation)
+
+      # Fill in name/default/content_type.
       param = parameters[parameter.name]
+      if hasattr(param, 'name') and not param.name:
+        param.name = parameter.name
       if hasattr(param, 'default') and parameter.default is not inspect._empty:
         param.default = parameter.default
+      if hasattr(param, 'content_type') and not param.content_type:
+        param.content_type = route.content_type
 
     body_params = list(k for k, v in
-      parameters.items() if isinstance(v, BodyParameter))
+      parameters.items() if isinstance(v, RouteParam.Body))
     if len(body_params) > 1:
       raise TypeError('found multiple unmatched parameters that could serve '
         'as candiates for the request body, but there can be only one or no '
@@ -234,15 +338,14 @@ class ParametrizedRoute:
 
     return cls(func.__name__, route, interface, parameters, return_)
 
-  def invoke(self, mapper: 'MimeTypeMapper', impl: Callable, request: 'RequestWrapper') -> Any:
+  def build_parameters(self, visitor: 'ParameterVisitor') -> Dict[str, Any]:
     kwargs = {}
     for name, param in self.parameters.items():
-      kwargs[name] = param.read(mapper, request)
-    result = impl(**kwargs)
-    return self.return_.wrap(mapper, result)
+      kwargs[name] = visitor.dispatch(param)
+    return kwargs
 
 
-def Route(http: str, content_type: str = DEFAULT_CONTENT_TYPE):
+def Route(http: str, content_type: str = JSON_CONTENT_TYPE):
   """
   This is a decorator for functions on an interface to specify the HTTP
   method and path (including path parameters).
@@ -282,6 +385,8 @@ def get_routes(interface: Type[Interface]) -> List[ParametrizedRoute]:
   return routes
 
 
+# Content Encoders
+
 class ContentEncoder(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
@@ -299,7 +404,10 @@ class JsonContentEncoder(ContentEncoder):
     self.try_or_else_string = try_or_else_string
 
   def encode(self, value: Any, out: TextIO):
-    json.dump(value, out)
+    if self.try_or_else_string and isinstance(value, str):
+      out.write(value)
+    else:
+      json.dump(value, out)
 
   def decode(self, fp: TextIO) -> Any:
     if self.try_or_else_string:
@@ -312,47 +420,70 @@ class JsonContentEncoder(ContentEncoder):
       return json.load(fp)
 
 
-class PlainContentEncoder(ContentEncoder):
-
-  def encode(self, value: Any, out: TextIO) -> str:
-    assert isinstance(value, str), type(value)
-    out.write(value)
-
-  def decode(self, fp: TextIO) -> Any:
-    return fp.read()
-
-
 class MimeTypeMapper:
 
   def __init__(self):
     self._types = {}
 
+  def __getitem__(self, content_type: str) -> dict:
+    try:
+      return self._types[content_type]
+    except KeyError:
+      raise KeyError('no handler for content type {!r} found'.format(content_type))
+
   def register(self, mime_type: str, encoder: ContentEncoder, mapper: ObjectMapper):
     self._types[mime_type] = {'encoder': encoder, 'mapper': mapper}
 
   def encode(self, mime_type: str, value: Any, out: TextIO):
-    self._types[mime_type]['encoder'].encode(value, out)
+    self[mime_type]['encoder'].encode(value, out)
 
   def decode(self, mime_type: str, fp: TextIO) -> Any:
-    return self._types[mime_type]['encoder'].decode(fp)
+    return self[mime_type]['encoder'].decode(fp)
 
-  def serialize(self, mime_type: str, value: Any, type_def: Any) -> Any:
-    return self._types[mime_type]['mapper'].serialize(value, type_def)
+  def serialize(
+      self,
+      mime_type: str,
+      value: Any,
+      type_def: Any,
+      filename: str = None
+      ) -> Any:
+    return self[mime_type]['mapper'].serialize(
+      value, type_def, filename=filename)
 
-  def deserialize(self, mime_type: str, value: Any, type_def: Any) -> Any:
-    return self._types[mime_type]['mapper'].deserialize(value, type_def)
+  def deserialize(
+      self,
+      mime_type: str,
+      value: Any,
+      type_def: Any,
+      filename: str = None
+      ) -> Any:
+    return self[mime_type]['mapper'].deserialize(
+      value, type_def, filename=filename)
 
-  def se(self, mime_type: str, value: Any, type_def: Any, out: TextIO = None) -> Optional[str]:
-    value = self.serialize(mime_type, value, type_def)
+  def se(
+      self,
+      mime_type: str,
+      value: Any,
+      type_def: Any,
+      out: TextIO = None,
+      filename: str = None
+      ) -> Optional[str]:
+    value = self.serialize(mime_type, value, type_def, filename=filename)
     output = out or io.StringIO()
     self.encode(mime_type, value, output)
     return output.getvalue() if out is None else None
 
-  def dd(self, mime_type: str, in_value: Union[TextIO, str], type_def: Any) -> Any:
+  def dd(
+      self,
+      mime_type: str,
+      in_value: Union[TextIO, str],
+      type_def: Any,
+      filename: str = None
+      ) -> Any:
     if isinstance(in_value, str):
       in_value = io.StringIO(in_value)
     in_value = self.decode(mime_type, in_value)
-    return self.deserialize(mime_type, in_value, type_def)
+    return self.deserialize(mime_type, in_value, type_def, filename=filename)
 
   @classmethod
   def default(cls):
@@ -362,218 +493,30 @@ class MimeTypeMapper:
       JsonContentEncoder(),
       ObjectMapper(JsonModule()))
     mime_mapper.register(
-      PathParameter.CONTENT_TYPE,
+      PATH_PARAMETER_CONTENT_TYPE,
       JsonContentEncoder(try_or_else_string=True),
       ObjectMapper(JsonModule()))
     return mime_mapper
 
 
-class RequestWrapper(metaclass=abc.ABCMeta):
+# Helpers
 
-  @abc.abstractmethod
-  def get_body(self) -> TextIO:
-    ...
+class ParamVisitor:
 
-  @abc.abstractmethod
-  def get_path_param(self, name: str) -> str:
-    ...
-
-  @abc.abstractmethod
-  def get_query_param(self, name: str) -> List[str]:
-    ...
-
-  @abc.abstractmethod
-  def get_header(self, name: str) -> Optional[str]:
-    ...
-
-  @abc.abstractmethod
-  def get_file(self, name: str) -> BinaryIO:
-    ...
+  def dispatch(self, param: RouteParam):
+    method_name = 'visit_' + type(param).__name__.rpartition('.')[2]
+    return getattr(self, method_name)(param)
 
 
-# Route parametrization types
-
-class RouteParameter(metaclass=abc.ABCMeta):
-  """ Represents a parameter to a route. """
-
-  @abc.abstractmethod
-  def read(self, mapper: MimeTypeMapper, request: RequestWrapper) -> Any:
-    ...
-
-
-class PathParameter(RouteParameter):
-
-  classdef.comparable(['type_annotation', 'name'])
-  classdef.repr(['type_annotation', 'name'])
-  CONTENT_TYPE = 'x-path-parameter'
-
-  def __init__(self, type_annotation: Any, name: str) -> None:
-    self.name = name
-    self.type_annotation = type_annotation
-
-  def read(self, mapper: MimeTypeMapper, request: RequestWrapper) -> Any:
-    value: str = request.get_path_param(self.name)
-    return mapper.dd(self.CONTENT_TYPE, value, self.type_annotation)
-
-
-class BodyParameter(RouteParameter):
-
-  classdef.comparable(['type_annotation', 'content_type'])
-  classdef.repr(['type_annotation', 'content_type'])
-
-  def __init__(
-      self,
-      type_annotation: Any,
-      content_type: str = DEFAULT_CONTENT_TYPE
-      ) -> None:
-    self.type_annotation = type_annotation
-    self.content_type = content_type
-
-  def read(self, mapper: MimeTypeMapper, request: RequestWrapper) -> Any:
-    body_fp: TextIO = request.get_body()
-    return mapper.dd(self.content_type, body_fp, self.type_annotation)
-
-
-class HeaderParameter(RouteParameter):
-
-  classdef.comparable(['type_annotation', 'name', 'default'])
-  classdef.repr(['type_annotation', 'name', 'default'])
-
-  def __init__(self, type_annotation: Any, name: str = None, default: Any = NotSet) -> None:
-    self.type_annotation = type_annotation
-    self.name = name
-    self.default = default
-
-  def read(self, mapper: MimeTypeMapper, request: RequestWrapper) -> Any:
-    value: Optional[str] = request.get_header(self.name)
-    if value is None:
-      if self.default is not NotSet:
-        return self.default
-      # TODO (@NiklasRosenstein): Raise some exception that can be interpreted
-      #   as a Bad Request somewhere up in the stacktrace.
-      raise RuntimeError('missing query parameter {!r}'.format(self.name))
-    return mapper.dd(PathParameter.CONTENT_TYPE, value, self.type_annotation)
-
-
-class QueryParameter(RouteParameter):
-
-  classdef.comparable(['type_annotation', 'name', 'default'])
-  classdef.repr(['type_annotation', 'name', 'default'])
-
-  def __init__(self, type_annotation: Any, name: str = None, default: Any = NotSet) -> None:
-    self.type_annotation = type_annotation
-    self.name = name
-    self.default = default
-
-  def read(self, mapper: MimeTypeMapper, request: RequestWrapper) -> Any:
-    value: List[str] = request.get_query_param(self.name)
-    if not value:
-      if self.default is not NotSet:
-        return self.default
-      raise BadRequest('missing required query parameter', parameters={'parameterName': self.name})
-    type_def = translate_type_def(self.type_annotation)
-    if not isinstance(type_def, CollectionType):
-      value = value[0]
-    return mapper.dd(PathParameter.CONTENT_TYPE, value, type_def)
-
-
-class FileParameter(RouteParameter):
-
-  def __init__(self, name: str = None) -> None:
-    self.name = name
-
-  def read(self, mapper: MimeTypeMapper, request: RequestWrapper) -> Any:
-    return request.get_file(self.name)
-
-
-class RouteReturn(metaclass=abc.ABCMeta):
-  """ Base class that describes the return type of a route. """
-
-  @abc.abstractmethod
-  def wrap(self, mapper: MimeTypeMapper, return_value: Any) -> Any:
-    ...
-
-
-class VoidRouteReturn(RouteReturn):
-  """ Represents a VOID response (eg. 201 No Content). """
-
-  classdef.comparable([])
-  classdef.repr([])
-
-  def wrap(self, mapper: MimeTypeMapper, return_value: Any) -> Any:
-    return return_value
-
-
-class PassthroughRouteReturn(RouteReturn):
+class Page(Generic):
   """
-  Represents that the return value of the route implementation should be
-  passed through to the framework. The implementation would usually return
-  some value that is natively accepted by the framework (eg. a response
-  object).
+  Template that represents a paginated type for a specific item type. Can
+  be instantiated with the #of() method.
   """
 
-  classdef.comparable([])
-  classdef.repr([])
+  items = Field([Any])
+  next_page_token = Field(Any, FieldName('nextPageToken'))
 
-  def wrap(self, mapper: MimeTypeMapper, return_value: Any) -> Any:
-    return framework.return_passthrough(return_value)
-
-
-class MappedRouteReturn(RouteReturn):
-  """
-  Represents that the return value should be mapped to a serializable form
-  using the frameworks object serializers. The object mapper is picked
-  depending on the specified *content_type*.
-  """
-
-  classdef.comparable(['type_annotation', 'content_type'])
-  classdef.repr(['type_annotation', 'content_type'])
-
-  def __init__(
-      self,
-      type_annotation: Any,
-      content_type: str = DEFAULT_CONTENT_TYPE
-      ) -> None:
-    self.type_annotation = type_annotation
-    self.content_type = content_type
-
-  def wrap(self, mapper: MimeTypeMapper, return_value: Any) -> Any:
-    return mapper.se(self.content_type, return_value, self.type_annotation)
-
-
-# Exception types
-
-
-def _json_serialize_service_exception(mapper, node):
-  result = {'errorCode': node.value.error_code}
-  if node.value.message:
-    result['message'] = node.value.message
-  if node.value.parameters:
-    result['parameters'] = node.value.parameters
-  return result
-
-
-@JsonSerializer(serialize=_json_serialize_service_exception)
-class ServiceException(Exception):
-  " Generic exception type. "
-
-  error_code = 'INTERNAL'
-  http_status_code = 500
-
-  def __init__(self, message: str, parameters: dict = None) -> None:
-    self.message = message
-    self.parameters = parameters or {}
-
-  def __str__(self):
-    return '{} ({})'.format(self.message, self.parameters)
-
-
-class BadRequest(ServiceException):
-
-  error_code = 'BadRequest'
-  http_status_code = 400
-
-
-class InvalidArgument(BadRequest):
-
-  error_code = 'InvalidArgument'
+  def __generic_init__(self, item_type: Any, token_type: Any = int):
+    self.items = Field(item_type)
+    self.next_page_token = Field(token_type, FieldName('nextPageToken'))
