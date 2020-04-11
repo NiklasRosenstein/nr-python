@@ -39,6 +39,7 @@ from typing import Any, BinaryIO, Callable, Dict, List, Optional, TextIO
 
 import flask
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,13 @@ class FlaskParamVisitor(ParamVisitor):
 
 class FlaskRouteWrapper:
 
-  def __init__(self, mapper: MimeTypeMapper, route: ParametrizedRoute, impl: Callable, debug: bool = False):
+  def __init__(
+      self,
+      mapper: MimeTypeMapper,
+      route: ParametrizedRoute,
+      impl: Callable,
+      debug: bool = False
+      ) -> None:
     self.mapper = mapper
     self.route = route
     self.impl = impl
@@ -113,32 +120,37 @@ class FlaskRouteWrapper:
     content_type = self.route.route.content_type
     visitor = FlaskParamVisitor(self.mapper, kwargs)
 
-    try:
+    def _handle_request():
       kwargs = self.route.build_parameters(visitor)
       result = self.impl(**kwargs)
+
+      if self.route.return_.is_void():
+        if result is not None:
+          logger.warning('discarding return value of %s', self)
+        return '', 201
+      elif self.route.return_.is_passthrough():
+        return result, None
+      elif self.route.return_.is_mapped():
+        result = self.mapper.se(content_type, result, self.route.return_.type_annotation)
+        return result, 200
+      else:
+        raise RuntimeError('unknown return type: {!r}'.format(self.route.return_))
+
+    try:
+      result, status_code = _handle_request()
     except Exception as exc:
       if not isinstance(exc, ServiceException):
-        logger.exception('An unhandled exception ocurred.')
         exc = ServiceException('An unhandled exception ocurred.')
-      result = exc
-      if self.debug:
-        result.parameters['debug:stackTrace'] = traceback.format_exc()
+        logger.exception('An unhandled exception ocurred (uuid: %s).', exc.uuid)
+        if self.debug:
+          exc.parameters['traceback'] = traceback.format_exc()
+      else:
+        logger.info('%s', traceback.format_exc())
+      status_code = exc.http_status_code
+      result = self.mapper.se(content_type, exc, ServiceException)
 
-    if isinstance(result, ServiceException):
-      status_code = result.http_status_code
-      result = self.mapper.se(content_type, result, ServiceException)
-    elif self.route.return_.is_void():
-      if result is not None:
-        logger.warning('discarding return value of %s', self)
-      status_code = 201
-      result = ''
-    elif self.route.return_.is_passthrough():
-      return result
-    elif self.route.return_.is_mapped():
-      status_code = 200
-      result = self.mapper.se(content_type, result, self.route.return_.type_annotation)
-    else:
-      raise RuntimeError('unknown return type: {!r}'.format(self.route.return_))
+    if status_code is None:
+      return result  # Passthrough
 
     response = flask.make_response(result, status_code)
     response.headers['Content-type'] = content_type
@@ -175,9 +187,9 @@ def bind_resource(
   prefix = Path(prefix)
   mapper = mapper or MimeTypeMapper.default()
   for route in routes:
-    path = (prefix + route.route.http.path).sub(_sub_param)
+    path = str((prefix + route.route.http.path).sub(_sub_param)).rstrip('/')
     impl = getattr(resource, route.name)
     logger.debug('Binding route %r to Flask application %r at %r',
       route.fqn, app.name, str(path))
-    view = FlaskRouteWrapper(mapper, route, impl)
+    view = FlaskRouteWrapper(mapper, route, impl, debug=True)
     app.add_url_rule(str(path), route.fqn, view, methods=[route.route.http.method])

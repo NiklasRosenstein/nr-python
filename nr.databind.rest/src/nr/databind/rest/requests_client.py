@@ -24,8 +24,8 @@ from . import (
   get_routes,
   ParametrizedRoute,
   RouteParam,
-  MimeTypeMapper
-)
+  MimeTypeMapper,
+  ServiceException)
 from nr.collections.generic import Generic
 from nr.interface import Interface, implements
 from nr.pylang.utils import NotSet
@@ -110,7 +110,7 @@ class ResourceClient(Generic):
 
     url = (
       self._base_url.rstrip('/') + '/' +
-      __route.route.http.path.render(path_parameters).lstrip('/'))
+      __route.route.http.path.render(path_parameters).lstrip('/')).rstrip('/')
 
     response = self._session.request(
       __route.route.http.method, url,
@@ -122,7 +122,10 @@ class ResourceClient(Generic):
     if (response.status_code // 100) not in (2, 3):
       if response.headers.get('Content-Type') != __route.route.content_type:
         response.raise_for_status()
-      raise self.mapper.dd(__route.route.content_type, response.content, ServiceException)
+      raise self._mapper.dd(
+        __route.route.content_type,
+        response.text,
+        ServiceException)
 
     if __route.return_.is_void():
       if response.status_code != 201:
@@ -132,7 +135,10 @@ class ResourceClient(Generic):
     elif __route.return_.is_passthrough():
       return response
     elif __route.return_.is_mapped():
-      return self.mapper.dd(__route.return_.content_type, response.content, __route.return_.type_annotation)
+      return self._mapper.dd(
+        __route.return_.content_type,
+        response.text,
+        __route.return_.type_annotation)
     else:
       raise RuntimeError('unexpected route return {!r}'.format(__route.return_))
 

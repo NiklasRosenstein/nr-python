@@ -22,11 +22,14 @@
 import abc
 import collections
 import copy
+import importlib
 import inspect
 import json
 import io
 import re
+import uuid
 
+from nr.collections.abc import Mapping
 from nr.collections.generic import Generic
 from nr.databind.core import ObjectMapper, Field, FieldName, Struct
 from nr.databind.json import JsonModule, JsonSerializer
@@ -58,14 +61,23 @@ class ServiceException(Exception):
   def __init__(self, message: str, parameters: dict = None) -> None:
     self.message = message
     self.parameters = parameters or {}
+    self.uuid = str(uuid.uuid4())
 
   def __str__(self):
-    return '{} ({})'.format(self.message, self.parameters)
+    result = ['(uuid: {}) {}'.format(self.uuid, self.message)]
+    filtered = {k: v for k, v in self.parameters.items() if k != 'traceback'}
+    if filtered:
+      result.append(json.dumps(filtered, indent=2))
+    if 'traceback' in self.parameters:
+      result.append('\nOriginal traceback:')
+      for line in self.parameters['traceback'].splitlines():
+        result.append(' | ' + line)
+    return '\n'.join(result)
 
   @staticmethod
   def _serialize(mapper, node):
     fqn =  type(node.value).__module__ + ':' + type(node.value).__name__
-    result = {'errorType': fqn}
+    result = {'errorType': fqn, 'errorUuid': node.value.uuid}
     if node.value.message:
       result['errorMessage'] = node.value.message
     if node.value.parameters:
@@ -74,14 +86,18 @@ class ServiceException(Exception):
 
   @staticmethod
   def _deserialize(mapper, node):
-    if not isinstance(node.value, abc.Mapping):
+    if not isinstance(node.value, Mapping):
       raise node.type_error()
     if 'errorType' not in node.value:
       raise node.value_error('missing "errorType" key')
     fqn = node.value['errorType']
     module, member = fqn.split(':')
     exception_cls = getattr(importlib.import_module(module), member)
-    return exception_cls(node.value.get('errorMessage'), node.value.get('errorParameters', {}))
+    exc = exception_cls.__new__(exception_cls)
+    exc.message = node.value.get('errorMessage')
+    exc.parameters = node.value.get('errorParameters', {})
+    exc.uuid = node.value['errorUuid']
+    return exc
 
 
 class BadRequest(ServiceException):
@@ -165,7 +181,7 @@ class Path:
       self.components.append({'type': 'parameter', 'parameter': parameter})
       self.parameters.append(parameter)
       offset = match.end()
-    if offset < len(path) - 1:
+    if offset < len(path):
       self.components.append({'type': 'text', 'text': path[offset:]})
 
   def __str__(self):

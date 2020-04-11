@@ -79,7 +79,9 @@ class FlaskResourceTest(unittest.TestCase):
     response = self.client.put('/no-response', query_string={'param': 5})
     assert response.status_code == 400
     assert response.is_json
-    assert response.get_json() == {
+    payload = response.get_json()
+    payload.pop('errorUuid')
+    assert payload == {
       'errorType': 'nr.databind.rest:InvalidArgument',
       'errorMessage': 'Expected value of "param" to be 3.',
     }
@@ -87,7 +89,9 @@ class FlaskResourceTest(unittest.TestCase):
     response = self.client.put('/no-response')
     assert response.status_code == 400
     assert response.is_json
-    assert response.get_json() == {
+    payload = response.get_json()
+    payload.pop('errorUuid')
+    assert payload == {
       'errorType': 'nr.databind.rest:BadRequest',
       'errorMessage': 'missing required query parameter',
       'errorParameters': {'queryParam': 'param'}
@@ -97,7 +101,9 @@ class FlaskResourceTest(unittest.TestCase):
     response = self.client.put('/no-response/optional')
     assert response.status_code == 400
     assert response.is_json
-    assert response.get_json() == {
+    payload = response.get_json()
+    payload.pop('errorUuid')
+    assert payload == {
       'errorType': 'nr.databind.rest:InvalidArgument',
       'errorMessage': 'This matches the default argument',
     }
@@ -105,7 +111,9 @@ class FlaskResourceTest(unittest.TestCase):
     response = self.client.put('/no-response/optional', query_string={'param': 3})
     assert response.status_code == 400
     assert response.is_json
-    assert response.get_json() == {
+    payload = response.get_json()
+    payload.pop('errorUuid')
+    assert payload == {
       'errorType': 'nr.databind.rest:InvalidArgument',
       'errorMessage': 'This matches 3',
     }
