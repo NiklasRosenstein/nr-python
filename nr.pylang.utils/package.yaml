@@ -5,5 +5,5 @@ license: "MIT"
 description: "Package description here."
 requirements:
   - python ^3.4
-  - nr.collections ~0.0.1
+  - nr.collections ^0.0.1
   - typing ^3.7.4.1

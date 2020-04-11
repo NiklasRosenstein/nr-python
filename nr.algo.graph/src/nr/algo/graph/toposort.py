@@ -27,10 +27,16 @@ class CyclicGraphError(Exception):
 
 def toposort(nodes, get_dependencies, get_dependents=None):
   # type: (List[Any], Callable[List[Any], [Any]]) -> Iterable[Any]
-  """ Performs topological sorting to the specified set of *nodes* and returns
+  """
+  Performs topological sorting to the specified set of *nodes* and returns
   a generator yielding the values of *nodes* in sorted order. If the dependents
   of a node are know, *get_dependents* can be specified, otherwise it is built
-  by reversing *get_dependencies*. """
+  by reversing *get_dependencies*.
+
+  Notes:
+
+  * No element in *nodes* must be duplicate.
+  """
 
   if get_dependents is None:
     _dependents = {}
@@ -43,7 +49,7 @@ def toposort(nodes, get_dependencies, get_dependents=None):
   visit = []
   num_edges = 0
   for node in nodes:
-    deps =  get_dependencies(node)
+    deps = get_dependencies(node)
     num_edges += len(deps)
     if not deps:
       visit.append(node)

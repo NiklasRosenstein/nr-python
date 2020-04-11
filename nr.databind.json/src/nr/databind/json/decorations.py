@@ -78,10 +78,10 @@ class JsonSerializer(_d.ClassDecoration, _d.FieldDecoration):
         and not ISerializer.provided_by(impl):
       raise TypeError('impl must be None or IDeserializer or ISerializer, got "{}"'
                       .format(type(impl).__name__))
-    if serialize is not None and not isinstance(serialize, str) and not callable(serializer):
+    if serialize is not None and not isinstance(serialize, str) and not callable(serialize):
       raise TypeError('serialize must be None, str or callable, got "{}"'
                       .format(type(serialize).__name__))
-    if deserialize is not None and not isinstance(deserialize, str) and not callable(deserializer):
+    if deserialize is not None and not isinstance(deserialize, str) and not callable(deserialize):
       raise TypeError('deserialize must be None, str or callable, got "{}"'
                       .format(type(deserialize).__name__))
     self.impl = impl

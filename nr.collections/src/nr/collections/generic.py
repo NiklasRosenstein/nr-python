@@ -22,117 +22,79 @@
 import types
 from six.moves import range
 
-__all__ = ['GenericMeta', 'Generic', 'is_initialized', 'assert_initialized']
+__all__ = ['GenericMeta', 'Generic']
 
 
 class GenericMeta(type):
   """
-  Metaclass that can be used for classes that need one or more datatypes
-  pre-declared to function properly. The datatypes must be declared using
-  the `__generic_args__` member and passed to the classes' `__getitem__()`
-  operator to bind the class to these arguments.
+  This metaclass allows it's instance classes to act as a template. The
+  template can then be instantiated with a subscriping syntax or the
+  #instantiate() function.
 
-  A generic class constructor may check it's `__generic_bind__` member to
-  see if its generic arguments are bound or not.
+  Example:
+
+  >>> from nr.collections.generic import GenericMeta
+  >>> class MyTemplate(metaclass=GenericMeta):
+  ...   def __generic_init__(cls, template_param):
+  ...     self.template_param = template_param
+  ...   def test(self, value):
+  ...     return self.template_param(value)
+  >>> IntInstance = MyTemplate[int]
+  >>> IntInstance().test('42')
+  42
+
+  Note that inheriting from the #Generic class is a shorthand to setting
+  the metaclass to #GenericMeta (and more easily Python 2/3 compatible).
   """
 
-  def __init__(cls, *args, **kwargs):
-    if not hasattr(cls, '__generic_args__'):
-      raise TypeError('{}.__generic_args__ is not set'.format(cls.__name__))
-    had_optional = False
-    for index, item in enumerate(cls.__generic_args__):
-      if not isinstance(item, tuple):
-        item = (item,)
-      arg_name = item[0]
-      arg_default = item[1] if len(item) > 1 else NotImplemented
-      if arg_default is NotImplemented and had_optional:
-        raise ValueError('invalid {}.__generic_args__, default argument '
-                         'followed by non-default argument "{}"'
-                         .format(cls.__name__, arg_name))
-      cls.__generic_args__[index] = (arg_name, arg_default)
-    super(GenericMeta, cls).__init__(*args, **kwargs)
-    if not hasattr(cls, '__generic_bind__'):
-      cls.__generic_bind__ = None
-    elif cls.__generic_bind__ is not None:
-      assert len(cls.__generic_args__) == len(cls.__generic_bind__)
-      for i in range(len(cls.__generic_args__)):
-        value = cls.__generic_bind__[i]
-        if isinstance(value, types.FunctionType):
-          value = staticmethod(value)
-        setattr(cls, cls.__generic_args__[i][0], value)
+  def __new__(cls, name, bases, attrs):
+    if '__generic_init__' in attrs:
+      attrs['__generic_init__'] = classmethod(attrs['__generic_init__'])
+    bind_args, bind_kwargs = attrs.pop('__generic_bind__', (None, None))
+
+    self = super(GenericMeta, cls).__new__(cls, name, bases, attrs)
+    if bind_args is not None or bind_kwargs is not None:
+      self.__generic_init__(*bind_args, **bind_kwargs)
+      self.__is_generic__ = False
     else:
-      collected_args = []
-      missing = []
-      for i, (arg_name, arg_default) in enumerate(cls.__generic_args__):
-        if hasattr(cls, arg_name):
-          collected_args.append(getattr(cls, arg_name))
-        elif arg_default is not NotImplemented:
-          collected_args.append(arg_default)
-        else:
-          missing.append(arg_name)
-      if collected_args and missing:
-        raise RuntimeError('{}: no all Generic arguments satisfied by '
-                           'class members (missing {})'
-                           .format(cls.__name__, ','.join(missing)))
-      if collected_args:
-        cls.__generic_bind__ = collected_args
-
-  def __getitem__(cls, args):
-    cls = getattr(cls, '__generic_base__', cls)
-    if not isinstance(args, tuple):
-      args = (args,)
-    if len(args) > len(cls.__generic_args__):
-      raise TypeError('{} takes at most {} generic arguments ({} given)'
-                      .format(cls.__name__, len(cls.__generic_args__), len(args)))
-    # Find the number of required arguments.
-    for index in range(len(cls.__generic_args__)):
-      if cls.__generic_args__[index][1] != NotImplemented:
-        break
-    else:
-      index = len(cls.__generic_args__)
-    min_args = index
-    if len(args) < min_args:
-      raise TypeError('{} takes at least {} generic arguments ({} given)'
-                      .format(cls.__name__, min_args, len(args)))
-    # Bind the generic arguments.
-    bind_data = []
-    for index in range(len(cls.__generic_args__)):
-      arg_name, arg_default = cls.__generic_args__[index]
-      if index < len(args):
-        arg_value = args[index]
-      else:
-        assert arg_default is not NotImplemented
-        arg_value = arg_default
-      bind_data.append(arg_value)
-    type_name = '{}[{}]'.format(cls.__name__, ', '.join(repr(x) for x in bind_data))
-    data = {
-      '__module__': cls.__module__,
-      '__generic_bind__': bind_data,
-      '__generic_base__': cls
-    }
-    return type(type_name, (cls,), data)
-
-
-class _GenericHelperMeta(type):
+      self.__is_generic__ = True
+    return self
 
   def __getitem__(self, args):
     if not isinstance(args, tuple):
       args = (args,)
-    data = {'__generic_args__': list(args)}
-    return GenericMeta('Generic[{0}]'.format(args), (object,), data)
+    return instantiate(self, *args)
 
 
-Generic = _GenericHelperMeta('Generic', (object,), {})
+Generic = GenericMeta('Generic', (object,), {
+  '__generic_init__': lambda: None
+})
 
 
-def is_initialized(generic):
-  if not isinstance(generic, type):
-    generic = type(generic)
-  return generic.__generic_bind__ is not None
+def instantiate(generic, *args, **kwargs):
+  if '__generic_cache__' in vars(generic):
+    cache = generic.__generic_cache__
+  else:
+    cache = generic.__generic_cache__ = {}
 
+  key = (args, tuple(kwargs.items()))
+  if key in cache:
+    return cache[key]
 
-def assert_initialized(generic):
-  if not isinstance(generic, type):
-    generic = type(generic)
-  if not is_initialized(generic):
-    raise RuntimeError('Missing generic arguments for {}'.format(generic.__name__))
+  def _format(x):
+    if isinstance(x, type):
+      return x.__name__
+    elif callable(x) and hasattr(x, '__name__'):
+      return x.__name__ + '()'
+    else:
+      return repr(x)
+  name = generic.__name__ + '['
+  if args:
+    name += ', '.join(map(_format, args))
+    if kwargs:
+      name += ', '
+  if kwargs:
+    name += ', '.join(map('{}={}'.format(k, _format(v)) for k, v in kwargs.items()))
+  name += ']'
+
+  return type(name, (generic,), {'__generic_bind__': (args, kwargs)})
