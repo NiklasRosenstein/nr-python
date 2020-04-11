@@ -37,6 +37,31 @@ import typing
 
 
 @implements(IDataType)
+class OptionalType(object):
+  """
+  Represents an optional type (value for this type can be of the wrapped
+  type or #None).
+  """
+
+  classdef.comparable(['value_type'])
+
+  def __init__(self, value_type):  # type: (IDataType) -> None
+    self.value_type = translate_type_def(value_type)
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if is_generic(py_type_def, typing.Optional):
+      value_type = recursive(get_generic_args(py_type_def)[0])
+      return cls(value_type)
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  def isinstance_check(self, py_value, strict, coerce):
+    if py_value is None:
+      return None
+    return self.value_type.isinstance_check(py_value, strict, coerce)
+
+
+@implements(IDataType)
 class AnyType(object):
   """
   Represents an arbitrary type. The "Any" datatype is simply ignored by
@@ -436,6 +461,7 @@ def translate_type_def(py_type_def, fallback=None):
 
 
 __all__ = [
+  'OptionalType',
   'AnyType',
   'BooleanType',
   'StringType',
