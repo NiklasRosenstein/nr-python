@@ -10,7 +10,6 @@ import sys
 package_def = [
   {"extra_requires": {}, "name": "nr.algo.graph", "requires": []},
   {"extra_requires": {}, "name": "nr.commons.api", "requires": []},
-  {"extra_requires": {}, "name": "nr.databind.rest", "requires": []},
   {"extra_requires": {}, "name": "nr.fs", "requires": []},
   {"extra_requires": {}, "name": "nr.metaclass", "requires": []},
   {"extra_requires": {}, "name": "nr.parsing.core", "requires": []},
@@ -28,6 +27,7 @@ package_def = [
   {"extra_requires": {}, "name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
   {"extra_requires": {}, "name": "nr.databind.json", "requires": ["nr.collections", "nr.databind.core", "nr.interface", "nr.parsing.date", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.pylang.bundle", "requires": ["nr.databind.core", "nr.fs", "nr.sumtype", "nr.stream"]},
+  {"extra_requires": {}, "name": "nr.databind.rest", "requires": ["nr.collections", "nr.interface", "nr.databind.core", "nr.databind.json", "nr.pylang.utils", "nr.sumtype"]},
 ]
 
 parser = argparse.ArgumentParser()
