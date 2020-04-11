@@ -85,7 +85,7 @@ class FlaskParamVisitor(ParamVisitor):
     return self.mapper.dd(PATH_PARAMETER_CONTENT_TYPE, value, type_def)
 
   def visit_File(self, param: RouteParam.File) -> Any:
-    return flask.request.files[name]
+    return flask.request.files[param.name]
 
   def visit_Custom(self, param: RouteParam.Custom) -> Any:
     return param.read(self)
