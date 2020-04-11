@@ -31,6 +31,7 @@ from nr.interface import Interface, implements
 from nr.pylang.utils import NotSet
 
 import functools
+import os
 import requests
 
 
@@ -64,33 +65,38 @@ class ResourceClient(Generic):
     self._session = session
 
   @staticmethod
-  def __route_dispatcher(self, __route: ParametrizedRoute, **kwargs):
+  def __route_dispatcher(self, __route: ParametrizedRoute, *args, **kwargs):
     path_parameters = {}
     headers = {}
     params = {}
     body = None
-    files = {}
+    files = []
 
-    def _get(param: RouteParam):
-      try:
-        return kwargs[param.name]
-      except KeyError:
-        if param.default is not NotSet:
-          return param.default
-        raise TypeError('{}() missing keyword argument "{}"'.format(
-          __route.name, name))
+    bound_args = __route.signature.bind(self, *args, **kwargs)
 
     for param in __route.parameters.values():
-      if param.name not in kwargs:
+      if param.name not in bound_args.arguments:
         if hasattr(param, 'default') and param.default is not NotSet:
           # TODO (@NiklasRosenstein): Rely on the remote default?
           continue
         raise TypeError('{}() missing keyword argument "{}"'.format(
           __route.name, param.name))
+      value = bound_args.arguments[param.name]
       if param.is_file():
-        files[param.name] = _get(param)
+        # TODO (@NiklasRosenstein): Support streaming file upload?
+        # TODO (@NiklasRosenstein): [IMPORTANT] Close open files afte request is sent.
+        if isinstance(value, str):
+          filename = os.path.basename(value)
+          fp = open(value, 'rb')
+        elif hasattr(value, 'read'):
+          filename = os.path.basename(getattr(value, 'name', '')) or None
+          fp = value
+        else:
+          raise TypeError('expected filename or file-like object for '
+            'parameter {!r}'.format(param.name))
+        content_type = getattr(fp, 'content_type', None)
+        files.append((param.name, (filename, fp, content_type)))
       else:
-        value = kwargs[param.name]
         serialized_value = self._mapper.se(
           getattr(param, 'content_type', PATH_PARAMETER_CONTENT_TYPE),
           value,
