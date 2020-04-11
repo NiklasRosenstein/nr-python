@@ -42,6 +42,7 @@ class JsonModule(Module):
 
   def __init__(self):
     super(JsonModule, self).__init__()
+    self.register(OptionalType, _s.OptionalSerializer())
     self.register(AnyType, _s.AnySerializer())
     self.register(BooleanType, _s.BooleanSerializer())
     self.register(StringType, _s.StringSerializer())

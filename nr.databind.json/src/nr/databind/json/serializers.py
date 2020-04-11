@@ -38,6 +38,20 @@ import six
 
 
 @implements(IDeserializer, ISerializer)
+class OptionalSerializer(object):
+
+  def deserialize(self, mapper, node):
+    if node.value is None:
+      return node.value
+    return mapper.deserialize_node(node.replace(datatype=node.datatype.value_type))
+
+  def serialize(self, mapper, node):
+    if node.value is None:
+      return node.value
+    return mapper.serialize_node(node.replace(datatype=node.datatype.value_type))
+
+
+@implements(IDeserializer, ISerializer)
 class AnySerializer(object):
 
   def deserialize(self, mapper, node):
