@@ -74,14 +74,14 @@ class ResourceClient(Generic):
 
     bound_args = __route.signature.bind(self, *args, **kwargs)
 
-    for param in __route.parameters.values():
-      if param.name not in bound_args.arguments:
+    for name, param in __route.parameters.items():
+      if name not in bound_args.arguments:
         if hasattr(param, 'default') and param.default is not NotSet:
           # TODO (@NiklasRosenstein): Rely on the remote default?
           continue
         raise TypeError('{}() missing keyword argument "{}"'.format(
-          __route.name, param.name))
-      value = bound_args.arguments[param.name]
+          __route.name, name))
+      value = bound_args.arguments[name]
       if param.is_file():
         # TODO (@NiklasRosenstein): Support streaming file upload?
         # TODO (@NiklasRosenstein): [IMPORTANT] Close open files afte request is sent.
@@ -93,7 +93,7 @@ class ResourceClient(Generic):
           fp = value
         else:
           raise TypeError('expected filename or file-like object for '
-            'parameter {!r}'.format(param.name))
+            'parameter {!r}'.format(name))
         content_type = getattr(fp, 'content_type', None)
         files.append((param.name, (filename, fp, content_type)))
       else:
@@ -101,7 +101,7 @@ class ResourceClient(Generic):
           getattr(param, 'content_type', PATH_PARAMETER_CONTENT_TYPE),
           value,
           param.type_annotation,
-          filename='{}({})'.format(__route.name, param.name))
+          filename='{}({})'.format(__route.name, name))
         if param.is_path():
           path_parameters[param.name] = serialized_value
         elif param.is_header():
