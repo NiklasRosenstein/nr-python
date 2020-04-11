@@ -89,9 +89,15 @@ class JsonEncoder(json.JSONEncoder):
   from their Python type via an #ObjectMapper.
   """
 
-  def __init__(self, mapper):
-    super(JsonEncoder, self).__init__()
+  def __init__(self, *args, mapper, **kwargs):
+    super(JsonEncoder, self).__init__(*args, **kwargs)
     self._mapper = mapper
+
+  @classmethod
+  def with_mapper(cls, mapper):  # type: (ObjectMapper) -> Callable[..., JsonEncoder]
+    def factory(*args, **kwargs):
+      return cls(*args, mapper=mapper, **kwargs)
+    return factory
 
   def default(self, obj):
     try:
