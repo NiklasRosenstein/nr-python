@@ -1,3 +1,4 @@
+# automatically created by shore
 
 import io
 import re
@@ -11,9 +12,9 @@ long_description = None
 
 requirements = ['six >=1.11.0,<2.0.0']
 extras_require = {}
-extras_require['test'] = ['nr.collections >=0.0.1,<0.1.0']
+extras_require['test'] = ['nr.collections >=0.0.1,<1.0.0']
 tests_require = []
-tests_require = ['nr.collections >=0.0.1,<0.1.0']
+tests_require = ['nr.collections >=0.0.1,<1.0.0']
 
 setuptools.setup(
   name = 'nr.proxy',

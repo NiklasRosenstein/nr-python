@@ -1,3 +1,4 @@
+# automatically created by shore
 
 import io
 import re
@@ -10,7 +11,7 @@ with io.open('src/nr/config/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.collections >=0.0.1,<0.1.0', 'six >=1.14.0,<2.0.0', 'watchdog >=0.10.2,<0.11.0']
+requirements = ['nr.collections >=0.0.1,<1.0.0', 'six >=1.14.0,<2.0.0', 'watchdog >=0.10.2,<0.11.0']
 
 setuptools.setup(
   name = 'nr.config',

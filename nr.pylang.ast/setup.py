@@ -1,3 +1,4 @@
+# automatically created by shore
 
 import io
 import re
@@ -10,7 +11,7 @@ with io.open('src/nr/pylang/ast/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.collections >=0.0.1,<0.1.0']
+requirements = ['nr.collections >=0.0.1,<1.0.0']
 
 setuptools.setup(
   name = 'nr.pylang.ast',

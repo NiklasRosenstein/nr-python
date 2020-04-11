@@ -1,3 +1,4 @@
+# automatically created by shore
 
 import io
 import re

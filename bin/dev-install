@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# automatically created by shore
 
 from __future__ import print_function
 import argparse
@@ -9,6 +10,7 @@ import sys
 package_def = [
   {"extra_requires": {}, "name": "nr.algo.graph", "requires": []},
   {"extra_requires": {}, "name": "nr.commons.api", "requires": []},
+  {"extra_requires": {}, "name": "nr.databind.rest", "requires": []},
   {"extra_requires": {}, "name": "nr.fs", "requires": []},
   {"extra_requires": {}, "name": "nr.metaclass", "requires": []},
   {"extra_requires": {}, "name": "nr.parsing.core", "requires": []},

@@ -5,4 +5,4 @@ requirements:
   - python ^2.6|^3.4
   - six ^1.11.0
   - test:
-    - nr.collections ~0.0.1
+    - nr.collections ^0.0.1
