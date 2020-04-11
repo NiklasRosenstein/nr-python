@@ -31,6 +31,10 @@ class EnumConverter(pony.orm.dbapiprovider.StrConverter):
 
   for_types = [enum.Enum]
 
+  @classmethod
+  def register(cls, db: pony.orm.Database):
+    db.provider.converter_classes.append((enum.Enum, cls))
+
   def validate(self, val, obj=None):
     if not isinstance(val, enum.Enum):
       raise ValueError('mut be an Enum, got {}'.format(type(val)))
