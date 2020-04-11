@@ -155,7 +155,7 @@ class RestRequestsClient:
     self.base_url = base_url
     self.user_agent = user_agent
     self.proxies = proxies
-    self.mapper = mapper or MimeTypeMapper.default()
+    self.mapper = mapper or MimeTypeMapper.json()
 
     self.session = requests.Session()
     self.session.headers['User-Agent'] = self.user_agent

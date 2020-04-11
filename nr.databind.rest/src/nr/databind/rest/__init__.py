@@ -418,17 +418,17 @@ class ContentEncoder(metaclass=abc.ABCMeta):
 
 class JsonContentEncoder(ContentEncoder):
 
-  def __init__(self, try_or_else_string: bool = False) -> None:
-    self.try_or_else_string = try_or_else_string
+  def __init__(self, for_path_parameters: bool = False) -> None:
+    self.for_path_parameters = for_path_parameters
 
   def encode(self, value: Any, out: TextIO):
-    if self.try_or_else_string and isinstance(value, str):
+    if self.for_path_parameters and isinstance(value, str):
       out.write(value)
     else:
       json.dump(value, out)
 
   def decode(self, fp: TextIO) -> Any:
-    if self.try_or_else_string:
+    if self.for_path_parameters:
       content = fp.read()
       try:
         return json.loads(content)
@@ -442,6 +442,10 @@ class MimeTypeMapper:
 
   def __init__(self):
     self._types = {}
+    self.register(
+      PATH_PARAMETER_CONTENT_TYPE,
+      JsonContentEncoder(for_path_parameters=True),
+      ObjectMapper(JsonModule()))
 
   def __getitem__(self, content_type: str) -> dict:
     try:
@@ -504,16 +508,12 @@ class MimeTypeMapper:
     return self.deserialize(mime_type, in_value, type_def, filename=filename)
 
   @classmethod
-  def default(cls):
+  def json(cls, mapper: ObjectMapper = None):
     mime_mapper = cls()
     mime_mapper.register(
       'application/json',
       JsonContentEncoder(),
-      ObjectMapper(JsonModule()))
-    mime_mapper.register(
-      PATH_PARAMETER_CONTENT_TYPE,
-      JsonContentEncoder(try_or_else_string=True),
-      ObjectMapper(JsonModule()))
+      mapper or ObjectMapper(JsonModule()))
     return mime_mapper
 
 

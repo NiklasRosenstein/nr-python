@@ -185,7 +185,7 @@ def bind_resource(
     return x
 
   prefix = Path(prefix)
-  mapper = mapper or MimeTypeMapper.default()
+  mapper = mapper or MimeTypeMapper.json()
   for route in routes:
     path = str((prefix + route.route.http.path).sub(_sub_param)).rstrip('/')
     impl = getattr(resource, route.name)
