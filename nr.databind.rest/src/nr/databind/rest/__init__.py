@@ -272,12 +272,14 @@ class ParametrizedRoute:
   def __init__(
       self,
       name: str,
+      signature: inspect.Signature,
       route: RouteData,
       interface: Type[Interface],
       parameters: Dict[str, 'RouteParam'],
       return_: 'RouteReturn'
       ) -> None:
     self.name = name
+    self.signature = signature
     self.route = route
     self.interface = interface
     self.parameters = parameters
@@ -352,7 +354,7 @@ class ParametrizedRoute:
         'as candiates for the request body, but there can be only one or no '
         'body parameter, candidates are: {!r}'.format(body_params))
 
-    return cls(func.__name__, route, interface, parameters, return_)
+    return cls(func.__name__, sig, route, interface, parameters, return_)
 
   def build_parameters(self, visitor: 'ParameterVisitor') -> Dict[str, Any]:
     kwargs = {}
