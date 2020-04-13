@@ -1,4 +1,8 @@
 
+# v0.0.6 (2020-04-13)
+
+* Add `ObjectMapper.cast()`
+
 # v0.0.5 (2020-04-13)
 
 * Add `OptionalType`

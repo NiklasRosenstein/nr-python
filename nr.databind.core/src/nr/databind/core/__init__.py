@@ -494,6 +494,15 @@ class ObjectMapper(Module):
   def serialize(self, *args, **kwargs):  # type: (...) -> Any
     return self.serialize_node(make_node(*args, **kwargs))
 
+  def cast(self, py_value, target_type):  # type: (Union[Struct, Collection], Type) -> Any
+    """
+    Cast *py_value* to *target_type* by serializing and deserializing the
+    value.
+    """
+
+    data = self.serialize(py_value, type(py_value))
+    return self.deserialize(data, target_type)
+
 
 def make_node(value, datatype, filename=None, decorations=None):
   # type: (Any, Any, Optional[str], Optional[List[Decoration]]) -> (Context, Node)
