@@ -1,4 +1,11 @@
 
+# v0.0.5 (2020-04-13)
+
+* Add `OptionalSerializer`
+* Add `JsonEncoder.with_mapper()` factory function
+* Update dependency on `nr.collections` from `~0.0.1` to `^0.1.0`
+* Fix `JsonSerializer` decoration constructor
+
 # v0.0.4 (2020-03-24)
 
 * Fix parsing of `date` types
