@@ -30,7 +30,7 @@ from six import PY2, iteritems
 import copy
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 
 class Proxy(object):
