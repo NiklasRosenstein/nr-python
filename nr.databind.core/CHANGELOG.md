@@ -1,4 +1,8 @@
 
+# v0.0.7 (2020-04-14)
+
+* `MultiType` now matches on `typing.Union`
+
 # v0.0.6 (2020-04-13)
 
 * Add `ObjectMapper.cast()`

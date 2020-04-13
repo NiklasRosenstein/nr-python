@@ -367,6 +367,8 @@ class MultiType(object):
   def from_typedef(cls, recursive, py_type_def):
     if isinstance(py_type_def, tuple):
       return MultiType([recursive(x) for x in py_type_def])
+    elif is_generic(py_type_def, typing.Union):
+      return MultiType(get_generic_args(py_type_def))
     raise InvalidTypeDefinitionError(py_type_def)
 
   def isinstance_check(self, py_value, strict, coerce):
