@@ -8,4 +8,4 @@
 * Fix some type annotations
 * Override `__name__` and `__qualname__` of the `lambda_type` that is
   created in `Interface.__new__()`
-* Update dependency on `nr.collections` from `~0.0.1` to `^0.1.0`
+* Update dependency on `nr.collections` from `~0.0.1` to `^0.0.1`
