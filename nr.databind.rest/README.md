@@ -22,7 +22,7 @@ from nr.interface import Interface
 class MyResource(Interface):
 
   @Route('GET /my-endpoint/{parameter_a}')
-  def my_get_endpoint(self, parameter_a: str, parameter_b: QP(int)) -> MyResponse:
+  def my_get_endpoint(self, parameter_a: str, parameter_b: RouteParam.Query(int)) -> MyResponse:
     ...
 
   @Route('POST /my-endpoint/{parameter_a}')
@@ -56,10 +56,10 @@ bind mechanisms (currently only Flask is available).
 ```py
 from flask import Flask
 from my.service.api.resources_impl import MyResourceImpl
-from nr.databind.json import JsonModule
-from nr.databind.rest.flask import bind_resource, FlaskRequestMapper
+from nr.databind.rest import MimeTypeMapper
+from nr.databind.rest.flask import bind_resource
 
 app = Flask(__name__)
-request_mapper = FlaskRequestMapper(JsonModule())
-bind_resource(request_mapper, app, '/my-resource', MyResourceImpl)
+mapper = MimeTypeMapper.json()
+bind_resource(app, '/my-resource', MyResourceImpl(), mapper=mapper)
 ```
