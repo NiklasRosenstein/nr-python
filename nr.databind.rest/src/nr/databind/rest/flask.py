@@ -105,6 +105,9 @@ class FlaskRouteWrapper:
     self.impl = impl
     self.debug = debug
 
+  def __repr__(self):
+    return 'FlaskRouteWrapper(route.name={!r})'.format(self.route.name)
+
   def __call__(self, **kwargs):
     """
     This is called from Flask when a request matches this route. Here we
@@ -141,7 +144,7 @@ class FlaskRouteWrapper:
     except Exception as exc:
       if not isinstance(exc, ServiceException):
         exc = ServiceException('An unhandled exception ocurred.')
-        logger.exception('An unhandled exception ocurred (uuid: %s).', exc.uuid)
+        logger.exception('An unhandled exception ocurred in %s (uuid: %s).', self, exc.uuid)
         if self.debug:
           exc.parameters['traceback'] = traceback.format_exc()
       else:
