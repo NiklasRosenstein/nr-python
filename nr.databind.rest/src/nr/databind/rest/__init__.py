@@ -58,7 +58,7 @@ class ServiceException(Exception):
 
   http_status_code = 500
 
-  def __init__(self, message: str, parameters: dict = None) -> None:
+  def __init__(self, message: Optional[str], parameters: dict = None) -> None:
     self.message = message
     self.parameters = parameters or {}
     self.uuid = str(uuid.uuid4())
@@ -102,6 +102,9 @@ class ServiceException(Exception):
 
 class BadRequest(ServiceException):
   http_status_code = 400
+
+  def __init__(self, message: str = None, **kwargs):
+    super().__init__(message, kwargs)
 
 
 class InvalidArgument(BadRequest):
