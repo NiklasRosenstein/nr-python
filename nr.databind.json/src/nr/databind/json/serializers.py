@@ -155,6 +155,9 @@ class CollectionSerializer(object):
     if not isinstance(py_type, type) or not isinstance(result, py_type):
       result = py_type(result)
 
+    if hasattr(result, '__databind__'):
+      result.__databind__['mapper'] = mapper
+
     if node.get_decoration(StoreNode) and hasattr(result, '__databind__'):
       result.__databind__['node'] = node
 
@@ -339,6 +342,7 @@ class StructSerializer(object):
     except TypeError as exc:
       raise node.type_error(exc)
 
+    obj.__databind__['mapper'] = mapper
     if node.get_decoration(StoreNode):
       obj.__databind__['node'] = node
 

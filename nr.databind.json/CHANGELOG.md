@@ -1,4 +1,9 @@
 
+# v0.0.6 (2020-04-13)
+
+* Set the "mapper" key in the `Struct.__databind__` and
+  `Collection.__databind__` metadata dictionary on de-serialization.
+
 # v0.0.5 (2020-04-13)
 
 * Add `OptionalSerializer`
