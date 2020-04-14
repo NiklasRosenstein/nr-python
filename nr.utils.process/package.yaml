@@ -1,5 +1,5 @@
 name: "nr.utils.process"
-version: "0.0.3"
+version: "0.0.4"
 license: "MIT"
 description: "Package description here."
 requirements:
