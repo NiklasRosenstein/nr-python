@@ -36,7 +36,7 @@ to observe file changes and reload the config when the file changes. Errors that
 the reload are automatically logged and the last valid configuration will be returned.
 
 ```py
-from nr.config import ConfigReloadTask
+from nr.config.reloader import ConfigReloadTask
 from nr.proxy import Proxy
 
 reload_task = ConfigReloadTask('var/conf/runtime.yaml', load_config_from_file)
