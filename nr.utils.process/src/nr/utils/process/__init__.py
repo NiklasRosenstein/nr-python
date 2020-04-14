@@ -21,7 +21,9 @@
 
 import errno
 import os
+import signal
 import sys
+import time
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.3'
@@ -39,6 +41,43 @@ def process_exists(pid):  # type: (int) -> bool
     if exc.errno == errno.ESRCH:
       return False
   return True
+
+
+def process_terminate(pid, allow_kill: bool = True, timeout: int = 10) -> bool:
+  """ Terminates the process with the given *pid*. First sends #signal.SIGINT,
+  followed by #signal.SIGTERM after *timeout* seconds, followed by
+  #signal.SIGKILL after *timeout* seconds if the process has not responded to
+  the terminate signal.
+
+  The fallback to kill can be disabled by setting *allow_kill* to False.
+  Returns True if the process was successfully terminated or killed, or if
+  the process did not exist in the first place. """
+
+  get_time = getattr(time, 'perf_counter', None) or time.clock
+
+  def _wait(timeout):
+    tstart = get_time()
+    while (get_time() - tstart) < timeout:
+      if not process_exists(pid):
+        return True
+      time.sleep(0.1)
+    return False
+
+  try:
+    os.kill(pid, signal.SIGINT)
+    if _wait(timeout):
+      return True
+    os.kill(pid, signal.SIGTERM)
+    if _wait(timeout):
+      return True
+    if allow_kill:
+      os.kill(pid, signal.SIGKILL)
+      return _wait(timeout)
+    return False
+  except OSError as exc:
+    if exc.errno == errno.ESRCH:
+      return True
+    raise
 
 
 def getpwgrnam(user, group):
