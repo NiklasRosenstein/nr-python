@@ -278,7 +278,7 @@ class StructSerializer(object):
   def deserialize(self, mapper, node):
     # Check if there is a custom deserializer on the struct class.
     struct_cls = node.datatype.struct_cls
-    config = JsonSerializer.get(struct_cls)
+    config = node.get_decoration(JsonSerializer) or JsonSerializer.get(struct_cls)
 
     obj = None
     if config:
@@ -355,7 +355,7 @@ class StructSerializer(object):
 
     # Check if there is a custom serializer on the struct class.
     result = NotSet
-    config = JsonSerializer.get(struct_cls)
+    config = node.get_decoration(JsonSerializer) or JsonSerializer.get(struct_cls)
     if config:
       serializer = config.get_serializer(struct_cls)
       if serializer:
@@ -511,7 +511,7 @@ class PythonClassSerializer(object):
     if serialize_as:
       return mapper.deserialize_node(node.replace(datatype=serialize_as.datatype))
 
-    decoration = JsonSerializer.get(node.datatype.cls)
+    decoration = node.get_decoration(JsonSerializer) or JsonSerializer.get(node.datatype.cls)
     deserializer = decoration.get_deserializer(node.datatype.cls) if decoration else None
 
     if deserializer:
@@ -538,7 +538,7 @@ class PythonClassSerializer(object):
       raise node.value_error('Unexpected value of type "{}" found, expected "{}"'.format(
         type(node.value).__name__, node.datatype.cls.__name__))
 
-    decoration = JsonSerializer.get(node.datatype.cls)
+    decoration = node.get_decoration(JsonSerializer) or JsonSerializer.get(node.datatype.cls)
     serializer = decoration.get_serializer(node.datatype.cls) if decoration else None
 
     if serializer:
