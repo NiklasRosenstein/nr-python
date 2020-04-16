@@ -3,6 +3,7 @@
 .venv
 *.egg-info
 /nr.*/build
+__pycache__/
 
 # nr.pylang.bundle
 /bundle
