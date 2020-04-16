@@ -101,6 +101,10 @@ class IDataType(nr.interface.Interface):
     return 0
 
   @nr.interface.default
+  def get_decorations(self):  # type: () -> List[Decoration]
+    return []
+
+  @nr.interface.default
   def to_human_readable(self):  # type: () -> str
     return type(self).__name__
 
@@ -299,7 +303,8 @@ class Node(object):
     decorations.
     """
 
-    decoration = get_decoration(decoration_cls, self.context.decorations, self.decorations)
+    decoration = get_decoration(decoration_cls, self.context.decorations,
+      self.decorations, self.datatype.get_decorations())
     if not decoration and isinstance(decoration_cls, ClassDecoration):
       if isinstance(self.datatype, StructType):
         decoration = decoration_cls.get(self.datatype.struct_cls)

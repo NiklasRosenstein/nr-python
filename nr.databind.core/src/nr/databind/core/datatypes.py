@@ -312,17 +312,22 @@ class PythonClassType(object):
   other types. The adapter for this datatype takes the lowest priority and
   only applies to custom defined types (not built-in types). """
 
-  classdef.comparable(['cls'])
-  classdef.repr(['cls'])
+  classdef.comparable(['cls', 'decorations'])
+  classdef.repr(['cls', 'decorations'])
 
-  def __init__(self, cls):
+  def __init__(self, cls, *decorations):
     assert isinstance(cls, type)
     self.cls = cls
+    self.decorations = list(decorations)
 
   @override
   @classmethod
   def priority(cls):
     return -1000
+
+  @override
+  def get_decorations(self):
+    return self.decorations
 
   @override
   @classmethod
