@@ -127,7 +127,7 @@ class Vars(object):
       if match and match.group(0) == data:
         return self.__sub(match)
       else:
-        return self._regex.sub(self.__sub, data)
+        return self._regex.sub(self.__sub, str(data))
     return data
 
 
