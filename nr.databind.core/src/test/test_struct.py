@@ -30,3 +30,7 @@ def test_make_struct():
 
     assert str(Person('John Wick', 48, 'Wicked St.')) == "Person(name='John Wick', age=48, address='Wicked St.')"
 
+    assert Person('a', 31, 'Foobar') == Person('a', 31, 'Foobar')
+    assert Person('a', 31, 'Foobar') != Person('b', 31, 'Foobar')
+    assert Person('a', 31, 'Foobar') != Person('a', 32, 'Foobar')
+    assert Person('a', 31, 'Foobar') != Person('a', 31, 'Spameggs')
