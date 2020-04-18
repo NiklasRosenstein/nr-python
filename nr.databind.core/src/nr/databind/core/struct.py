@@ -587,9 +587,9 @@ class Struct(six.with_metaclass(_StructMeta)):
     if type(other) != type(self):
       return True
     for key in self.__fields__:
-      if getattr(self, key) == getattr(other, key):
-        return False
-    return True
+      if getattr(self, key) != getattr(other, key):
+        return True
+    return False
 
   def __repr__(self):
     if self.__fields__.has_prominent_fields():
