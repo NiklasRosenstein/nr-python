@@ -2,10 +2,10 @@
 
 Extends the [misaka][] Markdown library for a couple of extensions.
 
-* `inside-html`: Support Markdown inside HTML tags. Enabled by default
+* `inside-html`: Support Markdown inside HTML tags. Requires the `bs4` package
 * `smartypants`: Automatically apply `misaka.smartypants()` on the input
   Markdown. Enabled by default
-* `pygments`: Highlight code blocks with Pygments.
+* `pygments`: Highlight code blocks with Pygments. Requires the `pygments` package
 * `url-transform`: Transform links and image URLs with a callback function.
   Enabled by default, but only actually does something if the
   `url_transform_callback` option is set
