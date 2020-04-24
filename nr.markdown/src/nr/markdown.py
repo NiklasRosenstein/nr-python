@@ -44,9 +44,21 @@ class Markdown(misaka.Markdown):
   }
 
   DEFAULT_EXTENSIONS = [
-    'tables', 'fenced-code', 'autolink', 'strikethrough', 'underline',
-    'quote', 'superscript'
-  ] + list(EXTENSIONS.keys())
+    # Standard Misaka extensions.
+    'tables',
+    'fenced-code',
+    'autolink',
+    'strikethrough',
+    'underline',
+    'quote',
+    'superscript',
+    # nr.markdown extensions.
+    'inside-html',
+    'smartypants',
+    #'pygments',
+    'url-transform',
+    'toc'
+  ]
 
   def __init__(self, options=None, extensions=None):
     if extensions is None:
@@ -302,7 +314,7 @@ class InsideHtmlExtension(Extension):
 
     # Replace characters that may indicate a blockquote with a temporary
     # string that the HTML parser will not misinterpret and convert to &gt;.
-    body = re.sub('^(?<!<).*?(>)', '&blockquoteindicator;', body, flags=re.M)
+    body = re.sub(r'^([ \t]*)?>', '&blockquoteindicator;', body, flags=re.M)
 
     soup = self.parse(body)
     self.__process_recursively(context['md'], soup)
@@ -328,7 +340,7 @@ class InsideHtmlExtension(Extension):
       node.replace_with(content)
 
     elif isinstance(node, bs4.element.Tag):
-      for child in node.children:
+      for child in list(node.children):
         self.__process_recursively(md, child)
 
 
@@ -426,3 +438,24 @@ class TocExtension(Extension):
 
 def html(text, options=None, extensions=None):
   return Markdown(options, extensions)(text)
+
+
+def main():
+  import argparse
+  parser = argparse.ArgumentParser()
+  parser.add_argument('file', nargs='?')
+  parser.add_argument('-e', '--enable-extension', action='append')
+  args = parser.parse_args()
+
+  if args.file == '-' or not args.file:
+    text = sys.stdin.read()
+  else:
+    with open(args.file) as fp:
+      text = fp.read()
+
+  extensions = Markdown.DEFAULT_EXTENSIONS + list(args.enable_extension or ())
+  print(html(text, extensions=extensions))
+
+
+if __name__ == "__main__":
+  main()
