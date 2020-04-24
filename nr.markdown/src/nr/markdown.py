@@ -381,7 +381,10 @@ class PygmentsExtension(Extension):
     except ClassNotFound:
       return None
 
-    formatter = HtmlFormatter()
+    options = context['md'].options.get('pygments_html_formatter_options')
+    if options is None:
+      options = {'noclasses': True}
+    formatter = HtmlFormatter(**options)
     return '\n' + highlight(context['text'], lexer, formatter)
 
 

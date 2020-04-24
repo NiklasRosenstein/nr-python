@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.6 (2020-04-25)
+
+* Add `pygments_html_formatter_options`, defaulting to setting `noclass=True`
+
 ## v1.0.5 (2020-04-25)
 
 * Remove `inside-html` from the default extensions list
