@@ -21,7 +21,7 @@
 # SOFTWARE
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 
 import misaka
 import re
