@@ -1,5 +1,5 @@
 name: "nr.markdown"
-version: "1.0.3"
+version: "1.0.4"
 author: "Niklas Rosenstein <rosensteinniklas@gmail.com>"
 license: "MIT"
 description: "Extends the misaka Markdown parser and renderer for some nifty features."
