@@ -53,9 +53,7 @@ class Markdown(misaka.Markdown):
     'quote',
     'superscript',
     # nr.markdown extensions.
-    'inside-html',
     'smartypants',
-    #'pygments',
     'url-transform',
     'toc'
   ]
