@@ -11,14 +11,14 @@ def test_function_spec():
   assert c.conformity_check(a) is None
 
   c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=[])
-  assert c.conformity_check(a) == "missing kwonlyargs ({})".format(set(['c']))
+  assert c.conformity_check(a) == "missing kwonlyargs ({0})".format(set(['c']))
 
   c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', kwonlyargs=['c'])
   assert c.conformity_check(a) == "extranous positional arguments do not have default values (extranous arguments are ['d'])"
 
   a.kwonlydefaults = {'c': 42}
   c = FunctionSpec(args=['a', 'b', 'd'], varkw='kw', defaults=[None], kwonlyargs=['c'])
-  assert c.conformity_check(a) == "missing kwonlydefaults ({})".format(set(['c']))
+  assert c.conformity_check(a) == "missing kwonlydefaults ({0})".format(set(['c']))
 
 
 def test_constructed():
@@ -721,11 +721,11 @@ def test_interface_lambda_instantiation():
     IMyInterface()
   assert str(excinfo.value) == 'missing keyword argument "hello"'
 
-  impl = IMyInterface(hello=lambda name: 'Hello, {}!'.format(name))
+  impl = IMyInterface(hello=lambda name: 'Hello, {0}!'.format(name))
   assert impl.hello('John') == 'Hello, John!'
   assert IMyInterface.provided_by(impl)
 
-  impl2 = IMyInterface(hello=lambda name: 'Bye, {}!'.format(name))
+  impl2 = IMyInterface(hello=lambda name: 'Bye, {0}!'.format(name))
   assert impl2.hello('John') == 'Bye, John!'
 
   assert type(impl) is type(impl2)

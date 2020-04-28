@@ -90,7 +90,8 @@ class JsonEncoder(json.JSONEncoder):
   from their Python type via an #ObjectMapper.
   """
 
-  def __init__(self, *args, mapper, **kwargs):
+  def __init__(self, *args, **kwargs):
+    mapper = kwargs.pop('mapper')
     super(JsonEncoder, self).__init__(*args, **kwargs)
     self._mapper = mapper
 

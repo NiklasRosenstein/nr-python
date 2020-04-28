@@ -1,0 +1,46 @@
+---
+kind: pipeline
+type: docker
+name: python-2.7
+steps:
+
+  - name: test
+    image: python:3.5
+    environment:
+      PACKAGES: nr.*
+      PYTHON_PIP: pip
+      VIRTUALENV: virtualenv
+    commands:
+      - pip install pytest
+      - bin/drone-tests.sh
+
+---
+kind: pipeline
+type: docker
+name: python-2.7
+steps:
+
+  - name: test
+    image: python:2.7
+    environment:
+      PACKAGES: nr.*
+      PYTHON_PIP: pip
+      VIRTUALENV: virtualenv
+    commands:
+      - pip install pytest
+      - bin/drone-tests.sh
+
+---
+kind: pipeline
+type: docker
+name: python-2.6
+steps:
+
+  - name: test
+    image: niklasrosenstein/python:pytest-2.6
+    environment:
+      PACKAGES: nr.interface #"echo nr.*"
+      VIRTUALENV: virtualenv
+    commands:
+      # Ping Python 2.6 compatible versions.
+      - bin/drone-tests.sh

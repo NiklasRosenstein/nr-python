@@ -6,6 +6,7 @@ description: "Package description here."
 requirements:
 - python ^3.4
 - nr.collections ^0.0.1
+- nr.pylang.utils ~0.0.1
 - six ^1.14.0
 - extra:
     reloader:

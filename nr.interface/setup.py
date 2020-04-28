@@ -1,4 +1,4 @@
-# automatically created by shore 0.0.23
+# automatically created by shore 0.0.24
 
 import io
 import re
@@ -28,7 +28,7 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = [],
-  python_requires = None, # TODO: '>=2.7,<3.0.0|>=3.4,<4.0.0',
+  python_requires = None, # TODO: '>=2.6,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},

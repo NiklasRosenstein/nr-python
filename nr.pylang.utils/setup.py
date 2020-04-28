@@ -1,4 +1,4 @@
-# automatically created by shore 0.0.23
+# automatically created by shore 0.0.24
 
 import io
 import re
@@ -11,7 +11,7 @@ with io.open('src/nr/pylang/utils/__init__.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = ['nr.collections >=0.0.1,<1.0.0', 'typing >=3.7.4.1,<4.0.0']
+requirements = ['nr.collections >=0.0.1,<1.0.0']
 
 setuptools.setup(
   name = 'nr.pylang.utils',

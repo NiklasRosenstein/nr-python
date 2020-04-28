@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# automatically created by shore 0.0.23
+# automatically created by shore 0.0.24
 
 from __future__ import print_function
 import argparse
@@ -18,9 +18,9 @@ package_def = [
   {"extra_requires": {}, "name": "nr.proxy", "requires": []},
   {"extra_requires": {}, "name": "nr.utils.process", "requires": []},
   {"extra_requires": {}, "name": "nr.collections", "requires": ["nr.metaclass"]},
-  {"extra_requires": {}, "name": "nr.config", "requires": ["nr.collections"]},
   {"extra_requires": {}, "name": "nr.pylang.ast", "requires": ["nr.collections"]},
   {"extra_requires": {}, "name": "nr.pylang.utils", "requires": ["nr.collections"]},
+  {"extra_requires": {}, "name": "nr.config", "requires": ["nr.collections", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.interface", "requires": ["nr.collections", "nr.metaclass", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.stream", "requires": ["nr.collections", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.utils.ponyorm", "requires": ["nr.pylang.utils"]},
@@ -37,6 +37,7 @@ parser.add_argument('--no-develop', action='store_true', help='Perform a normal 
 parser.add_argument('--uninstall', action='store_true', help='Uninstall the packages instead.')
 parser.add_argument('--type', choices=('install', 'develop'), help='Alternative for using or not using --no-develop.')
 parser.add_argument('-v', '--verbose', action='store_true', help='Print the Pip command that is run.')
+parser.add_argument('-q', '--quiet', action='store_true', help='Capture Pip output.')
 parser.add_argument('--extras', default='', help='Comma-separated extras to install.')
 args = parser.parse_args()
 
@@ -72,7 +73,7 @@ install_packages = []
 _resolve(install_packages, (args.packages or (x['name'] for x in package_def)), list(filter(bool, args.extras.split(','))))
 
 python = os.getenv('PYTHON', 'python')
-pip = shlex.split(os.getenv('PYTHON_PIP', '"{0}" -m pip'.format(python)))
+pip = shlex.split(os.getenv('PYTHON_PIP', '"{0}" -m pip'.format(python)).replace('$PYTHON', python))
 command = pip + ['uninstall' if args.uninstall else 'install']
 for pkgname in install_packages:
   if not args.no_develop and not args.uninstall:
@@ -83,9 +84,18 @@ if args.uninstall:
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+stdout, stderr = None, None
 if args.verbose:
   command.append('-v')
   print('Running command in working directory', project_dir)
   print('$', ' '.join(command))
+elif args.quiet:
+  stdout = subprocess.PIPE
+  stderr = subprocess.STDOUT
+  print('Installing', ' '.join(args.packages))
 
-sys.exit(subprocess.call(command, cwd=project_dir))
+proc = subprocess.Popen(command, cwd=project_dir, stdout=stdout, stderr=stderr)
+stdout, _ = proc.communicate()
+if args.quiet and proc.returncode != 0:
+  print(stdout, file=sys.stderr)
+sys.exit(proc.returncode)

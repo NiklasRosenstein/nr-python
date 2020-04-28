@@ -49,7 +49,7 @@ from nr.metaclass.copy import copy_class
 from nr.metaclass.inline import InlineMetaclassBase
 from nr.pylang.utils import NotSet
 from nr.pylang.utils.classdef import make_singleton
-from typing import Any, Dict, List, Optional
+#from typing import Any, Dict, List, Optional
 
 _NoCheckType = make_singleton('_NoCheckType')
 
@@ -95,7 +95,19 @@ class FunctionSpec(object):
     is a #classmethod or #staticmethod, it is first unwrapped. """
 
     if isinstance(func, (classmethod, staticmethod)):
-      func = func.__func__
+      if hasattr(func, 'im_func'):
+        func = func.im_func
+      elif hasattr(func, '__func__'):
+        func = func.__func__
+      elif isinstance(func, staticmethod):
+        # Python 2.6 workaround
+        func = type('t', (object,), {'func': func}).func
+      elif isinstance(func, classmethod):
+        # Python 2.6 workaround
+        func = type('t', (object,), {'func': func}).func.im_func
+      else:
+        raise RuntimeError('unable to get wrapped function from {0} object'.format(
+          type(func).__name__))
 
     if hasattr(inspect, 'getfullargspec'):
       argspec = inspect.getfullargspec(func)
@@ -119,12 +131,12 @@ class FunctionSpec(object):
     overlapping_args = self.args[:len(other.args)]
     if overlapping_args != other.args:
       return 'overlapping positional argument names do not match '\
-        '({!r} != {!r})'.format(overlapping_args, other.args)
+        '({0!r} != {1!r})'.format(overlapping_args, other.args)
 
     # Check that additional positional arguments have default values.
     if len(self.defaults) < (len(self.args) - len(other.args)):
       return 'extranous positional arguments do not have default values '\
-        '(extranous arguments are {!r})'.format(self.args[len(other.args):])
+        '(extranous arguments are {0!r})'.format(self.args[len(other.args):])
 
     # Check varargs/kwargs.
     if self.varargs is None and other.varargs is not None:
@@ -136,12 +148,12 @@ class FunctionSpec(object):
     a = set(self.kwonlyargs)
     b = set(other.kwonlyargs)
     if not b.issubset(a):
-      return 'missing kwonlyargs ({!r})'.format(b - a)
+      return 'missing kwonlyargs ({0!r})'.format(b - a)
 
     # Check kwonlydefaults.
-    missing_defaults = {k for k in other.kwonlydefaults if k not in self.kwonlydefaults}
+    missing_defaults = set(k for k in other.kwonlydefaults if k not in self.kwonlydefaults)
     if missing_defaults:
-      return 'missing kwonlydefaults ({!r})'.format(missing_defaults)
+      return 'missing kwonlydefaults ({0!r})'.format(missing_defaults)
 
     return None
 
@@ -176,7 +188,7 @@ class Decoration(object):
       func = cls(func)
     for key, value in six.iteritems(set_members):
       if not hasattr(func, key):
-        raise AttributeError('{}.{}'.format(cls.__name__, key))
+        raise AttributeError('{0}.{1}'.format(cls.__name__, key))
       setattr(func, key, value)
     return func
 
@@ -200,9 +212,9 @@ class _Member(object):
     self.hidden = hidden
 
   def __repr__(self):
-    result = '<{} {!r}'.format(type(self).__name__, self.name)
+    result = '<{0} {1!r}'.format(type(self).__name__, self.name)
     if self.interface:
-      result += ' of interface {!r}'.format(self.interface.__name__)
+      result += ' of interface {0!r}'.format(self.interface.__name__)
     return result + '>'
 
   @property
@@ -361,17 +373,17 @@ class Property(_Member):
   def satisfy(self, value):
     assert isinstance(value, property), type(value)
     if value.fget and self.getter_final:
-      raise ValueError('property {}: getter must not be implemented'.format(self.name))
+      raise ValueError('property {0}: getter must not be implemented'.format(self.name))
     if value.fset and self.setter_final:
-      raise ValueError('property {}: setter must not be implemented'.format(self.name))
+      raise ValueError('property {0}: setter must not be implemented'.format(self.name))
     if value.fdel and self.deleter_final:
-      raise ValueError('property {}: deleter must not be implemented'.format(self.name))
+      raise ValueError('property {0}: deleter must not be implemented'.format(self.name))
     if self.getter_impl is None and not value.fget:
-      raise ValueError('property {}: missing getter'.format(self.name))
+      raise ValueError('property {0}: missing getter'.format(self.name))
     if self.setter_impl is None and not value.fset:
-      raise ValueError('property {}: missing setter'.format(self.name))
+      raise ValueError('property {0}: missing setter'.format(self.name))
     if self.deleter_impl is None and not value.fdel:
-      raise ValueError('property {}: missing deleter'.format(self.name))
+      raise ValueError('property {0}: missing deleter'.format(self.name))
 
     getter, setter, deleter = value.fget, value.fset, value.fdel
     if not getter and self.getter_impl not in (None, NotImplemented):
@@ -513,7 +525,7 @@ class InterfaceClass(type):
 
   def implemented_by(self, x):
     if not isinstance(x, type):
-      raise TypeError('expected type, got {}'.format(type(x).__name__))
+      raise TypeError('expected type, got {0}'.format(type(x).__name__))
     if not issubclass(x, Implementation):
       return False
     for interface in x.__implements__:
@@ -563,7 +575,7 @@ class Interface(six.with_metaclass(InterfaceClass)):
         def __init__(self, *args, **kwargs):
           if args:
             if len(self.__required_members) > 1:
-              raise TypeError('{} has more than one non-default member and thus '
+              raise TypeError('{0} has more than one non-default member and thus '
                               'must be constructed from keyword arguments only.'
                               .format(cls.__name__))
             kwargs[next(iter(self.__required_members))] = args[0]
@@ -571,10 +583,10 @@ class Interface(six.with_metaclass(InterfaceClass)):
           given = frozenset(kwargs.keys())
           missing = self.__required_members - given
           if missing:
-            raise TypeError('missing keyword argument "{}"'.format(next(iter(missing))))
+            raise TypeError('missing keyword argument "{0}"'.format(next(iter(missing))))
           extra = given - self.__all_members
           if extra:
-            raise TypeError('extranous keyword argument "{}"'.format(next(iter(extra))))
+            raise TypeError('extranous keyword argument "{0}"'.format(next(iter(extra))))
 
           # Wrap functions as static methods.
           for key, value in six.iteritems(kwargs):
@@ -583,7 +595,7 @@ class Interface(six.with_metaclass(InterfaceClass)):
 
         # Need to provide the members for InterfaceClass, but we want it
         # to skip the type checking.
-        locals().update({k: _NoCheckType for k in __required_members})
+        locals().update(dict((k, _NoCheckType) for k in __required_members))
 
       lambda_type.__name__ = cls.__name__
       lambda_type.__qualname__ = cls.__name__
@@ -644,7 +656,7 @@ def reduce_interfaces(interfaces):
   result = []
   for interface in interfaces:
     if not isinstance(interface, type):
-      raise TypeError('expected Type, got {}'.format(type(interface).__name__))
+      raise TypeError('expected Type, got {0}'.format(type(interface).__name__))
     skip = False
 
     for i in range(len(result)):
@@ -678,7 +690,7 @@ class ImplementationError(RuntimeError):
   def __str__(self):
     lines = []
     lines.append(
-      "'{}' does not meet requirements of interface{} {}"
+      "'{0}' does not meet requirements of interface{1} {2}"
       .format(
         self.impl.__name__,
         '' if len(self.interfaces) == 1 else 's',
@@ -686,7 +698,7 @@ class ImplementationError(RuntimeError):
           ('{' + ', '.join(repr(x.__name__) for x in self.interfaces) + '}'),  # pylint: disable=C0330
       )
     )
-    lines += ['  - {}'.format(x) for x in self.errors]
+    lines += ['  - {0}'.format(x) for x in self.errors]
     return '\n'.join(lines)
 
 
@@ -734,7 +746,7 @@ class Implementation(InlineMetaclassBase):
         if key in interface:
           break
       else:
-        impl_error.add(None, "'{}' does not override a method of any of "
+        impl_error.add(None, "'{0}' does not override a method of any of "
                              "the implemented interfaces.".format(key))
       setattr(self, key, value.func)  # unpack the Decoration
 
@@ -748,20 +760,20 @@ class Implementation(InlineMetaclassBase):
           if isinstance(value, types.MethodType):
             value = value.im_func if six.PY2 else value.__func__
           if member.final and value is not NotSet and member.default != value:
-            impl_error.add(interface, 'implemented final method: {}()'.format(member.name))
+            impl_error.add(interface, 'implemented final method: {0}()'.format(member.name))
             continue
           if value is NotSet:
             if not member.optional:
-              impl_error.add(interface, 'missing method: {}()'.format(member.name))
+              impl_error.add(interface, 'missing method: {0}()'.format(member.name))
           elif not isinstance(value, (types.FunctionType, types.MethodType)):
-            impl_error.add(interface, 'expected method, got {}: {}()'.format(
+            impl_error.add(interface, 'expected method, got {0}: {1}()'.format(
               type(value).__name__, member.name))
         elif isinstance(member, Property):
           if not hasattr(self, member.name):
             if not member.is_pure_default():
-              impl_error.add(interface, 'missing property: {}'.format(member.name))
+              impl_error.add(interface, 'missing property: {0}'.format(member.name))
           elif not isinstance(value, property):
-            impl_error.add(interface, 'expected property, got {}: {}'.format(
+            impl_error.add(interface, 'expected property, got {0}: {1}'.format(
               type(value).__name__, member.name))
           else:
             try:
@@ -809,9 +821,9 @@ class ConflictingInterfacesError(RuntimeError):
     self.b = b
 
   def __str__(self):
-    lines = ["'{}' conflicts with '{}'".format(self.a.__name__, self.b.__name__)]
+    lines = ["'{0}' conflicts with '{1}'".format(self.a.__name__, self.b.__name__)]
     for member in get_conflicting_members(self.a, self.b):
-      lines.append('  - {}'.format(member))
+      lines.append('  - {0}'.format(member))
     return '\n'.join(lines)
 
 
@@ -824,7 +836,7 @@ def implements(*interfaces, **kwargs):
 
   resolve_metaclass_conflict = kwargs.pop('resolve_metaclass_conflict', True)
   for key in kwargs:
-    raise TypeError('unexpected keyword argument {}'.format(key))
+    raise TypeError('unexpected keyword argument {0}'.format(key))
 
   def decorator(cls):
     if cls.__bases__ == (object,):
