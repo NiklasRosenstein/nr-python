@@ -12,6 +12,7 @@ package_def = [
   {"extra_requires": {}, "name": "nr.algo.graph", "requires": []},
   {"extra_requires": {}, "name": "nr.commons.api", "requires": []},
   {"extra_requires": {}, "name": "nr.fs", "requires": []},
+  {"extra_requires": {}, "name": "nr.markdown", "requires": []},
   {"extra_requires": {}, "name": "nr.metaclass", "requires": []},
   {"extra_requires": {}, "name": "nr.parsing.core", "requires": []},
   {"extra_requires": {}, "name": "nr.parsing.date", "requires": []},

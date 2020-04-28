@@ -1,4 +1,4 @@
-# automatically created by shore 0.0.23
+# automatically created by shore 0.0.24
 
 import io
 import re
@@ -13,9 +13,9 @@ with io.open('README.md', encoding='utf8') as fp:
 
 requirements = ['nr.collections >=0.0.1,<1.0.0', 'nr.databind.core >=0.0.1,<0.1.0', 'nr.interface >=0.0.1,<0.1.0', 'nr.parsing.date >=0.1.0,<0.2.0', 'nr.pylang.utils >=0.0.1,<0.1.0']
 extras_require = {}
-extras_require['test'] = ['pytest', 'PyYAML']
+extras_require['test'] = ['pytest', 'PyYAML', 'flask']
 tests_require = []
-tests_require = ['pytest', 'PyYAML']
+tests_require = ['pytest', 'PyYAML', 'flask']
 
 setuptools.setup(
   name = 'nr.databind.json',

@@ -11,3 +11,5 @@ requirements:
   - test:
     - pytest
     - PyYAML
+    - flask
+
