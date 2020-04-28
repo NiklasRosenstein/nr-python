@@ -9,6 +9,10 @@ for package in `echo $PACKAGES`; do
     echo "Skipped."
     continue
   fi
+  if [[ ! -d "$package/src/test" ]]; then
+    echo "No tests."
+    continue
+  fi
   rm -rf .venv; $VIRTUALENV .venv --system-site-packages
   . .venv/bin/activate
   bin/dev-install $package --no-develop --extras test --quiet
