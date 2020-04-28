@@ -9,7 +9,7 @@ steps:
     environment:
       PACKAGES: nr.*
       PYTHON_PIP: pip
-      VIRTUALENV: virtualenv
+      VIRTUALENV: python -m venv
     commands:
       - pip install pytest
       - bin/drone-tests.sh
