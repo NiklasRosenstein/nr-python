@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-# automatically created by shore 0.0.3
+# automatically created by shore 0.0.23
 
 from __future__ import print_function
 import argparse
 import os
+import shlex
 import subprocess
 import sys
 
@@ -57,22 +58,22 @@ def _resolve(result, pkg_names, extras=(), visited=None):
     visited.add(pkg_name)
     package = next((x for x in package_def if x['name'] == pkg_name), None)
     if package is None:
-      parser.error('not a package of this monorepo: {}'.format(pkg_name))
+      parser.error('not a package of this monorepo: {0}'.format(pkg_name))
 
     _resolve(result, package['requires'], extras, visited)
-    pkg_extras = list(filter(lambda x: x and x in package['extra_requires'], extras))
-    for extra in pkg_extras:
-      _resolve(result, package['extra_requires'][extra])
+    for extra in filter(bool, extras):
+      _resolve(result, package['extra_requires'].get(extra, []))
 
-    if pkg_extras:
-      pkg_name += '[' + ','.join(pkg_extras) + ']'
+    if extras:
+      pkg_name += '[' + ','.join(extras) + ']'
     result.append(pkg_name)
 
 install_packages = []
-_resolve(install_packages, (args.packages or (x['name'] for x in package_def)), args.extras)
+_resolve(install_packages, (args.packages or (x['name'] for x in package_def)), list(filter(bool, args.extras.split(','))))
 
 python = os.getenv('PYTHON', 'python')
-command = [python, '-m', 'pip', 'uninstall' if args.uninstall else 'install']
+pip = shlex.split(os.getenv('PYTHON_PIP', '"{0}" -m pip'.format(python)))
+command = pip + ['uninstall' if args.uninstall else 'install']
 for pkgname in install_packages:
   if not args.no_develop and not args.uninstall:
     command.append('-e')

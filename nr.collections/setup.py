@@ -1,4 +1,4 @@
-# automatically created by shore 0.0.3
+# automatically created by shore 0.0.23
 
 import io
 import re
@@ -28,7 +28,7 @@ setuptools.setup(
   license = 'MIT',
   packages = setuptools.find_packages('src', ['test', 'test.*', 'docs', 'docs.*']),
   package_dir = {'': 'src'},
-  include_package_data = False,
+  include_package_data = True,
   install_requires = requirements,
   extras_require = extras_require,
   tests_require = tests_require,
