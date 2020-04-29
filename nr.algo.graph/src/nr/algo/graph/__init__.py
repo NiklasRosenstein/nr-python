@@ -24,7 +24,7 @@
 import nr.interface
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 class IGraph(nr.interface.Interface):
@@ -62,6 +62,7 @@ class LambdaDiGraph(object):
         return _dependents.get(node, [])
 
     self._nodes = nodes
+    self._edge_count = None
     self.inbound_connections = get_inbounds
     self.outbound_connections = get_outbounds
 
