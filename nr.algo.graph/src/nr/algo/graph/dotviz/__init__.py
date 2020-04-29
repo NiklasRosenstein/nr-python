@@ -27,15 +27,15 @@ from . import builder
 
 
 def dotviz(graph):  # type: (IGraph) -> str
-    pass
+  pass
 
 def dotviz(graph, fp):  # type: (IGraph, TextIO) -> None
-    pass
+  pass
 
 def dotviz(graph, fp=None):
-    viz = builder.Graph(bidirectional=not graph.is_directed())
-    for node in graph.nodes():
-        viz.node(node.id)
-    for edge in graph.edges():
-        viz.edge(edge.a, edge.b)
-    return viz.render(fp)
+  viz = builder.Graph(bidirectional=not graph.is_directed())
+  for node in graph.nodes():
+    viz.node(node.id)
+  for edge in graph.edges():
+    viz.edge(edge.a, edge.b)
+  return viz.render(fp)
