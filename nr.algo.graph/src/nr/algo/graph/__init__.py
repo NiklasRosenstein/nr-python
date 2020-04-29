@@ -21,5 +21,63 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import nr.interface
+
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.2'
+
+
+class IGraph(nr.interface.Interface):
+  """
+  Interface for (bi-) directed graphs.
+  """
+
+  def node_count(self):  # type: () -> int
+    pass
+
+  def nodes(self):  # type: () -> Iterable[Any]
+    pass
+
+  def is_directed(self):  # type: () -> bool
+    pass
+
+  def inbound_connections(self, node):  # type: (Any) -> Sequence[Any]
+    pass
+
+  def outbound_connections(self, node):  # type: (Any) -> Sequence[Any]
+    pass
+
+
+@nr.interface.implements(IGraph)
+class LambdaDiGraph(object):
+
+  def __init__(self, nodes, get_inbounds, get_outbounds=None):
+    # type: (Sequence[Any], Callable[Sequence[Any], [Any]], Optional[Callable[Sequence[Any], [Any]]]) -> None
+    if get_outbounds is None:
+      _dependents = {}
+      for node in nodes:
+        for dependent in get_inbounds(node):
+          _dependents.setdefault(dependent, []).append(node)
+      def get_outbounds(node):
+        return _dependents.get(node, [])
+
+    self._nodes = nodes
+    self.inbound_connections = get_inbounds
+    self.outbound_connections = get_outbounds
+
+  def node_count(self):
+    return len(self._nodes)
+
+  def nodes(self):
+    return iter(self._nodes)
+
+  def is_directed(self):
+    return True
+
+  def inbound_connections(self, node):
+    # Will be overwritten by the constructor.
+    raise NotImplementedError
+
+  def outbound_connections(self, node):
+    # Will be overwritten by the constructor.
+    raise NotImplementedError

@@ -1,5 +1,8 @@
 
+from nr.algo.graph import LambdaDiGraph
+from nr.algo.graph.builder import DiGraph, BiGraph
 from nr.algo.graph.toposort import CyclicGraphError, toposort
+from test_builder import init_graph
 import pytest
 
 
@@ -13,9 +16,9 @@ def test_toposort():
     'f': ['c', 'e']
   }
 
-  order = list(toposort(sorted(nodes), nodes.get))
+  order = list(toposort(LambdaDiGraph(sorted(nodes), nodes.get)))
   assert order == ['a', 'd', 'b', 'c', 'e', 'f']
-  order = list(toposort(sorted(nodes, reverse=True), nodes.get))
+  order = list(toposort(LambdaDiGraph(sorted(nodes, reverse=True), nodes.get)))
   assert order == ['d', 'a', 'b', 'e', 'c', 'f']
 
 
@@ -25,4 +28,11 @@ def test_toposort_cycle():
     'b': ['a']
   }
   with pytest.raises(CyclicGraphError):
-    list(toposort(nodes, nodes.get))
+    list(toposort(LambdaDiGraph(nodes, nodes.get)))
+
+
+def test_toposort_digraph():
+  g = DiGraph()
+  init_graph(g)
+  order = list(toposort(g.adapter()))
+  assert order == [3, 2, 1, 4]

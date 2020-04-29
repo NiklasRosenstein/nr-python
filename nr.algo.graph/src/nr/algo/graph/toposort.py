@@ -21,35 +21,26 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from . import IGraph
+
+
 class CyclicGraphError(Exception):
   pass
 
 
-def toposort(nodes, get_dependencies, get_dependents=None):
-  # type: (List[Any], Callable[List[Any], [Any]]) -> Iterable[Any]
+def toposort(graph):  # type: (IGraph) -> Iterable[Any]
   """
-  Performs topological sorting to the specified set of *nodes* and returns
-  a generator yielding the values of *nodes* in sorted order. If the dependents
-  of a node are know, *get_dependents* can be specified, otherwise it is built
-  by reversing *get_dependencies*.
-
-  Notes:
-
-  * No element in *nodes* must be duplicate.
+  Performs topological sorting on the *graph* object, returning the nodes in topological order.
+  The algorithm performs stable sorting, meaning that it retains the original order of nodes
+  returned by #IGraph.nodes() where possible.
   """
 
-  if get_dependents is None:
-    _dependents = {}
-    for node in nodes:
-      for dependent in get_dependencies(node):
-        _dependents.setdefault(dependent, []).append(node)
-    def get_dependents(node):
-      return _dependents.get(node, [])
+  assert graph.is_directed(), "toposort() works only with directed graphs"
 
   visit = []
   num_edges = 0
-  for node in nodes:
-    deps = get_dependencies(node)
+  for node in graph.nodes():
+    deps = graph.inbound_connections(node)
     num_edges += len(deps)
     if not deps:
       visit.append(node)
@@ -58,9 +49,9 @@ def toposort(nodes, get_dependencies, get_dependents=None):
   while visit:
     node = visit.pop(0)
     yield node
-    for dependent in get_dependents(node):
+    for dependent in graph.outbound_connections(node):
       seen.add((node, dependent))
-      if all((x, dependent) in seen for x in get_dependencies(dependent)):
+      if all((x, dependent) in seen for x in graph.inbound_connections(dependent)):
         visit.append(dependent)
 
   if len(seen) != num_edges:
