@@ -34,5 +34,5 @@ def test_toposort_cycle():
 def test_toposort_digraph():
   g = DiGraph()
   init_graph(g)
-  order = list(toposort(g.adapter()))
-  assert order == [3, 2, 1, 4]
+  order = list(toposort(g))
+  assert order == [4, 1, 2, 3]

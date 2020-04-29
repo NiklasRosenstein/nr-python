@@ -23,11 +23,18 @@
 
 from . import IGraph
 import collections
+import enum
 import nr.interface
 import six
 
 Node = collections.namedtuple('Node', 'id,data')
 Edge = collections.namedtuple('Edge', 'a,b,data')
+
+
+class Direction(enum.Enum):
+  Any = 0
+  Inbound = 1
+  Outbound = 2
 
 
 class GraphError(Exception):
@@ -65,18 +72,13 @@ class EdgeAlreadyExists(EdgeError):
   pass
 
 
+@nr.interface.implements(IGraph)
 class DiGraph(object):
 
   def __init__(self):  # type: (bool) -> None
     self._nodes = {}
     self._edges = {}
     self._edges_reverse = {}
-
-  def is_directed(self):  # type: () -> bool
-    return True
-
-  def node_count(self):  # type: () -> int
-    return len(self._nodes)
 
   def edge_count(self):  # type: () -> int
     return sum(len(x) for x in six.itervalues(self._edges))
@@ -87,8 +89,11 @@ class DiGraph(object):
     except KeyError:
       raise NodeNotFound(node_id)
 
-  def nodes(self):  # type: () -> Iterable[Node]
-    return iter(self._nodes.values())
+  def __getitem__(self, node_id):  # type: (Any) -> Any
+    return self.node(node_id).data
+
+  def nodes(self):  # type: () -> Iterable[Any]
+    return self._nodes.keys()
 
   def add_node(self, node_id, data=None, exist_ok=False):  # type: (Any, Any) -> Node
     if node_id in self._nodes:
@@ -111,17 +116,27 @@ class DiGraph(object):
       raise EdgeNotFound(node_a, node_b)
     return edge
 
-  def edges(self, node_id=None, reverse=False):  # type: (Optional[Any], bool) -> Iterable[Edge]
-    target = self._edges_reverse if reverse else self._edges
-    if node_id is not None:
-      if node_id not in self._nodes:
-        raise NodeNotFound(node_id)
-      for _ in six.itervalues(target.get(node_id, {})):
-        yield _
-    else:
-      for connections in six.itervalues(target):
-        for _ in six.itervalues(connections):
+  def edges(self, node_id=None, direction=Direction.Any):  # type: (Optional[Any], bool, Direction) -> Iterable[Edge]
+    if direction == Direction.Any:
+      if node_id is not None:
+        for _ in self.edges(node_id, Direction.Inbound):
           yield _
+        for _ in self.edges(node_id, Direction.Outbound):
+          yield _
+      else:
+        for _ in self.edges(None, Direction.Inbound):
+          yield _
+    else:
+      target = self._edges_reverse if direction == Direction.Inbound else self._edges
+      if node_id is not None:
+        if node_id not in self._nodes:
+          raise NodeNotFound(node_id)
+        for _ in six.itervalues(target.get(node_id, {})):
+          yield _
+      else:
+        for connections in six.itervalues(target):
+          for _ in six.itervalues(connections):
+            yield _
 
   def add_edge(self, node_a, node_b, data=None, exist_ok=False):  # type: (Any, Any, Any) -> Edge
     if node_a not in self._nodes:
@@ -137,8 +152,21 @@ class DiGraph(object):
     self._edges_reverse.setdefault(node_b, {})[node_a] = edge
     return edge
 
-  def adapter(self):  # type: () -> IGraph
-    return GraphAdapter(self)
+  # IGraph Overrides
+
+  @nr.interface.override
+  def is_directed(self):  # type: () -> bool
+    return True
+
+  @nr.interface.override
+  def node_count(self):  # type: () -> int
+    return len(self._nodes)
+
+  def inbound_connections(self, node_id):  # type: (Any) -> List[Any]
+    return [x.a for x in self.edges(node_id, Direction.Inbound)]
+
+  def outbound_connections(self, node_id):  # type: (Any) -> List[Any]
+    return [x.b for x in self.edges(node_id, Direction.Outbound)]
 
 
 class BiGraph(DiGraph):
@@ -150,37 +178,13 @@ class BiGraph(DiGraph):
     node_a, node_b = sorted((node_a, node_b))
     return super(BiGraph, self).edge(node_a, node_b)
 
-  def edges(self, node_id=None, reverse=False):
-    # Ignoring the "reverse" argument intentionally.
-    for _ in super(BiGraph, self).edges(node_id):
+  def edges(self, node_id=None, direction=Direction.Any):
+    for _ in super(BiGraph, self).edges(node_id, Direction.Inbound):
       yield _
     if node_id is not None:
-      connections = self._edges_reverse.get(node_id, {})
-      for _ in six.itervalues(connections):
+      for _ in super(BiGraph, self).edges(node_id, Direction.Outbound):
         yield _
 
   def add_edge(self, node_a, node_b, data=None):
     node_a, node_b = sorted((node_a, node_b))
     return super(BiGraph, self).add_edge(node_a, node_b, data)
-
-
-@nr.interface.implements(IGraph)
-class GraphAdapter(object):
-
-  def __init__(self, graph):  # type: (DiGraph) -> None
-    self._graph = graph
-
-  def node_count(self):
-    return self._graph.node_count()
-
-  def nodes(self):
-    return (n.id for n in self._graph.nodes())
-
-  def is_directed(self):
-    return self._graph.is_directed()
-
-  def inbound_connections(self, node_id):
-    return [x.b for x in self._graph.edges(node_id)]
-
-  def outbound_connections(self, node_id):
-    return [x.a for x in self._graph.edges(node_id, reverse=True)]

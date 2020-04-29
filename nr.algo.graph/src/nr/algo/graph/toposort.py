@@ -22,7 +22,6 @@
 # IN THE SOFTWARE.
 
 from . import IGraph
-from .roots import roots
 
 
 class CyclicGraphError(Exception):
@@ -38,8 +37,8 @@ def toposort(graph):  # type: (IGraph) -> Iterable[Any]
 
   assert graph.is_directed(), "toposort() works only with directed graphs"
 
-  metadata = {}
-  visit = list(roots(graph, metadata=metadata))
+  num_edges = graph.edge_count()
+  visit = list(graph.roots())
 
   seen = set()
   while visit:
@@ -50,5 +49,5 @@ def toposort(graph):  # type: (IGraph) -> Iterable[Any]
       if all((x, dependent) in seen for x in graph.inbound_connections(dependent)):
         visit.append(dependent)
 
-  if len(seen) != metadata['num_edges']:
-    raise CyclicGraphError(len(seen), metadata['num_edges'])
+  if len(seen) != num_edges:
+    raise CyclicGraphError(len(seen), num_edges)

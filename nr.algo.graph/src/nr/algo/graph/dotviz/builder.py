@@ -45,8 +45,8 @@ def attr(key, value, semicolon=True):
 
 class Graph:
 
-  def __init__(self, bidirectional=True):
-    self.bidirectional = bidirectional
+  def __init__(self, directed):
+    self.directed = directed
     self.settings = {}
     self.nodes = {}
     self.clusters = {}
@@ -71,7 +71,7 @@ class Graph:
     return node
 
   def edge(self, aid, bid, **attrs):
-    if self.bidirectional and aid > bid:
+    if not self.directed and aid > bid:
       aid, bid = bid, aid
 
     conns = self.edges.setdefault(aid, {})
@@ -79,7 +79,7 @@ class Graph:
     self.reverse_edges.setdefault(bid, set()).add(aid)
 
   def edge_attrs(self, aid, bid):
-    if self.bidirectional and aid > bid:
+    if not self.directed and aid > bid:
       aid, bid = bid, aid
 
     try:
@@ -87,17 +87,17 @@ class Graph:
     except KeyError:
       return {}
 
-  def inputs(self, node_id, bidirectional=None):
+  def inputs(self, node_id, directed=None):
     conns = set(self.reverse_edges.get(node_id, ()))
-    if bidirectional is None:
-      bidirectional = self.bidirectional
-    if bidirectional:
+    if directed is None:
+      directed = self.directed
+    if not directed:
       conns.update(self.edges.get(node_id, {}).keys())
     return conns
 
   def outputs(self, node_id):
     conns = set(self.edges.get(node_id, {}).keys())
-    if self.bidirectional:
+    if not self.directed:
       conns.update(self.reverse_edges.get(node_id, ()))
     return conns
 
@@ -107,9 +107,12 @@ class Graph:
       writer = Writer(io.StringIO())
     elif not isinstance(writer, Writer):
       writer = Writer(writer)
-    writer.line('graph {' if self.bidirectional else 'digraph {')
+    writer.line('digraph {' if self.directed else 'graph {')
     writer.indent()
+    for key, value in self.settings.get(None, {}).items():
+      writer.line(attr(key, value, True))
     for key, value in self.settings.items():
+      if key is None: continue
       writer.line('{} [{}];'.format(key, ' '.join(attr(k, v, False) for k, v in value.items())))
     for node in self.nodes.values():
       if not node.cluster:
@@ -149,9 +152,9 @@ class Node:
   def render(self, writer):
     attrs = ' '.join(attr(k, v, False) for k, v in self.attrs.items())
     writer.line('"{}" [{}];'.format(self.id, attrs))
-    for other_id in self.graph.inputs(self.id, bidirectional=False):
+    for other_id in self.graph.inputs(self.id, directed=True):
       attrs = ' '.join(attr(k, v, False) for k, v in self.graph.edge_attrs(other_id, self.id).items())
-      writer.line('"{}" {} "{}" [{}]'.format(other_id, '--' if self.graph.bidirectional else '->', self.id, attrs))
+      writer.line('"{}" {} "{}" [{}]'.format(other_id, '->' if self.graph.directed else '--', self.id, attrs))
 
 
 class Cluster(Node):

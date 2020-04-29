@@ -1,6 +1,6 @@
 
 import pytest
-from nr.algo.graph.builder import DiGraph, BiGraph, NodeNotFound, EdgeNotFound
+from nr.algo.graph.builder import Direction, DiGraph, BiGraph, NodeNotFound, EdgeNotFound
 
 
 def init_graph(g, cycle=False):
@@ -18,7 +18,7 @@ def init_graph(g, cycle=False):
 
 def _base_test(g):
     assert g.node_count() == 4
-    assert set(n.id for n in g.nodes()) == set([1, 2, 3, 4])
+    assert set(g.nodes()) == set([1, 2, 3, 4])
     assert g.edge_count() == 4
     assert len(list(g.edges())) == 4
     assert g.node(1).data == 'Foo'
@@ -49,6 +49,9 @@ def test_digraph():
     with pytest.raises(EdgeNotFound):
         g.edge(1, 4)
 
+    assert sorted(g.roots()) == [4]
+    assert sorted(g.bases()) == [3]
+
 
 def test_bigraph():
     g = BiGraph()
@@ -59,3 +62,6 @@ def test_bigraph():
     assert g.edge(3, 1) is g.edge(1, 3)
     assert g.edge(3, 2) is g.edge(2, 3)
     assert g.edge(4, 1) is g.edge(1, 4)
+
+    assert list(g.roots()) == []
+    assert list(g.bases()) == []

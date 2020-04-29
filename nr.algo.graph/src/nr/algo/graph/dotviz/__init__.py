@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 from .. import IGraph
-from . import builder
+from .builder import Graph as DotvizGraph, Writer as DotvizWriter
 # from typing import TextIO
 
 
@@ -33,9 +33,13 @@ def dotviz(graph, fp):  # type: (IGraph, TextIO) -> None
   pass
 
 def dotviz(graph, fp=None):
-  viz = builder.Graph(bidirectional=not graph.is_directed())
-  for node in graph.nodes():
-    viz.node(node.id)
-  for edge in graph.edges():
-    viz.edge(edge.a, edge.b)
+  """
+  Fast dotviz for #IGraph implementations.
+  """
+
+  viz = DotvizGraph(graph.is_directed())
+  for node_id in graph.nodes():
+    viz.node(node_id)
+    for other_node_id in graph.inbound_connections(node_id):
+      viz.edge(node_id, other_node_id)
   return viz.render(fp)
