@@ -22,33 +22,23 @@
 # IN THE SOFTWARE.
 
 from . import IGraph
-from .roots import roots
 
 
-class CyclicGraphError(Exception):
-  pass
-
-
-def toposort(graph):  # type: (IGraph) -> Iterable[Any]
+def roots(graph, metadata=None):  # type: (IGraph) -> Iterable[Any]
   """
-  Performs topological sorting on the *graph* object, returning the nodes in topological order.
-  The algorithm performs stable sorting, meaning that it retains the original order of nodes
-  returned by #IGraph.nodes() where possible.
+  Iterate over the root nodes of a graph (those that have no inbound connections).
+
+  If *metadata* is specified, it must be a dictionary that will be filled with
+  metadata that can be calculcated as a side-product. Currently the metadata
+  will contain only the key "num_edges", which represents the total number of
+  edges in the graph.
   """
 
-  assert graph.is_directed(), "toposort() works only with directed graphs"
-
-  metadata = {}
-  visit = list(roots(graph, metadata=metadata))
-
-  seen = set()
-  while visit:
-    node = visit.pop(0)
-    yield node
-    for dependent in graph.outbound_connections(node):
-      seen.add((node, dependent))
-      if all((x, dependent) in seen for x in graph.inbound_connections(dependent)):
-        visit.append(dependent)
-
-  if len(seen) != metadata['num_edges']:
-    raise CyclicGraphError(len(seen), metadata['num_edges'])
+  if metadata is None:
+    metadata = {}
+  metadata['num_edges'] = 0
+  for node in graph.nodes():
+    deps = graph.inbound_connections(node)
+    metadata['num_edges'] += len(deps)
+    if not deps:
+      yield node
