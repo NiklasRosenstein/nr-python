@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# automatically created by shore 0.0.24
+# automatically created by shore 0.0.25
 
 from __future__ import print_function
 import argparse
@@ -9,27 +9,26 @@ import subprocess
 import sys
 
 package_def = [
-  {"extra_requires": {}, "name": "nr.algo.graph", "requires": []},
+  {"extra_requires": {}, "name": "nr.parsing.date", "requires": []},
   {"extra_requires": {}, "name": "nr.commons.api", "requires": []},
   {"extra_requires": {}, "name": "nr.fs", "requires": []},
+  {"extra_requires": {}, "name": "nr.parsing.core", "requires": []},
   {"extra_requires": {}, "name": "nr.markdown", "requires": []},
   {"extra_requires": {}, "name": "nr.metaclass", "requires": []},
-  {"extra_requires": {}, "name": "nr.parsing.core", "requires": []},
-  {"extra_requires": {}, "name": "nr.parsing.date", "requires": []},
-  {"extra_requires": {}, "name": "nr.proxy", "requires": []},
-  {"extra_requires": {}, "name": "nr.utils.process", "requires": []},
-  {"extra_requires": {}, "name": "nr.collections", "requires": ["nr.metaclass"]},
+  {"extra_requires": {"test": ["nr.fs"]}, "name": "nr.collections", "requires": ["nr.metaclass"]},
+  {"extra_requires": {"test": ["nr.collections"]}, "name": "nr.proxy", "requires": []},
   {"extra_requires": {}, "name": "nr.pylang.ast", "requires": ["nr.collections"]},
   {"extra_requires": {}, "name": "nr.pylang.utils", "requires": ["nr.collections"]},
-  {"extra_requires": {}, "name": "nr.config", "requires": ["nr.collections", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.interface", "requires": ["nr.collections", "nr.metaclass", "nr.pylang.utils"]},
+  {"extra_requires": {}, "name": "nr.config", "requires": ["nr.collections", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.stream", "requires": ["nr.collections", "nr.pylang.utils"]},
-  {"extra_requires": {}, "name": "nr.utils.ponyorm", "requires": ["nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.databind.core", "requires": ["nr.collections", "nr.interface", "nr.stream", "nr.pylang.utils"]},
-  {"extra_requires": {}, "name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
   {"extra_requires": {}, "name": "nr.databind.json", "requires": ["nr.collections", "nr.databind.core", "nr.interface", "nr.parsing.date", "nr.pylang.utils"]},
-  {"extra_requires": {}, "name": "nr.pylang.bundle", "requires": ["nr.databind.core", "nr.fs", "nr.sumtype", "nr.stream"]},
+  {"extra_requires": {}, "name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
   {"extra_requires": {}, "name": "nr.databind.rest", "requires": ["nr.collections", "nr.interface", "nr.databind.core", "nr.databind.json", "nr.pylang.utils", "nr.sumtype"]},
+  {"extra_requires": {}, "name": "nr.pylang.bundle", "requires": ["nr.databind.core", "nr.fs", "nr.sumtype", "nr.stream"]},
+  {"extra_requires": {}, "name": "nr.utils.ponyorm", "requires": ["nr.pylang.utils"]},
+  {"extra_requires": {}, "name": "nr.utils.process", "requires": []},
 ]
 
 parser = argparse.ArgumentParser()
