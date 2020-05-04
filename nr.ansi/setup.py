@@ -12,7 +12,7 @@ with io.open('src/nr/ansi.py', encoding='utf8') as fp:
 with io.open('README.md', encoding='utf8') as fp:
   long_description = fp.read()
 
-requirements = []
+requirements = ['nr.pylang.utils >=0.0.2,<0.1.0']
 
 setuptools.setup(
   name = 'nr.ansi',
@@ -30,7 +30,7 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = [],
-  python_requires = None, # TODO: '>=3.4,<4.0.0',
+  python_requires = None, # TODO: '>=3.5,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},
