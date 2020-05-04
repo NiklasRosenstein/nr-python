@@ -1,5 +1,5 @@
 
-from nr.ansi import *
+from nr.ansiterm import *
 
 
 def test_parse_color_sgrcolor():

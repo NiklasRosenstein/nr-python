@@ -6,7 +6,7 @@ import re
 import setuptools
 import sys
 
-with io.open('src/nr/ansi.py', encoding='utf8') as fp:
+with io.open('src/nr/ansiterm.py', encoding='utf8') as fp:
   version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 with io.open('README.md', encoding='utf8') as fp:
@@ -15,7 +15,7 @@ with io.open('README.md', encoding='utf8') as fp:
 requirements = ['nr.pylang.utils >=0.0.2,<0.1.0']
 
 setuptools.setup(
-  name = 'nr.ansi',
+  name = 'nr.ansiterm',
   version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
