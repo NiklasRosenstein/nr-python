@@ -247,3 +247,18 @@ class Validator(FieldDecoration, ClassDecoration):
       raise ValueError('need exactly one of the "function" or "method" arguments')
     self.function = function
     self.method = method
+
+  def test(self, struct_cls, field_value):  # type: (Type[Struct], Any) -> None
+    if self.function:
+      return self.function(field_value)
+    else:
+      return getattr(struct_cls, self.method)(field_value)
+
+  @classmethod
+  def choices(cls, choices):  # type: (Sequence[Any]) -> Validator
+    def _func(value):
+      if value not in choices:
+        s_choices = '|'.join(map(repr, choices))
+        raise ValueError('expected one of {}, got {!r}'.format(s_choices, value))
+      return value
+    return cls(_func)
