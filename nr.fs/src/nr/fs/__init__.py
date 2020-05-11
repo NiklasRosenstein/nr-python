@@ -1,6 +1,6 @@
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '1.6.1'
+__version__ = '1.6.2'
 
 from ._path import *
 from ._atomic import atomic_file
