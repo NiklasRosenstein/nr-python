@@ -34,7 +34,7 @@ __all__ = [
   'canonical', 'abs', 'rel', 'isfile_cs', 'isrel', 'issub', 'isglob', 'glob', 'addtobase',
   'addprefix', 'addsuffix', 'setsuffix', 'rmvsuffix', 'getsuffix', 'makedirs',
   'chmod_update', 'chmod_repr', 'chmod', 'compare_timestamp',
-  'compare_all_timestamps', 'fixcase', 'remove'
+  'compare_all_timestamps', 'fixcase', 'remove', 'move', 'samefile'
 ]
 
 import ctypes
