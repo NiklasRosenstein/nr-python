@@ -271,7 +271,12 @@ class StructSerializer(object):
         key, field.datatype, value, decorations=field.decorations))
 
     if json_field_validator:
-      kwargs[field.name] = json_field_validator(kwargs[field.name])
+      try:
+        kwargs[field.name] = json_field_validator.test(struct_cls, kwargs[field.name])
+      except TypeError as exc:
+        raise node.type_error(exc)
+      except ValueError as exc:
+        raise node.value_error(exc)
 
     handled_keys.add(key)
 
