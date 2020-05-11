@@ -4,4 +4,4 @@ author: 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 license: MIT
 url: https://git.niklasrosenstein.com/NiklasRosenstein/nr-python-libs
 use:
-- dev-install
+  - type: install-script
