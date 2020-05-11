@@ -25,7 +25,7 @@ serialize data from and to JSON representation.
 """
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.7'
+__version__ = '0.0.8'
 
 from nr.databind.core import *
 from nr.databind.json import serializers as _s
