@@ -630,3 +630,14 @@ def make_struct(name, fields, base=None, mixins=()):
                       .format(type(key).__name__))
 
   return type(name, (base,) + mixins, {'__fields__': fields})
+
+
+def cast_struct(src, target_cls, **update):  # type: (Struct, Type[Struct], Any) -> Struct
+  """
+  Cast a struct instance from one to another class by taking all overlapping properties
+  from *src* and passing it to the *target_cls* constructor.
+  """
+
+  kwargs = {k: getattr(src, k) for k in src.__fields__ if k in target_cls.__fields__}
+  kwargs.update(update)
+  return target_cls(**kwargs)

@@ -523,5 +523,5 @@ def make_node(value, datatype, filename=None, decorations=None):
 from .collection import Collection
 from .datatypes import *
 from .decorations import *
-from .struct import Field, Struct, StructType, make_struct
+from .struct import Field, Struct, StructType, make_struct, cast_struct
 from .union import UnionType
