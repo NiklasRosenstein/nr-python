@@ -215,7 +215,9 @@ class Strict(GlobalDecoration, ClassDecoration):
   encountered.
   """
 
-  pass
+  @classmethod
+  def inheritable(cls):
+    return True
 
 
 class SkipDefaults(GlobalDecoration, FieldDecoration, ClassDecoration):
