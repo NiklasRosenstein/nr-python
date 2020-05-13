@@ -356,6 +356,10 @@ class FieldSpec(object):
   def __getitem__(self, name):
     return self._fields[name]
 
+  def __delitem__(self, name):
+    del self._fields[name]
+    self._update_cache()
+
   def __contains__(self, name):
     return name in self._fields
 
@@ -367,6 +371,9 @@ class FieldSpec(object):
 
   def __repr__(self):
     return 'FieldSpec({!r})'.format(list(self._fields.values()))
+
+  def __copy__(self):
+    return type(self)(self._fields.values())
 
   def keys(self):  # type: () - >Stream[str]
     return Stream(six.iterkeys(self._fields))
@@ -403,6 +410,9 @@ class FieldSpec(object):
 
   def prominent(self):  # type: () -> Iterable[Field]
     return iter(self._fields_prominent)
+
+  def copy(self):
+    return self.__copy__()
 
 
 class _StructMeta(type):

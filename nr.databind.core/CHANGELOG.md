@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.12 (2020-05-13)
+
+* Added `FieldSpec.__delitem__()`, `FieldSpec.__copy__()` and `FieldSpec.copy()`
+
 ## v0.0.11 (2020-05-13)
 
 * `Strict` decoration is now inherited by subclasses
