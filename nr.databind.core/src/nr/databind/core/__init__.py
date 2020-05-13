@@ -305,7 +305,7 @@ class Node(object):
 
     decoration = get_decoration(decoration_cls, self.context.decorations,
       self.decorations, self.datatype.get_decorations())
-    if not decoration and isinstance(decoration_cls, ClassDecoration):
+    if not decoration and issubclass(decoration_cls, ClassDecoration):
       if isinstance(self.datatype, StructType):
         decoration = decoration_cls.get(self.datatype.struct_cls)
       elif isinstance(self.datatype, PythonClassType):

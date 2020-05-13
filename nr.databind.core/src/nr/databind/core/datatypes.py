@@ -388,7 +388,7 @@ class MultiType(object):
 
 @implements(IDataType)
 class ProxyType(object):
-  """ Proxy for another datatype. Used with #forward_decl(). """
+  """ Proxy for another datatype. Bind it to an actual type with #implementation(). """
 
   classdef.comparable(['wrapped_type'])
   classdef.repr(['wrapped_type'])
