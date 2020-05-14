@@ -546,12 +546,16 @@ class Struct(six.with_metaclass(_StructMeta)):
     argcount = len(args) + len(kwargs)
     if argcount > len(self.__fields__):
       # TODO(nrosenstein): Include min number of args.
-      raise TypeError('expected at max {} arguments, got {}'
-                      .format(len(self.__fields__), argcount))
+      raise TypeError('{}() constructor expected at max {} arguments, got {}'
+                      .format(type(self).__name__, len(self.__fields__), argcount))
 
     # Check the type of all keyword arguments.
     for key, value in kwargs.items():
-      field = self.__fields__[key]
+      try:
+        field = self.__fields__[key]
+      except KeyError:
+        raise TypeError('{}() constructor received unexpected keyword argument {!r}'
+                        .format(type(self).__name__, key))
       if value is None and field.nullable:
         continue
       kwargs[key] = field.check_value(struct_name, value)

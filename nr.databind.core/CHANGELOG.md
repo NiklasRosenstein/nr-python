@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.13 (2020-05-14)
+
+* Raise `TypeError` if unexpected keyword argument is passed to `Struct` constructor
+
 ## v0.0.12 (2020-05-13)
 
 * Added `FieldSpec.__delitem__()`, `FieldSpec.__copy__()` and `FieldSpec.copy()`
