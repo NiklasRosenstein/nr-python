@@ -273,13 +273,12 @@ class FieldSpec(object):
     name will be assigned the name of their associated key. """
 
     fields = []
-    for key, value in six.iteritems(fields_dict):
-      if not isinstance(value, Field):
-        raise TypeError('expected Field, key {!r} got {}'.format(
-          key, type(value).__name__))
-      if not value.name:
-        value.name = key
-      fields.append(value)
+    for key, field in six.iteritems(fields_dict):
+      if not isinstance(field, Field):
+        raise TypeError('expected Field, key {!r} got {}'.format(key, type(field).__name__))
+      if not field.name:
+        field.name = key
+      fields.append(field)
     return cls(fields)
 
   @classmethod
@@ -355,6 +354,11 @@ class FieldSpec(object):
 
   def __getitem__(self, name):
     return self._fields[name]
+
+  def __setitem__(self, name, field):  # type: (str, Field)
+    if not field.name:
+      field.name = name
+    self.update([field])
 
   def __delitem__(self, name):
     del self._fields[name]
