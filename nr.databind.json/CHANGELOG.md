@@ -6,6 +6,16 @@
   `SerializationTypeError` when testing the deserialization of a `MultiType`
   member
 
+### v0.0.8 (2020-05-11)
+
+* `Validator` decoration is now treated correctly and `TypeError`/`ValueError`
+  from it is converted appropriately
+
+### v0.0.7 (2020-04-16)
+
+* `PythonClassConverter` and `StructConverter` now respect the decorations
+  returned by `Node.get_decoration()`
+
 ### v0.0.6 (2020-04-13)
 
 * Set the "mapper" key in the `Struct.__databind__` and
