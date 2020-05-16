@@ -20,8 +20,13 @@
 # IN THE SOFTWARE.
 
 from nr.collections import abc, ChainDict
-from nr.databind.core import IDeserializer, ISerializer, Module, SerializerCollection, \
-  SerializationTypeError
+from nr.databind.core import (
+  IDeserializer,
+  ISerializer,
+  Module,
+  SerializerCollection,
+  SerializationError,
+  SerializationTypeError)
 from nr.databind.core.collection import Collection
 from nr.databind.core.datatypes import *
 from nr.databind.core.decorations import *
@@ -570,7 +575,7 @@ class MultiTypeSerializer(object):
     for datatype in node.datatype.types:
       try:
         return dispatcher(node.replace(datatype=datatype))
-      except SerializationTypeError as exc:
+      except SerializationError as exc:
         errors.append(exc)
     error_lines = ['Unable to {} MultiType for value "{}".'.format(method, type(node.value).__name__)]
     for error in errors:
