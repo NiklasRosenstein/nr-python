@@ -9,6 +9,6 @@ requirements:
   - nr.interface ^0.0.2
   - nr.databind.core ~0.0.5
   - nr.databind.json ~0.0.5
+  - nr.metaclass ~0.0.5
   - nr.pylang.utils ~0.0.1
   - nr.sumtype ~0.0.2
-  - test: []

@@ -34,6 +34,7 @@ from nr.collections.generic import Generic
 from nr.databind.core import ObjectMapper, Field, FieldName, Struct, OptionalType
 from nr.databind.json import JsonModule, JsonSerializer
 from nr.interface import Interface, Method as _InterfaceMethod
+from nr.metaclass.deconflict import deconflicted_base
 from nr.pylang.utils import classdef, NotSet
 from nr.sumtype import Constructor, Sumtype, add_constructor_tests
 from typing import Any, BinaryIO, Callable, Dict, List, Optional, TextIO, Type, TypeVar, Union
@@ -531,15 +532,15 @@ class ParamVisitor:
     return getattr(self, method_name)(param)
 
 
-class Page(Generic):
+class Page(deconflicted_base(Struct, Generic)):
   """
   Template that represents a paginated type for a specific item type. Can
   be instantiated with the #of() method.
   """
 
   items = Field([Any])
-  next_page_token = Field(Any, FieldName('nextPageToken'))
+  next_page_token = Field(Any, FieldName('nextPageToken'), nullable=True)
 
   def __generic_init__(self, item_type: Any, token_type: Any = int):
-    self.items = Field(item_type)
-    self.next_page_token = Field(token_type, FieldName('nextPageToken'))
+    self.items = Field([item_type])
+    self.next_page_token = Field(token_type, FieldName('nextPageToken'), nullable=True)
