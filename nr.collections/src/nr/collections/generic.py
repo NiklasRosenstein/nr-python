@@ -97,4 +97,6 @@ def instantiate(generic, *args, **kwargs):
     name += ', '.join(map('{}={}'.format(k, _format(v)) for k, v in kwargs.items()))
   name += ']'
 
-  return type(name, (generic,), {'__generic_bind__': (args, kwargs)})
+  cls = type(name, (generic,), {'__generic_bind__': (args, kwargs)})
+  cache[key] = cls
+  return cls
