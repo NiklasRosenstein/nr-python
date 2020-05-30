@@ -275,7 +275,7 @@ class FieldSpec(object):
     fields = []
     for key, field in six.iteritems(fields_dict):
       if not isinstance(field, Field):
-        raise TypeError('expected Field, key {!r} got {}'.format(key, type(field).__name__))
+        field = Field(field)
       if not field.name:
         field.name = key
       fields.append(field)
