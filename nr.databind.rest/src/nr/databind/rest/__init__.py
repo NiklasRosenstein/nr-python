@@ -101,6 +101,13 @@ class ServiceException(Exception):
     return exc
 
 
+class NotFound(ServiceException):
+  http_status_code = 404
+
+  def __init__(self, message: str = None, **kwargs):
+    super().__init__(message, kwargs)
+
+
 class BadRequest(ServiceException):
   http_status_code = 400
 
@@ -157,6 +164,13 @@ class RouteReturn(Sumtype):
   Void = Constructor()
   Passthrough = Constructor()
   Mapped = Constructor('type_annotation,content_type')
+
+
+class RouteResult:
+
+  def __init__(self, type_: RouteReturn, value: Any) -> None:
+    self.type = type_
+    self.value = value
 
 
 class Path:

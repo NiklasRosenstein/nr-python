@@ -26,6 +26,7 @@ from nr.databind.rest import (
   Path,
   ParametrizedRoute,
   RouteParam,
+  RouteResult,
   RouteReturn,
   ParamVisitor,
   ServiceException,
@@ -127,17 +128,22 @@ class FlaskRouteWrapper:
       kwargs = self.route.build_parameters(visitor)
       result = self.impl(**kwargs)
 
-      if self.route.return_.is_void():
+      if isinstance(result, RouteResult):
+        return_type, result = result.type, result.value
+      else:
+        return_type = self.route.return_
+
+      if return_type.is_void():
         if result is not None:
           logger.warning('discarding return value of %s', self)
         return '', 201
-      elif self.route.return_.is_passthrough():
+      elif return_type.is_passthrough():
         return result, None
-      elif self.route.return_.is_mapped():
-        result = self.mapper.se(content_type, result, self.route.return_.type_annotation)
+      elif return_type.is_mapped():
+        result = self.mapper.se(content_type, result, return_type.type_annotation)
         return result, 200
       else:
-        raise RuntimeError('unknown return type: {!r}'.format(self.route.return_))
+        raise RuntimeError('unknown return type: {!r}'.format(return_type))
 
     try:
       result, status_code = _handle_request()
