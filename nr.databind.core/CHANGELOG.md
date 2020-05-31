@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.0.15 (2020-05-16)
+
+* Change `FieldSpec.from_dict()`: Now accepts non-Field objects in dictionary values, expecting
+  that the value represents a Field type definition and creates a new Field from it. This effects
+  `make_struct()`, allowing the creation of structs with a leaner syntax.
+
+## v0.0.14 (2020-05-15)
+
+* Add `FieldSpec.__setitem__()`
+
 ## v0.0.13 (2020-05-14)
 
 * Raise `TypeError` if unexpected keyword argument is passed to `Struct` constructor
