@@ -40,7 +40,7 @@ from nr.sumtype import Constructor, Sumtype, add_constructor_tests
 from typing import Any, BinaryIO, Callable, Dict, List, Optional, TextIO, Type, TypeVar, Union
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 JSON_CONTENT_TYPE = 'application/json'
 PATH_PARAMETER_CONTENT_TYPE = 'x-path-param'
