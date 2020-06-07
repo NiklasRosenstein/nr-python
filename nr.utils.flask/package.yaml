@@ -1,5 +1,5 @@
 name: "nr.utils.flask"
-version: "0.0.1"
+version: "0.1.0"
 author: "Niklas Rosenstein <rosensteinniklas@gmail.com>"
 license: "MIT"
 description: "Package description here."
