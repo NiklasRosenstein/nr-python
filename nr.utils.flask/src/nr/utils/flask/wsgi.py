@@ -47,6 +47,11 @@ class Status(enum.Enum):
   UNKNOWN = 2
 
 
+class SslConfig(Struct):
+  cert = Field(str)
+  key = Field(str)
+
+
 @SerializeAs(_WsgiRunnerType)
 class WsgiRunner(Struct):
   entrypoint = Field(str)
@@ -55,6 +60,7 @@ class WsgiRunner(Struct):
   pidfile = Field(str, default=None)
   stdout = Field(str, default=None)
   stderr = Field(str, default=None)  #: Can be special value "<stdout>".
+  ssl = Field(SslConfig, default=None)
 
   def start(self, daemonize: bool = False) -> None:
     raise NotImplementedError(type(self).__name__)
@@ -99,6 +105,8 @@ class GunicornWsgiRunner(WsgiRunner):
     if self.stderr:
       os.makedirs(os.path.dirname(self.stderr), exist_ok=True)
       command += ['--error-logfile', self.stderr]
+    if self.ssl:
+      command += ['--certfile', self.ssl.cert, '--keyfile', self.ssl.key]
     env = os.environ.copy()
     env['NR_UTILS_FLASK_RUNNER'] = 'gunicorn'
     subprocess.call(command)
@@ -107,7 +115,6 @@ class GunicornWsgiRunner(WsgiRunner):
 class FlaskAppRunner(WsgiRunner):
   debug = Field(bool, default=False)
   use_reloader = Field(bool, default=None)
-  ssl_context = Field(CollectionType(str, py_type=tuple), default=None)
 
   def start(self, daemonize: bool = False) -> None:
     use_reloader = self.debug if self.use_reloader is None else self.use_reloader
@@ -138,6 +145,11 @@ class FlaskAppRunner(WsgiRunner):
     if self.pidfile:
       os.makedirs(os.path.dirname(self.pidfile), exist_ok=True)
 
+    if self.ssl:
+      ssl_context = (self.ssl.cert, self.ssl.key)
+    else:
+      ssl_context = None
+
     def run():
       if stdout or stderr:
         replace_stdio(None, stdout, stderr)
@@ -152,7 +164,7 @@ class FlaskAppRunner(WsgiRunner):
           port=self.port,
           debug=self.debug,
           use_reloader=use_reloader,
-          ssl_context=self.ssl_context,
+          ssl_context=ssl_context,
         )
       finally:
         if (not use_reloader or os.getenv('WERKZEUG_RUN_MAIN') == 'true') and self.pidfile:

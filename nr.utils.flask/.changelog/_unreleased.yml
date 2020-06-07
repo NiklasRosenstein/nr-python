@@ -1,0 +1,7 @@
+- types:
+  - feature
+  - change
+  issues: []
+  components:
+  - wsgirunner
+  description: Replace flask "ssl_context" with general "ssl" option
