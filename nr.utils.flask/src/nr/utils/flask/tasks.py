@@ -22,28 +22,6 @@
 This modules provides a framework for managing background tasks in a Flask application.
 """
 
-
-# -*- coding: utf8 -*-
-# Copyright (c) 2020 Niklas Rosenstein
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE.
-
 from nr.interface import Interface, default, implements, override
 from typing import Any, Callable, Union
 import flask
@@ -93,6 +71,9 @@ class ThreadedScheduler(threading.Thread):
       self.stop_event.set()
       self.cond.notify()
 
+  def stopped(self) -> bool:
+    return self.stop_event.is_set()
+
   def run(self) -> None:
     logger.info('SchedulerThread started.')
     while not self.stop_event.is_set():
@@ -116,32 +97,68 @@ class Restart(enum.Enum):
   always = 3
 
 
+class TaskImpl:
+  """
+  Can be subclasses to implement tasks. #TaskImpl objects have a reference to the #Task
+  object that is managed by the scheduler, thus allowing the task implementation to check
+  if the task was stopped.
+  """
+
+  _task = None
+  _func = None
+  _pass_task = False
+
+  def __init__(self, func: Callable = None, pass_task: bool = False) -> None:
+    self._func = func
+    self._pass_task = pass_task
+
+  def stopped(self) -> bool:
+    return self.task.stopped()
+
+  def run(self):
+    if not self._func:
+      raise NotImplementedError('{}.run()'.format(type(self).__name__))
+    if not self.task:
+      raise RuntimeError('TaskImpl._task is not set.')
+    if self._pass_task:
+      self._func(self._task)
+    else:
+      self._func()
+
+
 class Task:
 
   def __init__(
     self,
     id_: str,
-    func: Callable[[], Any],
+    impl: TaskImpl,
     restart: Restart,
     restart_cooldown: int,
+    pass_task: bool,
     scheduler: IScheduler,
   ) -> None:
     self.id = id_
-    self.func = func
+    self.impl = impl
     self.restart = restart
     self.restart_cooldown = restart_cooldown
+    self.pass_task = pass_task
     self.scheduler = scheduler
     self.thread = None
     self.started_count = 0
     self.lock = threading.RLock()
     self.finished_callbacks = []
+    self.stop_event = threading.Event()
 
   def __repr__(self) -> str:
     return 'Task(id={!r}, restart={!r})'.format(self.id, self.restart)
 
   def _run(self) -> None:
     try:
-      self.func()
+      try:
+        self.impl._task = self
+        self.impl.run()
+      finally:
+        self.impl._task = None
       success = True
     except Exception:
       logger.exception('Exception in task %r (restart: %s)', self.id, self.restart)
@@ -166,8 +183,12 @@ class Task:
       self.thread = threading.Thread(target=self._run)
       self.thread.start()
       self.started_count += 1
+      self.stop_event.clear()
       logger.info('Started task %r (thread-id: %s, started-count: %s)',
         self.id, self.thread.ident, self.started_count)
+
+  def stop(self) -> None:
+    self.stop_event.set()
 
   def add_finished_callback(self, func: Callable[[], Any]) -> None:
     self.finished_callbacks.append(func)
@@ -191,10 +212,11 @@ class TaskManager:
   def register_task(
     self,
     id_: str,
-    func: Callable[[], Any],
+    task_impl: Union[TaskImpl, Callable[[], Any]],
     start_immediately: bool = False,
     restart: Union[Restart, str] = Restart.always,
     restart_cooldown: int = 0,
+    pass_task: bool = False,
   ) -> Task:
     """
     Add a task to the server that will be started on the first request to the application,
@@ -202,12 +224,15 @@ class TaskManager:
     task will be restarted when it ended.
     """
 
+    if not isinstance(task_impl, TaskImpl):
+      task_impl = TaskImpl(task_impl)
+
     if isinstance(restart, str):
       restart = Restart[restart.lower().replace('-', '_')]
 
     if id_ in self.tasks:
       raise ValueError('task id {!r} already occupied'.format(id_))
-    task = Task(id_, func, restart, restart_cooldown, self.scheduler)
+    task = Task(id_, task_impl, restart, restart_cooldown, pass_task, self.scheduler)
     self.tasks[id_] = task
     logger.info('Registered task %r.', id_)
     if start_immediately:

@@ -4,3 +4,9 @@
   components:
   - general
   description: Add `nr.utils.flask.wsgi` module
+- types:
+  - feature
+  issues: []
+  components:
+  - tasks
+  description: Add `TaskImpl` class
