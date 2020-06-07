@@ -1,0 +1,6 @@
+- types:
+  - feature
+  issues: []
+  components:
+  - general
+  description: Add `nr.utils.flask.wsgi` module
