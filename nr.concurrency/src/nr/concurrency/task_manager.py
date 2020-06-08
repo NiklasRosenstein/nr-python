@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Niklas Rosenstein
+# Copyright (c) 2020 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -19,12 +19,11 @@
 # IN THE SOFTWARE.
 
 """
-This modules provides a framework for managing background tasks in a Flask application.
+This modules provides a framework for managing background tasks.
 """
 
 from nr.interface import Interface, default, implements, override
 from typing import Any, Callable, Union
-import flask
 import enum
 import logging
 import queue
@@ -113,12 +112,12 @@ class TaskImpl:
     self._pass_task = pass_task
 
   def stopped(self) -> bool:
-    return self.task.stopped()
+    return self._task.stopped()
 
   def run(self):
     if not self._func:
       raise NotImplementedError('{}.run()'.format(type(self).__name__))
-    if not self.task:
+    if not self._task:
       raise RuntimeError('TaskImpl._task is not set.')
     if self._pass_task:
       self._func(self._task)
@@ -190,6 +189,9 @@ class Task:
   def stop(self) -> None:
     self.stop_event.set()
 
+  def stopped(self) -> bool:
+    return self.stop_event.is_set()
+
   def add_finished_callback(self, func: Callable[[], Any]) -> None:
     self.finished_callbacks.append(func)
 
@@ -252,13 +254,13 @@ class TaskManager:
     task.restart = Restart.No
     task.stop()
 
-  def start(self):
+  def start(self) -> None:
     self.scheduler.start()
     for task in self.tasks.values():
       if task.started_count == 0:
         task.start()
 
-  def stop(self):
+  def stop(self) -> None:
     self.scheduler.stop()
     for task in self.tasks.values():
       task.stop()
