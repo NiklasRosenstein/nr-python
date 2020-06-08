@@ -38,7 +38,10 @@ def is_live():
 
 
 def get_runner_name():
-  return os.getenv('NR_UTILS_FLASK_RUNNER')
+  name = os.getenv('NR_UTILS_FLASK_RUNNER')
+  if not name:
+    raise EnvironmentError('nr.utils.flask.wsgi Runner name is not set (NR_UTILS_FLASK_RUNNER)')
+  return name
 
 
 class Status(enum.Enum):
@@ -91,6 +94,8 @@ class WsgiRunner(Struct):
 
 
 class GunicornWsgiRunner(WsgiRunner):
+  num_workers = Field(int, default=None)
+  additional_options = Field([str], default=list)
 
   def start(self, daemonize: bool = False) -> None:
     command = ['gunicorn', self.entrypoint, '--bind', '{}:{}'.format(self.host, self.port)]
@@ -107,6 +112,9 @@ class GunicornWsgiRunner(WsgiRunner):
       command += ['--error-logfile', self.stderr]
     if self.ssl:
       command += ['--certfile', self.ssl.cert, '--keyfile', self.ssl.key]
+    if self.num_workers:
+      command += ['--workers', str(self.num_workers)]
+    command += self.additional_options
     env = os.environ.copy()
     env['NR_UTILS_FLASK_RUNNER'] = 'gunicorn'
     subprocess.call(command)
