@@ -8,7 +8,7 @@ import re
 import setuptools
 import sys
 
-with io.open('src/nr/utils/flask/__init__.py', encoding='utf8') as fp:
+with io.open('src/nr/utils/wsgi/__init__.py', encoding='utf8') as fp:
   version = re.search(r"__version__\s*=\s*'(.*)'", fp.read()).group(1)
 
 readme_file = 'README.md'
@@ -19,10 +19,10 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = []
+requirements = ['nr.databind.core >=0.0.15,<0.1.0', 'nr.databind.core >=0.0.9,<0.1.0', 'nr.interface >=0.0.2,<0.1.0', 'nr.utils.process >=0.0.4,<0.1.0']
 
 setuptools.setup(
-  name = 'nr.utils.flask',
+  name = 'nr.utils.wsgi',
   version = version,
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
@@ -39,7 +39,12 @@ setuptools.setup(
   tests_require = [],
   python_requires = None, # TODO: '>=3.4,<4.0.0',
   data_files = [],
-  entry_points = {},
+  entry_points = {
+    'nr.utils.wsgi.IWsgiRunner': [
+      'flask = nr.utils.wsgi:FlaskRunner',
+      'gunicorn = nr.utils.wsgi:GunicornRunner',
+    ]
+  },
   cmdclass = {},
   keywords = [],
   classifiers = [],
