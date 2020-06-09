@@ -260,6 +260,10 @@ class StructSerializer(object):
         kwargs[field.name] = node.key
         return
       if field.required or (field.default is NotSet and not json_default):
+        defaults = struct_cls._get_field_defaults(set([field.name]))
+        if field.name in defaults:
+          kwargs[field.name] = defaults[field.name]
+          return
         msg = 'member "{}" is missing for {} object'.format(key, struct_cls.__name__)
         raise node.value_error(msg)
       if json_default:

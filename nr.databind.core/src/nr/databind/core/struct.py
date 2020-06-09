@@ -578,13 +578,25 @@ class Struct(six.with_metaclass(_StructMeta)):
 
     # Extract all fields.
     handled_keys = set()
+    missing_keys = set()
     for field in self.__fields__.values().sortby(lambda x: x.get_priority()):
       if field.name not in kwargs and field.name not in vars(self):
         if field.default is NotSet:
-          raise TypeError('{}: missing required argument "{}"'.format(
-            type(self).__name__, field.name))
+          missing_keys.add(field.name)
+          continue
         kwargs[field.name] = field.get_default_value()
       handled_keys.add(field.name)
+
+    # Give the class a chance to return the defaults for missing keys.
+    if missing_keys:
+      defaults = self._get_field_defaults(missing_keys)
+      defaults.update(kwargs)
+      kwargs = defaults
+
+    for key in missing_keys:
+      if key not in kwargs:
+        raise TypeError('{}: missing required argument "{}"'.format(
+          type(self).__name__, field.name))
 
     unhandled_keys = set(kwargs.keys()) - handled_keys
     if unhandled_keys:
@@ -616,6 +628,15 @@ class Struct(six.with_metaclass(_StructMeta)):
       fields = self.__fields__.values()
     attrs = ['{}={!r}'.format(f.name, getattr(self, f.name)) for f in fields]
     return '{}({})'.format(type(self).__name__, ', '.join(attrs))
+
+  @classmethod
+  def _get_field_defaults(cls, field_subset):  # type; (Set[str]) -> Dict[str, Any]
+    """
+    Class method that may be overwritten to provide default values when the Struct instance
+    is created that is not described in the #Field.default of the struct fields.
+    """
+
+    return {}
 
 
 def make_struct(name, fields, base=None, mixins=()):
