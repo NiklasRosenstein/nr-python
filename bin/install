@@ -23,6 +23,7 @@ package_def = [
   {"extra_requires": {}, "name": "nr.ansiterm", "requires": ["nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.config", "requires": ["nr.collections", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.interface", "requires": ["nr.collections", "nr.metaclass", "nr.pylang.utils"]},
+  {"extra_requires": {}, "name": "nr.concurrency", "requires": ["nr.interface"]},
   {"extra_requires": {}, "name": "nr.stream", "requires": ["nr.collections", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.databind.core", "requires": ["nr.collections", "nr.interface", "nr.stream", "nr.pylang.utils"]},
   {"extra_requires": {}, "name": "nr.sumtype", "requires": ["nr.metaclass", "nr.stream"]},
@@ -31,8 +32,9 @@ package_def = [
   {"extra_requires": {}, "name": "nr.parsing.core", "requires": []},
   {"extra_requires": {}, "name": "nr.parsing.date", "requires": []},
   {"extra_requires": {}, "name": "nr.databind.json", "requires": ["nr.collections", "nr.databind.core", "nr.interface", "nr.parsing.date", "nr.pylang.utils"]},
-  {"extra_requires": {}, "name": "nr.databind.rest", "requires": ["nr.collections", "nr.interface", "nr.databind.core", "nr.databind.json", "nr.pylang.utils", "nr.sumtype"]},
+  {"extra_requires": {}, "name": "nr.databind.rest", "requires": ["nr.collections", "nr.interface", "nr.databind.core", "nr.databind.json", "nr.metaclass", "nr.pylang.utils", "nr.sumtype"]},
   {"extra_requires": {}, "name": "nr.utils.process", "requires": []},
+  {"extra_requires": {}, "name": "nr.utils.wsgi", "requires": ["nr.databind.core", "nr.databind.core", "nr.interface", "nr.utils.process"]},
 ]
 
 parser = argparse.ArgumentParser()
