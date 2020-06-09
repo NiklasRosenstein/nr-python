@@ -57,21 +57,25 @@ class SslConfig(Struct):
   key = Field(str)
 
 
-class DaemonConfig(Struct):
+@JsonSerializer(deserialize='_FilesConfig__deserialize')
+class FilesConfig(Struct):
   pidfile = Field(str, default=None)
   stdout = Field(str, default=None)
   stderr = Field(str, default=None)
 
+  @classmethod
+  def deserialize(cls, context, node) -> 'FilesConfig':
+    if not isinstance(node.value, str):
+      raise NotImplementedError
+    return cls.from_dir(node.value)
 
-class WsgiAppConfig(Struct):
-  """
-  Basic app configuration that is bassed to a #IWsgiRunner to run an application.
-  """
-
-  entrypoint = Field(str)
-  bind = Field(BindConfig, default=lambda: BindConfig('127.0.0.1', 8000))
-  ssl = Field(SslConfig, default=None)
-  daemon = Field(DaemonConfig, default=Field.DEFAULT_CONSTRUCT)
+  @classmethod
+  def from_dir(cls, dirpath: str) -> 'FilesConfig':
+    return cls(
+      os.path.join(dirpath, 'run', 'wsgi.pid'),
+      os.path.join(dirpath, 'log', 'stdout.log'),
+      os.path.join(dirpath, 'log', 'stderr.log'),
+    )
 
 
 class Status(enum.Enum):
@@ -83,7 +87,7 @@ class Status(enum.Enum):
 @SerializeAs(UnionType.with_entrypoint_resolver('nr.utils.wsgi.runners.IWsgiRunner'))
 class IWsgiRunner(Interface):
 
-  def run(self, app_config: WsgiAppConfig, daemonize: bool = False) -> None:
+  def run(self, app_config: 'WsgiAppConfig', daemonize: bool = False) -> None:
     """
     Run the application as defined in *app_config*. If *daemonize* is set to `True`, the
     application must be run in the background, the function must immediately return and
@@ -91,38 +95,45 @@ class IWsgiRunner(Interface):
     """
 
   @default
-  def get_status(self, app_config: WsgiAppConfig) -> Status:
+  def get_status(self, app_config: 'WsgiAppConfig') -> Status:
     """
     Returns the status of the application, i.e. whether it is currently running or not. This
     method is only relevant when the application was started in the background.
     """
 
-    filename = app_config.daemon.pidfile
+    filename = app_config.files.pidfile
     if not filename:
       return Status.UNKNOWN
     return Pidfile(filename).get_status()
 
   @default
-  def stop(self, app_config: WsgiAppConfig) -> None:
+  def stop(self, app_config: 'WsgiAppConfig') -> None:
     """
     Stop the application if it is currently running in the background. This is a no-op if
     #get_status() does not return #Status.RUNNING.
     """
 
-    filename = app_config.daemon.pidfile
+    filename = app_config.files.pidfile
     if not filename:
       return
     return Pidfile(filename).stop()
 
 
-class WsgiRuntimeConfig(Struct):
-  app = Field(WsgiAppConfig)
+class WsgiAppConfig(Struct):
+  """
+  Basic app configuration that is bassed to a #IWsgiRunner to run an application.
+  """
+
+  entrypoint = Field(str)
+  bind = Field(BindConfig, default=lambda: BindConfig('127.0.0.1', 8000))
+  ssl = Field(SslConfig, default=None)
+  files = Field(FilesConfig, default=lambda: FilesConfig.from_dir('./var'))
   runners = Field(dict(value_type=IWsgiRunner))
 
   @classmethod
-  def load(self, filename: str, mapper: ObjectMapper = None) -> 'WsgiRuntimeConfig':
+  def load(self, filename: str, mapper: ObjectMapper = None) -> 'WsgiAppConfig':
     """
-    Loads the #WsgiRuntimeConfig from a YAML file specified with *filename*.
+    Loads the #WsgiAppConfig from a YAML file specified with *filename*.
     """
 
     if not mapper:
@@ -131,7 +142,7 @@ class WsgiRuntimeConfig(Struct):
       return mapper.deserialize(yaml.safe_load(fp), cls, filename=filename)
 
   def run(self, runner: str, daemonize: bool = False) -> None:
-    self.runners[runner].run(self.app, daemonize)
+    self.runners[runner].run(self, daemonize)
 
 
 # Utility
@@ -145,6 +156,18 @@ def is_reloader() -> bool:
     return True  # This is the Werkzeug reloader process
 
   return False
+
+
+def is_main() -> bool:
+  """
+  Checks whether this is the main process, which can be the reloader thread in case
+  the #FlaskRunner is used.
+  """
+
+  if os.getenv('_FLASK_USE_RELOAER') == 'true':
+    return not os.getenv('WERKZEUG_RUN_MAIN')
+
+  return True
 
 
 def get_runner_class() -> Type[IWsgiRunner]:
@@ -204,14 +227,14 @@ class Pidfile:
     """
 
     try:
-      pid = self.get()
+      pid = self.get_pid()
     except FileNotFoundError:
       return Status.STOPPED
     except ValueError:
       return Status.UNKNOWN
     if process_exists(pid):
       return Status.RUNNING
-    return STATUS.STOPPED
+    return Status.STOPPED
 
   def stop(self) -> None:
     """
@@ -220,7 +243,7 @@ class Pidfile:
     """
 
     try:
-      pid = self.get()
+      pid = self.get_pid()
     except (FileNotFoundError, ValueError):
       return
     process_terminate(pid)
@@ -241,6 +264,7 @@ class FlaskRunner(Struct):
 
   debug = Field(bool, default=False)  #: Enable the Flask server's debug capabilities.
   use_reloader = Field(bool, default=None)  #: Automatically defaults to `True` if #debug is enabled.
+  redirect_stdio = Field(bool, default=False)  #: Enable stdio redirects.
 
   @override
   def run(self, app_config: WsgiAppConfig, daemonize: bool = False) -> None:
@@ -260,10 +284,13 @@ class FlaskRunner(Struct):
       raise RuntimeError('WsgiAppConfig.entrypoint ({}) must be a Flask application.'.format(app_config.entrypoint))
 
     # Setup stdio redirects.
-    stdout, stderr = self._init_redirects(app_config.daemon)
+    if self.redirect_stdio:
+      stdout, stderr = self._init_redirects(app_config.files)
+    else:
+      stdout, stderr = None, None
 
-    if app_config.daemon.pidfile:
-      os.makedirs(os.path.dirname(app_config.daemon.pidfile), exist_ok=True)
+    if app_config.files.pidfile:
+      os.makedirs(os.path.dirname(app_config.files.pidfile), exist_ok=True)
 
     if app_config.ssl:
       ssl_context = (app_config.ssl.cert, app_config.ssl.key)
@@ -275,7 +302,7 @@ class FlaskRunner(Struct):
       app=app,
       stdout=stdout,
       stderr=stderr,
-      pidfile=app_config.daemon.pidfile,
+      pidfile=app_config.files.pidfile,
       daemon=daemonize,
       host=app_config.bind.host,
       port=app_config.bind.port,
@@ -283,7 +310,7 @@ class FlaskRunner(Struct):
       use_reloader=use_reloader,
       ssl_context=ssl_context)
 
-    if self.get_status(app_config) == Status.RUNNING:
+    if is_main() and self.get_status(app_config) == Status.RUNNING:
       raise RuntimeError('Application is already running.')
 
     if daemonize:
@@ -291,17 +318,17 @@ class FlaskRunner(Struct):
     else:
       run()
 
-  def _init_redirects(self, daemon_config: DaemonConfig) -> Tuple[Optional[TextIO], Optional[TextIO]]:
-    if daemon_config.stdout:
-      os.makedirs(os.path.dirname(daemon_config.stdout), exist_ok=True)
-      stdout = open(daemon_config.stdout, 'a+')
+  def _init_redirects(self, files: FilesConfig) -> Tuple[Optional[TextIO], Optional[TextIO]]:
+    if files.stdout:
+      os.makedirs(os.path.dirname(files.stdout), exist_ok=True)
+      stdout = open(files.stdout, 'a+')
     else:
       stdout = None
 
-    if daemon_config.stderr and daemon_config.stderr != daemon_config.stdout:
-      os.makedirs(os.path.dirname(daemon_config.stderr), exist_ok=True)
-      stderr = open(daemon_config.stderr, 'a+')
-    elif daemon_config.stderr == daemon_config.stdout:
+    if files.stderr and files.stderr != files.stdout:
+      os.makedirs(os.path.dirname(files.stderr), exist_ok=True)
+      stderr = open(files.stderr, 'a+')
+    elif files.stderr == files.stdout:
       stderr = stdout
     else:
       stderr = None
@@ -370,15 +397,15 @@ class GunicornRunner(Struct):
       '--bind', '{}:{}'.format(app_config.bind.host, app_config.bind.port)]
     if daemonize:
       command.append('--daemon')
-    if app_config.daemon.pidfile:
-      os.makedirs(os.path.dirname(app_config.daemon.pidfile), exist_ok=True)
-      command += ['--pid', app_config.daemon.pidfile]
-    if app_config.daemon.stdout:
-      os.makedirs(os.path.dirname(app_config.daemon.stdout), exist_ok=True)
-      command += ['--access-logfile', app_config.daemon.stdout]
-    if app_config.daemon.stderr:
-      os.makedirs(os.path.dirname(app_config.daemon.stderr), exist_ok=True)
-      command += ['--error-logfile', app_config.daemon.stderr]
+    if app_config.files.pidfile:
+      os.makedirs(os.path.dirname(app_config.files.pidfile), exist_ok=True)
+      command += ['--pid', app_config.files.pidfile]
+    if app_config.files.stdout:
+      os.makedirs(os.path.dirname(app_config.files.stdout), exist_ok=True)
+      command += ['--access-logfile', app_config.files.stdout]
+    if app_config.files.stderr:
+      os.makedirs(os.path.dirname(app_config.files.stderr), exist_ok=True)
+      command += ['--error-logfile', app_config.files.stderr]
     if app_config.ssl:
       command += ['--certfile', app_config.ssl.cert, '--keyfile', app_config.ssl.key]
     if self.num_workers:

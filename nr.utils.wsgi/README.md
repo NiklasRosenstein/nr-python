@@ -14,28 +14,24 @@ the `nr.databind.core` package, allowing you to configure runners in a configura
 Example:
 
 ```yml
-app:
-  bind: localhost:8000
-  entrypoint: my_application.wsgi:app
+bind: localhost:8000
+entrypoint: my_application.wsgi:app
+files: ./var
 runners:
-  - env: prod
+  prod:
     type: gunicorn
-    gunicorn:
-      num_workers: 4
-  - env: dev
+    num_workers: 4
+  dev:
     type: flask
-    flask:
-      debug: true
+    debug: true
 ```
 
 Then in your Python script or command-line tool to invoke your application:
 
 ```py
-from nr.utils.wsgi.runners import IWsgiRunner
-from nr.utils.wsgi.config import WsgiAppConfiguration
-
-config = WsgiAppConfiguration.load('app-config.yaml')
-config.run(env='dev', daemonize=True)
+from nr.utils.wsgi.config import WsgiAppConfig
+config = WsgiAppConfig.load('app-config.yaml')
+config.run(runner='dev', daemonize=True)
 ```
 
 Without loading a configuration from a YAML file, you can still use the runners from code:
