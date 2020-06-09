@@ -1,0 +1,6 @@
+- types:
+  - feature
+  issues: []
+  components:
+  - stream
+  description: '`Stream.__getitem__()` now supports indexing by integer'

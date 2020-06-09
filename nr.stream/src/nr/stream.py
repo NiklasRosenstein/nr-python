@@ -23,6 +23,7 @@
 
 from __future__ import absolute_import
 
+import collections
 import functools
 import itertools
 import six
@@ -84,6 +85,17 @@ class Stream(object):
   def __getitem__(self, val):
     if isinstance(val, _slice):
       return self.slice(val.start, val.stop, val.step)
+    elif isinstance(val, six.integer_types):
+      if val >= 0:
+        for index, value in enumerate(self):
+          if index == val:
+            return value
+        raise IndexError('Stream has no element at position {}'.format(val))
+      else:
+        queue = collections.deque(self, maxlen=abs(val))
+        if len(queue) < abs(val):
+          raise IndexError('Stream has no element at position {}'.format(val))
+        return queue[0]
     else:
       raise TypeError('{} object is only subscriptable with slices'.format(type(self).__name__))
 
