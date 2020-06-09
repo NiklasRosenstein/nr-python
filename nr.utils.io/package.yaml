@@ -1,0 +1,7 @@
+name: "nr.utils.io"
+version: "0.1.0"
+author: "Niklas Rosenstein <rosensteinniklas@gmail.com>"
+license: "MIT"
+description: "Utils for IO that are not in the standard library."
+requirements:
+  - python ^3.4
