@@ -51,3 +51,20 @@ def test_unexpected_keyword_argument():
     with pytest.raises(TypeError) as exc:
         Person(name='John', age=40, foobar=None)
     assert str(exc.value) == 'Person() constructor expected at max 2 arguments, got 3'
+
+
+def test_annotations_definition():
+    class Test:
+        pass
+    class Person(Struct):
+        name: str
+        age: int
+        address: str = None
+        pytype_field: Test = None
+
+    assert Person.__fields__['name'] == Field(str, name='name')
+    assert Person.__fields__['age'] == Field(int, name='age')
+    assert Person.__fields__['address'] == Field(str, name='address', default=None)
+    assert Person.__fields__['pytype_field'] == Field(Test, name='pytype_field', default=None)
+    assert Person('John', 52) == Person('John', 52, None, None)
+    assert Person('John', 52).pytype_field is None
