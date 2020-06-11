@@ -724,13 +724,21 @@ class Implementation(InlineMetaclassBase):
     check_conflicting_interfaces(implements)
     attrs['__implements__'] = implements
 
+    def has_member(member_name):
+      if member_name in attrs:
+        return True
+      for base in bases:
+        if hasattr(base, member_name) and getattr(base, member_name) != getattr(object, member_name, None):
+          return True
+      return False
+
     # Assign default implementations and static attributes.
     for interface in implements:
       for member in interface.members():
-        if isinstance(member, Method) and member.name not in attrs and member.default:
+        if isinstance(member, Method) and not has_member(member.name) and member.default:
           attrs[member.name] = member.default
         elif (isinstance(member, Attribute) and member.static and
-              member.default is not NotSet and member.name not in attrs and
+              member.default is not NotSet and not has_member(member.name) and
               not any(hasattr(x, member.name) for x in bases)):
           attrs[member.name] = member.make_default()
 

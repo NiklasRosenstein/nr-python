@@ -1,0 +1,8 @@
+- types:
+  - fix
+  issues: []
+  components:
+  - general
+  description: Subclassing a class that implements an Interface no longer gets a method
+    overwritten with a method from the interface that is marked as default if the
+    method is supplied by one of the bases

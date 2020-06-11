@@ -790,3 +790,37 @@ def test_optional_method():
   assert A().a() == 42
   assert not hasattr(A(), 'b')
   assert A().c() == 'bar'
+
+
+def test_subclassing_with_default():
+  class A(Interface):
+    def a(self):
+      ...
+    @default
+    def b(self):
+      return 'A.b()'
+
+  @implements(A)
+  class AImpl:
+    def a(self):
+      return 'AImpl.a()'
+
+  assert AImpl().a() == 'AImpl.a()'
+  assert AImpl().b() == 'A.b()'
+
+  @implements(A)
+  class BImpl:
+    def a(self):
+      return 'BImpl.a()'
+    def b(self):
+      return 'BImpl.b()'
+
+  assert BImpl().a() == 'BImpl.a()'
+  assert BImpl().b() == 'BImpl.b()'
+
+  class BSubClass(BImpl):
+    def a(self):
+      return 'BSubClass.a()'
+
+  assert BSubClass().a() == 'BSubClass.a()'
+  assert BSubClass().b() == 'BImpl.b()', 'The @default decorated method A.b must not overwrite the method inherited from BImpl.b'
