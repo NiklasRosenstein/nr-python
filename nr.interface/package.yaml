@@ -1,5 +1,5 @@
 name: nr.interface
-version: "0.0.2"
+version: "0.0.3"
 description: Interface definitions for Python.
 requirements:
   - python ^2.6|^3.4
