@@ -1,0 +1,7 @@
+- types:
+  - feature
+  issues: []
+  components:
+  - classdef
+  description: '`comparable()` now sets `__comparable_properties__` in the callers
+    frame'

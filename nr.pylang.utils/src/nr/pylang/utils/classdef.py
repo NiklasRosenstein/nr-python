@@ -79,6 +79,7 @@ def comparable(properties, _stackdepth=0, decorate=None):
     return False
 
   frame = sys._getframe(_stackdepth + 1)
+  frame.f_locals['__comparable_properties__'] = properties
   frame.f_locals['__hash__'] = __hash__
   frame.f_locals['__eq__'] = __eq__
   frame.f_locals['__ne__'] = __ne__
