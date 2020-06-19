@@ -7,3 +7,9 @@
     Deprecate `with_import_resolver()` in favor of `importing()`. `UnionType()` constructor
     can now be called without arguments. Add `UnionType.extend()` classmethod. Add
     more docstrings.
+- types:
+  - feature
+  issues: []
+  components:
+  - BinaryType
+  description: Add new `BinaryType` datatype

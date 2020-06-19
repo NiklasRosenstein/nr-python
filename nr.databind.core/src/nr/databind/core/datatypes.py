@@ -125,6 +125,24 @@ class StringType(object):
 
 
 @implements(IDataType)
+class BinaryType(object):
+
+  classdef.comparable([])
+
+  @classmethod
+  def from_typedef(cls, recursive, py_type_def):
+    if py_type_def is bytes:
+      return BinaryType()
+    raise InvalidTypeDefinitionError(py_type_def)
+
+  def isinstance_check(self, py_value, strict, coerce):
+    if isinstance(py_value, six.binary_type):
+      return py_value
+    else:
+      raise TypeError('expected binary, got {}'.format(type(py_value).__name__))
+
+
+@implements(IDataType)
 class IntegerType(object):
 
   classdef.comparable(['strict'])
@@ -472,6 +490,7 @@ __all__ = [
   'AnyType',
   'BooleanType',
   'StringType',
+  'BinaryType',
   'IntegerType',
   'DecimalType',
   'CollectionType',
