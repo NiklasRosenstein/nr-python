@@ -1,5 +1,5 @@
 name: nr.databind.json
-version: "0.0.10"
+version: "0.0.11"
 description: Deserialize JSON into Python objects and reverse.
 requirements:
   - python ^2.7|^3.4
