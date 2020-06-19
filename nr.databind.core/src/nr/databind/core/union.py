@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-""" This module provides a configurable [[UnionType]] for struct fields. """
+""" This module provides a configurable #UnionType for struct fields. """
 
 import importlib
 import six
@@ -32,6 +32,7 @@ from nr.interface import attr, default, implements, Interface
 
 from nr.databind.core import IDataType, InvalidTypeDefinitionError
 from nr.databind.core.datatypes import PythonClassType, translate_type_def
+from nr.databind.core.decorations import SerializeAs
 from nr.databind.core.struct import Struct, StructType
 
 __all__ = [
@@ -48,8 +49,8 @@ class UnknownUnionTypeError(Exception):
 
 
 class IUnionTypeMember(Interface):
-  """ Represents a member of a [[UnionType]] as returned by a
-  [[IUnionTypeResolver]] when given a type name. This interface provides all
+  """ Represents a member of a #UnionType as returned by a
+  #IUnionTypeResolver when given a type name. This interface provides all
   the information about this union member. """
 
   classdef.comparable(['name', 'type_name', 'datatype'], decorate=default)
@@ -81,23 +82,23 @@ class IUnionTypeResolver(Interface):
   classdef.comparable([])
 
   def resolve(self, type_name):  # type: (str) -> IUnionTypeMember
-    """ Resolve the *type_name* to a [[IUnionTypeMember]] instance. If the
-    *type_name* is unknown, an [[UnknownUnionTypeError]] must be raised. """
+    """ Resolve the *type_name* to a #IUnionTypeMember instance. If the
+    *type_name* is unknown, an #UnknownUnionTypeError must be raised. """
 
   def reverse(self, value):  # type: (Any) -> IUnionTypeMember
-    """ Return the [[IUnionTypeResolver]] for the specified *value*, which is
+    """ Return the #IUnionTypeResolver for the specified *value*, which is
     whatever [[IUnionTypeMember.create_instance()]] returns. Raises
-    [[UnknownUnionTypeError]] if the value cannot be reversed. """
+    #UnknownUnionTypeError if the value cannot be reversed. """
 
   def members(self):  # type: () -> Iterable[IUnionTypeMember]
     """ List up all the members of this resolver. If listing members is not
-    supported, a [[NotImplementedError]] must be raised to indicate that. """
+    supported, a #NotImplementedError must be raised to indicate that. """
 
 
 @implements(IUnionTypeResolver)
 class StandardTypeResolver(object):
-  """ This implementation of the [[IUnionTypeResolver]] uses a static mapping
-  of type names to [[Struct]] subclasses. It has two forms of initialization:
+  """ This implementation of the #IUnionTypeResolver uses a static mapping
+  of type names to #Struct subclasses. It has two forms of initialization:
 
   1. A (potentially mixed) list of Python type objects, #StructType or
      #PythonClassType objects. In this case the union type name is derived
@@ -172,7 +173,7 @@ class StandardTypeResolver(object):
 class EntrypointTypeResolver(StandardTypeResolver):
   """ Collects all entries from an entrypoints group. Checks if the class
   loaded via an entrypoint is either a subclass of the specified *base_type*
-  or implements it's interface (if *base_type* is a subclass of [[Interface]]).
+  or implements it's interface (if *base_type* is a subclass of #Interface).
   """
 
   @implements(IUnionTypeMember)
@@ -267,7 +268,7 @@ class ImportTypeResolver(object):
 class UnionType(object):
   """ The UnionType represents multiple types. A value represented by this
   datatype can be of any of the types that are encapsulated by the union
-  type. UnionType only supports the encapsulation of [[StructType]]s.
+  type. UnionType only supports the encapsulation of #StructTypes.
 
   The UnionType can operate in two modes for the serialization and
   deserialization. In either mode, the object from which the UnionType is
@@ -290,12 +291,64 @@ class UnionType(object):
     someField: value
   ```
 
-  The [[StandardTypeResolver]] is used in the usual case.
+  The #StandardTypeResolver is used in the usual case.
 
   Union type can be conveniently defined using lists with more than one item,
   the [[typing.Union]] type or dictionaries. In case of a dictionary, the
   union type name is defined in the dictionary key. Otherwise, it is read
   from the `__union_type_name__` or classname.
+
+  # Example: Subclasses as Union type members
+
+  A common use case for union types is the registration on a common base type, where
+  the base type only acts as a proxy for all the possible subtypes.
+
+  ```yaml
+  from nr.databind.core import Field, SerializeAs, Struct, UnionType
+
+  @SerializeAs(UnionType())
+  class Pet(Struct):
+    ...
+
+  @UnionType.extend(Pet, 'cat')
+  class Cat(Pet):
+    fur_color = Field(str)
+
+  @UnionType.extend(Pet, 'dog')
+  class Dog(Pet):
+    bark_volume = Field(int)
+  ```
+
+  # Example: Union types over entrypoints
+
+  ```yaml
+  from nr.databind.core import UnionType, SerializeAs
+  from nr.interface import Interface
+
+  @SerializeAs(UnionType.entrypoint('my_package.plugins.IMyPlugin')
+  class IMyPlugin(Interface):
+    def foo(self):
+      ...
+  ```
+
+  This allows plugins to be defined in Python package entrypoints, pointing to the class
+  that implements the #Interface. Note that this subclass must inherit from the #Struct
+  class in order to be deserializable.
+
+  ```yaml
+  from nr.databind.core import Field, Struct
+  from nr.interface import implements, override
+  from my_package.plugins import IMyPlugin
+
+  @implements(IMyPlugin)
+  class ThePlugin(Struct):
+    option_1 = Field(str)
+    option_2 = Field(int)
+
+    @override
+    def foo(self):
+      # ...
+  ```
   """
 
   #: Import these members on the UnionType to reduce the number of
@@ -310,15 +363,110 @@ class UnionType(object):
 
   classdef.comparable(['type_resolver', 'type_key', 'nested'])
 
-  def __init__(self, type_resolver, type_key='type', nested=False):
-    # type: (IUnionTypeResolver, str, bool)
+  def __init__(self, type_resolver=None, type_key='type', nested=False):
+    """
+    # Arguments
+    type_resolver (IUnionTypeResolver, dict): The type resolver for this union type,
+      or a dictionary that will be passed to the #StandardTypeResolver. If no argument
+      is provided, an empty #StandardTypeResolver will be created that can be extended
+      with the #UnionType.extend() method.
+    type_key (str): The key in the payload that identifies the union type member.
+    nested (bool): If `True`, the payload to deserialize the union type member from are
+      nested in a key with the name of the union member. Otherwise, the remaining keys in
+      the union payload are forwarded (note that in this case the *type_key* can not overlap
+      with a field in the union member).
+    """
 
+    if type_resolver is None:
+      type_resolver = StandardTypeResolver({})
     if isinstance(type_resolver, (dict, list, tuple)):
       type_resolver = StandardTypeResolver(type_resolver)
 
     self.type_resolver = type_resolver
     self.type_key = type_key
     self.nested = nested
+
+  @classmethod
+  def with_entrypoint_resolver(cls, *args, **kwargs):
+    """ Deprecated. Use #entrypoint() instead. """
+
+  @classmethod
+  def with_import_resolver(cls, *args, **kwargs):
+    """ Deprecated. Use #importing() instead. """
+
+  @classmethod
+  def entrypoint(cls, *args, **kwargs):
+    """
+    Returns a #UnionType instance initialized with an #EntrypointTypeResolver from
+    the specified *args* and *kwargs*.
+
+    # Arguments
+    args (Any): Positional arguments forwarded to #EntrypointTypeResolver.
+    type_key (str): The *type_key* argument forwarded to the #UnionType constructor.
+    nested (bool): The *nested* argument forwarded to the #UnionType constructor.
+    kwargs (Any) Keyword arguments forwarded to #EntrypointTypeResolver.
+    """
+
+    union_kwargs = {
+      k: kwargs.pop(k) for k in ('type_key', 'nested') if k in kwargs}
+    return cls(EntrypointTypeResolver(*args, **kwargs), **union_kwargs)
+
+  @classmethod
+  def importing(cls, *args, **kwargs):
+    """
+    Returns a #UnionType instance initialized with an #ImportTypeResolver from the
+    specified *args* and *kwargs*.
+
+    # Arguments
+    args (Any): Positional arguments forwarded to #ImportTypeResolver.
+    type_key (str): The *type_key* argument forwarded to the #UnionType constructor.
+    nested (bool): The *nested* argument forwarded to the #UnionType constructor.
+    kwargs (Any) Keyword arguments forwarded to #ImportTypeResolver.
+    """
+
+    union_kwargs = {
+      k: kwargs.pop(k) for k in ('type_key', 'nested') if k in kwargs}
+    return cls(ImportTypeResolver(*args, **kwargs), **union_kwargs)
+
+  @classmethod
+  def extend(cls, union, name, member=None):
+    # type: (Union[UnionType, Type], str, Optional[Type[Struct]]) -> Any
+    """
+    This is a utility function to add a member to a #UnionType that harbours a
+    #StandardTypeResolver. This is useful particularly when first declaring a class
+    that serializes as a #UnionType and only later declares it's union members (see the
+    #UnionType Pet example).
+
+    # Arguments
+    union (UnionType, type): Either a #UnionType object or a type object that is decorated
+      with #SerializeAs, which in turn contains the #UnionType. The union must harbour a
+      #StandardTypeResolver.
+    name (str): The name of the new union member.
+    member (Type[Struct]): The member to place into the #StandardTypeResolver. If this is
+      not set, a decorator will be returned that can be used to decorate a class definition.
+    """
+
+    if not IDataType.provided_by(union):
+      dec = SerializeAs.get(union)
+      if not dec:
+        raise RuntimeError('no SerailizeAs decoration found on {!r}'.format(union))
+      union = dec.datatype
+    if not isinstance(union, UnionType):
+      raise RuntimeError('expected UnionType, found {}'.format(type(union).__name__))
+    if not isinstance(union.type_resolver, StandardTypeResolver):
+      raise RuntimeError('expected StandardTypeResolver in union, found {}'.format(
+        type(union.type_resolver).__name__))
+
+    if member is None:
+      def decorator(cls):
+        union.type_resolver.register_union_member(name, cls)
+        return cls
+      return decorator
+    else:
+      union.type_resolver.register_union_member(name, cls)
+      return None
+
+  # IDataType
 
   @classmethod
   def from_typedef(cls, recursive, py_type_def):
@@ -344,24 +492,3 @@ class UnionType(object):
         '|'.join(sorted(x.name for x in members)),
         type(py_value).__name__))
     return py_value
-
-  @classmethod
-  def with_entrypoint_resolver(cls, *args, **kwargs):
-    """ Returns a #UnionType instance initialized with an
-    #EntrypointTypeResolver from the specified *args* and *kwargs*. The
-    *type_key* and *nested* keyword arguments are redirected to the
-    #UnionType constructor. """
-
-    union_kwargs = {
-      k: kwargs.pop(k) for k in ('type_key', 'nested') if k in kwargs}
-    return cls(EntrypointTypeResolver(*args, **kwargs), **union_kwargs)
-
-  @classmethod
-  def with_import_resolver(cls, *args, **kwargs):
-    """ Returns a #UnionType instance initialized with an #ImportTypeResolver
-    from the specified *args* and *kwargs*. The *type_key* and *nested*
-    keyword arguments are redirected to the #UnionType constructor. """
-
-    union_kwargs = {
-      k: kwargs.pop(k) for k in ('type_key', 'nested') if k in kwargs}
-    return cls(ImportTypeResolver(*args, **kwargs), **union_kwargs)

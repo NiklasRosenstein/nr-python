@@ -1,0 +1,9 @@
+- types:
+  - change
+  issues: []
+  components:
+  - UnionType
+  description: Deprecate `with_entrypoint_resolver()` in favor of `entrypoint()`.
+    Deprecate `with_import_resolver()` in favor of `importing()`. `UnionType()` constructor
+    can now be called without arguments. Add `UnionType.extend()` classmethod. Add
+    more docstrings.
