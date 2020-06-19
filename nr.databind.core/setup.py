@@ -19,7 +19,7 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = ['nr.collections >=0.0.1,<1.0.0', 'nr.interface >=0.0.1,<0.1.0', 'nr.stream >=0.0.1,<0.1.0', 'nr.pylang.utils >=0.0.1,<0.1.0']
+requirements = ['nr.collections >=0.0.1,<1.0.0', 'nr.interface >=0.0.1,<0.1.0', 'nr.stream >=0.0.1,<0.1.0', 'nr.pylang.utils >=0.0.3,<0.1.0']
 extras_require = {}
 extras_require['test'] = ['pytest', 'PyYAML']
 tests_require = []

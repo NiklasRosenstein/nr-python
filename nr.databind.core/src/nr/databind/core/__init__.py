@@ -41,7 +41,7 @@ class SerializationError(Exception):
     self.message = message
 
   def __str__(self):
-    result = 'at {}'.format(self.node.locator)
+    result = 'at {} (datatype: {})'.format(self.node.locator, self.node.datatype)
     if self.node.context.filename:
       result = 'in "{}": '.format(self.node.context.filename) + result
     if self.message:
@@ -103,6 +103,14 @@ class IDataType(nr.interface.Interface):
   @nr.interface.default
   def get_decorations(self):  # type: () -> List[Decoration]
     return []
+
+  @nr.interface.default
+  def __str__(self):  # type: () -> str
+    attrs = {k: getattr(self, k) for k in self.__comparable_properties__}
+    return '{}({})'.format(
+      type(self).__name__,
+      ', '.join('{}={!r}'.format(k, v) for k, v in attrs.items()),
+    )
 
   @nr.interface.default
   def to_human_readable(self):  # type: () -> str

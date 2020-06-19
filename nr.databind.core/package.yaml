@@ -6,7 +6,7 @@ requirements:
   - nr.collections ^0.0.1
   - nr.interface ~0.0.1
   - nr.stream ~0.0.1
-  - nr.pylang.utils ~0.0.1
+  - nr.pylang.utils ~0.0.3
   - test:
     - pytest
     - PyYAML

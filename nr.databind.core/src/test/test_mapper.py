@@ -34,11 +34,11 @@ def test_deserialize(mapper):
 
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(['42'], IntegerType)
-  assert str(excinfo.value) == 'at $: expected str, got "list"'
+  assert str(excinfo.value) == 'at $ (datatype: IntegerType(strict=True)): expected str, got "list"'
 
   with pytest.raises(SerializationValueError) as excinfo:
     mapper.deserialize('not an int', IntegerType)
-  assert str(excinfo.value) == 'at $: invalid literal for int() with base 10: \'not an int\''
+  assert str(excinfo.value) == 'at $ (datatype: IntegerType(strict=True)): invalid literal for int() with base 10: \'not an int\''
 
 
 def test_serialize(mapper):
@@ -46,4 +46,4 @@ def test_serialize(mapper):
 
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize([42], IntegerType)
-  assert str(excinfo.value) == 'at $: expected int, got "list"'
+  assert str(excinfo.value) == 'at $ (datatype: IntegerType(strict=True)): expected int, got "list"'
