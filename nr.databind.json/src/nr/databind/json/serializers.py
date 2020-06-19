@@ -292,6 +292,11 @@ class StructSerializer(object):
   def deserialize(self, mapper, node):
     # Check if there is a custom deserializer on the struct class.
     struct_cls = node.datatype.struct_cls
+
+    serialize_as = node.get_local_decoration(SerializeAs) or SerializeAs.get(struct_cls)
+    if serialize_as:
+      return mapper.deserialize_node(node.replace(datatype=serialize_as.datatype))
+
     config = node.get_decoration(JsonSerializer) or JsonSerializer.get(struct_cls)
 
     obj = None
@@ -367,6 +372,10 @@ class StructSerializer(object):
     if not isinstance(node.value, struct_cls):
       raise node.type_error()
 
+    serialize_as = node.get_local_decoration(SerializeAs) or SerializeAs.get(struct_cls)
+    if serialize_as:
+      return mapper.serialize_node(node.replace(datatype=serialize_as.datatype))
+
     # Check if there is a custom serializer on the struct class.
     result = NotSet
     config = node.get_decoration(JsonSerializer) or JsonSerializer.get(struct_cls)
@@ -380,8 +389,7 @@ class StructSerializer(object):
 
     if result is NotSet:
       skip_default_values = node.get_decoration(SkipDefaults)
-      serialize_as = node.get_local_decoration(SerializeAs)
-      result = serialize_as.cls() if serialize_as else {}
+      result = {}
       for name, field in struct_cls.__fields__.items():
         if field.hidden or get_decoration(Raw, field.decorations):
           continue
