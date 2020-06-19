@@ -23,7 +23,7 @@
 
 __all__ = ['NotSet']
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 from . import classdef
 NotSet = classdef.make_singleton('NotSet', bool_value=False)
