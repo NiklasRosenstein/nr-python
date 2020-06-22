@@ -44,12 +44,21 @@ class Git:
       branch: str = None,
       depth: int = None,
       recursive: bool = False,
+      username: str = None,
+      password: str = None,
       quiet: bool = False,
   ) -> 'Git':
     """
     Clone a Git repository to the *to_directory* from *clone_url*. If a relative path is
     specified in *to_directory*, it will be treated relative to the #Git.cwd path.
     """
+
+    if password or username:
+      if not clone_url.startswith('https://'):
+        raise ValueError('cannot specify username/password for non-HTTPS clone URL.')
+      schema, remainder = clone_url.partition('://')[::2]
+      auth = ':'.join(filter(bool, (username, password)))
+      clone_url = schema + '://' + auth + '@' + remainder
 
     command = ['git', 'clone', clone_url, to_directory]
     if branch:
