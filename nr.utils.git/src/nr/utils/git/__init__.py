@@ -25,7 +25,7 @@ import os
 import subprocess as sp
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 Branch = collections.namedtuple('Branch', 'name,current')
 FileStatus = collections.namedtuple('FileStatus', 'mode,filename')
