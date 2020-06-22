@@ -1,0 +1,7 @@
+- types:
+  - fix
+  issues: []
+  components:
+  - general
+  description: '`Git.get_diff()` now decodes the result, returning a string instead
+    of binary data'

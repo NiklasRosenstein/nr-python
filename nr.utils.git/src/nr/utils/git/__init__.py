@@ -247,4 +247,4 @@ class Git:
       command += ['--cached']
     if files is not None:
       command += ['--'] + files
-    return sp.check_output(command, cwd=self.cwd)
+    return sp.check_output(command, cwd=self.cwd).decode()
