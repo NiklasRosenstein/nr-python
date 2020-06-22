@@ -188,7 +188,7 @@ class Git:
     except sp.CalledProcessError:
       return None
 
-  def rev_list(rev: str, path: str = None) -> List[str]:
+  def rev_list(self, rev: str, path: str = None) -> List[str]:
     """
     Return a list of all Git revisions, optionally in the specified path.
     """
