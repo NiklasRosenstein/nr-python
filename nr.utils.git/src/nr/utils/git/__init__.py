@@ -224,14 +224,32 @@ class Git:
       command += ['--orphan']
     sp.check_call(command, cwd=self.cwd)
 
-  def checkout(self, ref: str, quiet: bool = False):
+  def checkout(self, ref: str = None, files: List[str] = None, quiet: bool = False):
     """
-    Check out the specified ref.
+    Check out the specified ref or files.
     """
 
-    command = ['git', 'checkout', ref]
+    command = ['git', 'checkout']
+    if ref:
+      command += [ref]
     if quiet:
       command += ['-q']
+    if files:
+      command += ['--'] + files
+    sp.check_call(command, cwd=self.cwd)
+
+  def reset(self, ref: str = None, files: List[str] = None, hard: bool = False):
+    """
+    Reset to the specified ref or reset the files.
+    """
+
+    command = ['git', 'reset']
+    if ref:
+      command += [ref]
+    if quiet:
+      command += ['-q']
+    if files:
+      command += ['--'] + files
     sp.check_call(command, cwd=self.cwd)
 
   def get_commit_message(self, rev: str) -> str:

@@ -1,0 +1,8 @@
+- type: feature
+  component: general
+  description: Add `Git.reset()`, add `Git.checkout(files)` argument
+  fixes: []
+- type: feature
+  component: general
+  description: Add `Git.reset()`, add `Git.checkout(files)` argument
+  fixes: []
