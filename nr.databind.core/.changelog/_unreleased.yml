@@ -1,0 +1,6 @@
+- type: fix
+  component: UnionType
+  description: fix bad backwards-compatibility implementation of `UnionType.with_entrypoint_resolver()`
+    and `.with_import_resolver()` introduced in `0.0.17`
+  fixes:
+  - '10'

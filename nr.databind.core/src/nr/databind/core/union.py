@@ -390,9 +390,13 @@ class UnionType(object):
   def with_entrypoint_resolver(cls, *args, **kwargs):
     """ Deprecated. Use #entrypoint() instead. """
 
+    return cls.entrypoint(*args, **kwargs)
+
   @classmethod
   def with_import_resolver(cls, *args, **kwargs):
     """ Deprecated. Use #importing() instead. """
+
+    return cls.importing(*args, **kwargs)
 
   @classmethod
   def entrypoint(cls, *args, **kwargs):
