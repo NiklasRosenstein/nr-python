@@ -1,5 +1,5 @@
 
-from nr.databind.core import ObjectMapper, SerializationTypeError, SerializationValueError
+from nr.databind.core import ObjectMapper, SerializationTypeError, SerializationValueError, translate_type_def
 from nr.databind.json import JsonModule, JsonSerializeCollectionAs
 import pytest
 
@@ -27,13 +27,13 @@ def test_string_serializer(mapper):
   assert mapper.deserialize(['bar'], StringType(strict=False)) == str(['bar'])
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(['bar'], StringType()) == str(['bar'])
-  assert str(excinfo.value) == 'at $: expected "StringType", got "list"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "StringType", got "list"'.format(StringType())
 
   assert mapper.serialize('foobar', StringType()) == 'foobar'
   assert mapper.serialize(['bar'], StringType(strict=False)) == str(['bar'])
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize(['bar'], StringType()) == str(['bar'])
-  assert str(excinfo.value) == 'at $: expected "StringType", got "list"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "StringType", got "list"'.format(StringType())
 
 
 def test_integer_serializer(mapper):
@@ -43,13 +43,13 @@ def test_integer_serializer(mapper):
   assert mapper.deserialize('23', IntegerType(strict=False)) == 23
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize('23', IntegerType())
-  assert str(excinfo.value) == 'at $: expected int, got str'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected int, got str'.format(IntegerType())
 
   assert mapper.serialize(23, IntegerType()) == 23
   assert mapper.serialize('23', IntegerType(strict=False)) == 23
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize('23', IntegerType())
-  assert str(excinfo.value) == 'at $: expected int, got str'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected int, got str'.format(IntegerType())
 
 
 def test_decimal_serializer_float(mapper):
@@ -59,13 +59,13 @@ def test_decimal_serializer_float(mapper):
   assert mapper.deserialize('10.234', DecimalType(float, strict=False)) == float('10.234')
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize('10.234', DecimalType(float))
-  assert str(excinfo.value) == 'at $: expected "DecimalType", got "str"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "DecimalType", got "str"'.format(DecimalType(float))
 
   assert mapper.serialize(10, DecimalType(float)) == float(10)
   assert mapper.serialize('10.234', DecimalType(float, strict=False)) == float('10.234')
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize('10.234', DecimalType(float))
-  assert str(excinfo.value) == 'at $: expected "DecimalType", got "str"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "DecimalType", got "str"'.format(DecimalType(float))
 
 
 def test_decimal_serializer_decimal(mapper):
@@ -76,7 +76,7 @@ def test_decimal_serializer_decimal(mapper):
   assert mapper.deserialize('10.234', DecimalType(Decimal, strict=True)) == Decimal('10.234')
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(10, DecimalType(Decimal))
-  assert str(excinfo.value) == 'at $: expected "DecimalType", got "int"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "DecimalType", got "int"'.format(DecimalType(Decimal))
   assert mapper.deserialize(10, DecimalType(Decimal, strict=False)) == Decimal('10')
 
   assert mapper.serialize(10, DecimalType(Decimal, strict=False)) == '10'
@@ -84,7 +84,7 @@ def test_decimal_serializer_decimal(mapper):
   assert mapper.serialize(Decimal('10.234'), DecimalType(Decimal, strict=True)) == '10.234'
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize('10.234', DecimalType(Decimal, strict=True))
-  assert str(excinfo.value) == 'at $: expected "DecimalType", got "str"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "DecimalType", got "str"'.format(DecimalType(Decimal, strict=True))
 
 
 def test_collection_serializer(mapper):
@@ -99,7 +99,7 @@ def test_collection_serializer(mapper):
   payload = ['abc', 0]
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(payload, dt)
-  assert str(excinfo.value) == 'at $[1]: expected "StringType", got "int"'
+  assert str(excinfo.value) == 'at $[1] (datatype: {}): expected "StringType", got "int"'.format(dt.item_type)
 
 
 def test_object_serializer(mapper):
@@ -113,12 +113,12 @@ def test_object_serializer(mapper):
   payload = ['abc', 0]
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(payload, dt)
-  assert str(excinfo.value) == 'at $: expected "ObjectType", got "list"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "ObjectType", got "list"'.format(dt)
 
   payload = {'x:y': ['abc']}
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(payload, dt)
-  assert str(excinfo.value) == 'at $."x:y": expected "StringType", got "list"'
+  assert str(excinfo.value) == 'at $."x:y" (datatype: {}): expected "StringType", got "list"'.format(dt.value_type)
 
 
 def test_datetime_serializer(mapper):
@@ -168,7 +168,7 @@ def test_enum_serializer(mapper):
 
   with pytest.raises(SerializationValueError) as excinfo:
     mapper.deserialize('DOGGO', dt)
-  assert str(excinfo.value) == 'at $: \'DOGGO\' is not a valid enumeration value for "Pet"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): \'DOGGO\' is not a valid enumeration value for "Pet"'.format(dt)
 
 
 def test_multitype_serializer(mapper):
@@ -248,10 +248,17 @@ def test_struct_serializer(mapper):
   assert mapper.deserialize('bar', C) == C('bar')
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(1, C)
-  assert str(excinfo.value) == 'at $: expected "C", got "int"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "C", got "int"'.format(translate_type_def(C))
 
   assert mapper.serialize(C('foo'), C) == 'foo'
 
+  @SkipDefaults()
+  class D(Struct):
+    name = Field(str)
+    age = Field(int, default=42)
+
+  assert mapper.serialize(D('John', 30), D) == {'name': 'John', 'age': 30}
+  assert mapper.serialize(D('John', 42), D) == {'name': 'John'}
 
 def test_struct_serializer_raw(mapper):
   from nr.databind.core import Field, Struct, StringType, Raw
@@ -281,7 +288,7 @@ def test_store_node_decoration(mapper):
   payload = {'items': ['a', 'b', 'c']}
 
   obj = mapper.deserialize(payload, A)
-  assert obj.__databind__ == {}
+  assert obj.__databind__ == {'mapper': mapper}
   assert obj.items.__databind__['node'].result is obj.items
   assert obj.items.__databind__['node'].value is payload['items']
 
@@ -311,10 +318,10 @@ def test_serialize_as(mapper):
   assert mapper.deserialize('foo', Foo) == 'foo'
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.deserialize(10, Foo)
-  assert str(excinfo.value) == 'at $: expected "StringType", got "int"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "StringType", got "int"'.format(StringType())
 
 
   assert mapper.serialize('foo', Foo) == 'foo'
   with pytest.raises(SerializationTypeError) as excinfo:
     mapper.serialize(10, Foo)
-  assert str(excinfo.value) == 'at $: expected "StringType", got "int"'
+  assert str(excinfo.value) == 'at $ (datatype: {}): expected "StringType", got "int"'.format(StringType())
