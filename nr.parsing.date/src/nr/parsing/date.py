@@ -25,6 +25,7 @@ A fast date parser library with timezone offset support.
 
 from datetime import datetime, timedelta, tzinfo
 from itertools import chain
+from nr.utils.re import match_all
 import abc
 import importlib
 import io
@@ -329,35 +330,135 @@ def format_date(date, fmt):
 	return root_option_set.format(date, fmt)
 
 
+class Duration(object):
+	"""
+	Represents an ISO8601 duration.
+	"""
+
+	_fields = ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds']
+
+	def __init__(self, years=0, months=0, weeks=0, days=0, hours=0, minutes=0, seconds=0):
+		# type: (int, int, int, int, int, int, int) -> None
+		self.years = years
+		self.months = months
+		self.weeks = weeks
+		self.days = days
+		self.hours = hours
+		self.minutes = minutes
+		self.seconds = seconds
+		for k in self._fields:
+			if getattr(self, k) < 0:
+				raise ValueError('{} cannot be negative'.format(k))
+
+	def __str__(self):
+		parts = ['P']
+		for value, char in [(self.years, 'Y'), (self.months, 'M'), (self.weeks, 'W'), (self.days, 'D')]:
+			if value != 0:
+				parts.append('{}{}'.format(value, char))
+		has_t = False
+		for value, char in [(self.hours, 'H'), (self.minutes, 'M'), (self.seconds, 'S')]:
+			if value != 0:
+				if not has_t:
+					parts.append('T')
+					has_t = True
+				parts.append('{}{}'.format(value, char))
+		return ''.join(parts)
+
+	def __repr__(self):
+		return 'Duration({})'.format(', '.join('{}={}'.format(k, getattr(self, k)) for k in self._fields))
+
+	def __eq__(self, other):
+		if type(other) != type(self):
+			return False
+		for k in self._fields:
+			if getattr(self, k) != getattr(other, k):
+				return False
+		return True
+
+	def __ne__(self, other):
+		if type(other) != type(self):
+			return True
+		for k in self._fields:
+			if getattr(self, k) == getattr(other, k):
+				return False
+		return True
+
+	def total_seconds(self, days_per_month=31, days_per_year=365.25):  # type: (int, int) -> int
+		"""
+		Computes the total number of seconds in this duration.
+		"""
+
+		seconds_per_day = 3600 * 24
+		return (
+			int(self.years * days_per_year * seconds_per_day) +
+			int(self.months * days_per_month * seconds_per_day) +
+			self.weeks * 7 * seconds_per_day +
+			self.days * seconds_per_day +
+			self.hours * 3600 +
+			self.minutes * 60 +
+			self.seconds)
+
+	def as_timedelta(self, *args, **kwargs):  # type: (...) -> timedelta
+		"""
+		Returns the seconds represented by this duration as a #timedelta object. The arguments
+		and keyword arguments are forwarded to the #total_seconds() method.
+		"""
+
+		return timedelta(seconds=self.total_seconds(*args, **kwargs))
+
+	@classmethod
+	def parse(cls, s):  # type: (str) -> Duration
+		"""
+		Parses an ISO 8601 duration string into a #Duration object.
+
+		Thanks to https://stackoverflow.com/a/35936407.
+		See also https://en.wikipedia.org/wiki/ISO_8601#Durations
+		"""
+
+		parts = s.split('T')
+		if not s or s[0] != 'P' or len(parts) > 2:
+			raise ValueError('Not an ISO 8601 duration string: {!r}'.format(s))
+
+		part_one = parts[0][1:]
+		part_two = parts[1] if len(parts) == 2 else ''
+
+		fields = {}
+
+		try:
+			for number, unit in (x.groups() for x in match_all(r'(\d+)(D|W|M|Y)', part_one)):
+				number = int(number)
+				if unit == 'Y':
+					fields['years'] = number
+				elif unit == 'M':
+					fields['months'] = number
+				elif unit == 'W':
+					fields['weeks'] = number
+				elif unit == 'D':
+					fields['days'] = number
+
+			for number, unit in (x.groups() for x in match_all(r'(\d+)(S|H|M)', part_two)):
+				number = int(number)
+				if unit == 'H':
+					fields['hours'] = number
+				elif unit == 'M':
+					fields['minutes'] = number
+				elif unit == 'S':
+					fields['seconds'] = number
+
+		except match_all.Error:
+			raise ValueError('Not an ISO 8601 duration string: {!r}'.format(s))
+
+		return cls(**fields)
+
+
 def parse_iso8601_duration(d):  # type: (str) -> int
-	" Parses an ISO8601 duration to seconds. Thanks to https://stackoverflow.com/a/35936407 "
+	"""
+	*Deprecated. Use #Duration.parse() instead.*
 
-	if d[0] != 'P':
-		raise ValueError('Not an ISO 8601 Duration string')
+	Parses an ISO8601 duration to seconds.
+	"""
 
-	seconds = 0
-	for i, item in enumerate(d.split('T')):
-		for number, unit in re.findall(r'(?P<number>\d+)(?P<period>S|M|H|D|W|Y)', item ):
-			number = int(number)
-			this = 0
-			if unit == 'Y':
-				this = number * 31557600 # 365.25
-			elif unit == 'W':
-				this = number * 604800
-			elif unit == 'D':
-				this = number * 86400
-			elif unit == 'H':
-				this = number * 3600
-			elif unit == 'M':
-				# ambiguity ellivated with index i
-				if i == 0:
-					this = number * 2678400  # assume 30 days
-				else:
-					this = number * 60
-			elif unit == 'S':
-				this = number
-			seconds = seconds + this
-	return seconds
+	return Duration.parse(d).total_seconds()
 
 
 @six.add_metaclass(abc.ABCMeta)

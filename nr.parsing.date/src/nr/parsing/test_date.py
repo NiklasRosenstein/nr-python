@@ -1,7 +1,7 @@
 
 from dateutil.tz import tzutc as dateutil_tzutc
 from dateutil.parser import parse as dateutil_parse
-from nr.parsing.date import JavaOffsetDatetime, Iso8601, timezone
+from nr.parsing.date import JavaOffsetDatetime, Iso8601, Duration, timezone
 import datetime
 import pytest
 
@@ -53,3 +53,25 @@ def test_iso8601():
     assert Iso8601().parse(sample) == result
     assert dateutil_parse(sample) == result
     assert Iso8601().format(result) == sample
+
+
+def test_iso8601_duration():
+  assert Duration.parse('P30D').total_seconds() == datetime.timedelta(days=30).total_seconds()
+  assert Duration.parse('P1DT5M').total_seconds() == datetime.timedelta(days=1, minutes=5).total_seconds()
+  assert Duration.parse('P5M1D').total_seconds() == datetime.timedelta(days=1 + 5*31).total_seconds()
+  assert Duration.parse('PT1S').total_seconds() == 1
+
+  with pytest.raises(ValueError):
+    Duration.parse('P5DT1Y')
+  with pytest.raises(ValueError):
+    Duration.parse('P5D10S')
+  with pytest.raises(ValueError):
+    Duration.parse('P1S')
+
+  s = 'P2Y3M50W23DT3H40M15S'
+  d = Duration(2, 3, 50, 23, 3, 40, 15)
+  assert Duration.parse(s) == d
+  assert str(d) == s
+
+  assert str(Duration(days=5, minutes=3)) == 'P5DT3M'
+  assert str(Duration(minutes=3)) == 'PT3M'

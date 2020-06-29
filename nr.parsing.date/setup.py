@@ -19,11 +19,11 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = []
+requirements = ['nr.utils.re >=0.1.0,<0.2.0']
 extras_require = {}
-extras_require['test'] = ['python-dateutil']
+extras_require['test'] = ['pytest', 'python-dateutil']
 tests_require = []
-tests_require = ['python-dateutil']
+tests_require = ['pytest', 'python-dateutil']
 
 setuptools.setup(
   name = 'nr.parsing.date',

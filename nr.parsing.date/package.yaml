@@ -5,5 +5,7 @@ description: |
   offset support.
 requirements:
   - python ^2.7|^3.4
+  - nr.utils.re ~0.1.0
   - test:
+    - pytest
     - python-dateutil

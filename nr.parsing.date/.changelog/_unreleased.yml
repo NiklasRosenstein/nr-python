@@ -2,3 +2,7 @@
   component: Iso8601
   description: add unit tests for `Iso8601`
   fixes: []
+- type: feature
+  component: general
+  description: Add `Duration` class, `parse_iso8601_duration` is now deprecated
+  fixes: []
