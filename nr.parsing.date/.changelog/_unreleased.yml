@@ -6,3 +6,7 @@
   component: general
   description: Add `Duration` class, `parse_iso8601_duration` is now deprecated
   fixes: []
+- type: fix
+  component: general
+  description: Fix rendering of `%f` (microsecond) format option
+  fixes: []

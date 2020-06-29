@@ -313,7 +313,11 @@ root_option_set = FormatOptionSet([
     FormatOption('H', 'hour', r'\d{2}', int, lambda d: str(d.hour).rjust(2, '0')),
     FormatOption('M', 'minute', r'\d{2}', int, lambda d: str(d.minute).rjust(2, '0')),
     FormatOption('S', 'second', r'\d{2}', int, lambda d: str(d.second).rjust(2, '0')),
-    FormatOption('f', 'microsecond', r'\d+', lambda s: int(s) * (10 ** max(6-len(s), 0)), lambda d: str(d.microsecond).rstrip('0') or '0'),
+    FormatOption(
+			'f', 'microsecond', r'\d+',
+			parse=lambda s: int(s) * (10 ** max(6-len(s), 0)),
+			render=lambda d: str(d.microsecond).rjust(6, '0').rstrip('0') or '0'
+		),
     TimezoneFormatOption(),
 ])
 
