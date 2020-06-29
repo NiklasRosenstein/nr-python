@@ -1,0 +1,9 @@
+- type: change
+  component: ClassDecoration
+  description: '`ClassDecoration.inheritable` is now an instance attribute instead
+    of a class method'
+  fixes: []
+- type: feature
+  component: Struct
+  description: Add new `KeywordsOnlyConstructor` decoration for `Struct` subclasses
+  fixes: []

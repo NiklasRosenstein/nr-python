@@ -41,9 +41,13 @@ class ClassDecoration(Decoration):
   """
   Base class for decorations of classes. Class instances can be used as
   decorators to add themselves to the `__decorations__` member of the class.
-  Class decorations are not usually inherited unless #inheritable() is
-  overwritten and returns #True.
+
+  Class decorations by default are not inherited by subclasses but this behavior
+  can be enabled by setting the #inheritable property to #True.
   """
+
+  def __init__(self, inheritable=False):  # type: () -> None
+    self.inheritable = inheritable
 
   def __call__(self, cls):  # type: (Type) -> Type
     """
@@ -59,14 +63,10 @@ class ClassDecoration(Decoration):
     return cls
 
   @classmethod
-  def inheritable(cls):  # type: () -> bool
-    return False
-
-  @classmethod
   def get(cls, decorated_cls):  # type: (Type) -> Optional[ClassDecoration]
     """
     Returns the first instance of *cls* found in the decorations for the type
-    object specified with *decorated_cls*. If #inheritable() returns True, the
+    object specified with *decorated_cls*. If #inheritable is #True, the
     base classes of *decorated_cls* are searched as well.
     """
 
@@ -77,11 +77,10 @@ class ClassDecoration(Decoration):
     if decoration is not None:
       return decoration
 
-    if cls.inheritable():
-      for base in decorated_cls.__bases__:
-        decoration = cls.get(base)
-        if decoration is not None:
-          return decoration
+    for base in decorated_cls.__bases__:
+      decoration = cls.get(base)
+      if decoration is not None and decoration.inheritable:
+        return decoration
 
     return None
 
@@ -213,18 +212,24 @@ class Strict(GlobalDecoration, ClassDecoration):
   This class decoration indicates that it should be deserialized in a strict
   fashion, resulting in a deserialization error if any unknown keys are
   encountered.
+
+  The #Strict decoration is inheritable by default.
   """
 
-  @classmethod
-  def inheritable(cls):
-    return True
+  def __init__(self, inheritable=True):
+    super(Strict, self).__init__(inheritable)
 
 
 class SkipDefaults(GlobalDecoration, FieldDecoration, ClassDecoration):
   """
   A decoration that indicates values in a #Struct that match the default values
   should be skipped during deserialization.
+
+  The #SkipDefaults decoration is inheritable by default.
   """
+
+  def __init__(self, inheritable=True):
+    super(SkipDefaults, self).__init__(inheritable)
 
 
 class StaticFields(ClassDecoration):
@@ -264,3 +269,13 @@ class Validator(FieldDecoration, ClassDecoration):
         raise ValueError('expected one of {}, got {!r}'.format(s_choices, value))
       return value
     return cls(_func)
+
+
+class KeywordsOnlyConstructor(ClassDecoration):
+  """
+  If added to a #Struct subclass, it's constructor will not accept positional arguments.
+  This decoration is inheritable by default.
+  """
+
+  def __init__(self, inheritable=True):
+    super(KeywordsOnlyConstructor, self).__init__(inheritable)

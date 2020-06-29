@@ -24,6 +24,7 @@ import pkg_resources
 import six
 import typing
 
+from .decorations import KeywordsOnlyConstructor
 from nr.collections import abc, OrderedDict
 from nr.databind.core import IDataType, InvalidTypeDefinitionError
 from nr.databind.core.datatypes import CollectionType, translate_type_def
@@ -552,6 +553,9 @@ class Struct(six.with_metaclass(_StructMeta)):
       # TODO(nrosenstein): Include min number of args.
       raise TypeError('{}() constructor expected at max {} arguments, got {}'
                       .format(type(self).__name__, len(self.__fields__), argcount))
+
+    if KeywordsOnlyConstructor.get(type(self)) and args:  # TODO: Caching?
+      raise TypeError('{}() does not accept positional arguments'.format(type(self).__name__))
 
     # Check the type of all keyword arguments.
     for key, value in kwargs.items():
