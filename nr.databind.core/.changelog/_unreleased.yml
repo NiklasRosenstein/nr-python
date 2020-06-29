@@ -7,3 +7,7 @@
   component: Struct
   description: Add new `KeywordsOnlyConstructor` decoration for `Struct` subclasses
   fixes: []
+- type: improvement
+  component: IDataType
+  description: Add `IDataType.__repr__()` default implementation
+  fixes: []

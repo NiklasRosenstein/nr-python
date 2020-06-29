@@ -113,6 +113,10 @@ class IDataType(nr.interface.Interface):
     )
 
   @nr.interface.default
+  def __repr__(self):  # type: () -> str
+    return str(self)
+
+  @nr.interface.default
   def to_human_readable(self):  # type: () -> str
     return type(self).__name__
 
