@@ -270,8 +270,8 @@ class Node(object):
   """
 
   def __init__(self, parent, context, locator, datatype, value, decorations=None, prev_sibling=None):
-    datatype = translate_type_def(datatype) if datatype is not None else None
     # type: (Optional[Node], Context, Locator, IDataType, Any, Optional[List[Decoration]]) -> None
+    datatype = translate_type_def(datatype) if datatype is not None else None
     if parent is not None and not isinstance(parent, Node):
       raise TypeError('parent must be None or Node, got "{}"'.format(type(parent).__name__))
     if prev_sibling is not None and not isinstance(prev_sibling, Node):
