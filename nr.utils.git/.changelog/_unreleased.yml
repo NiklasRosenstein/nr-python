@@ -1,0 +1,4 @@
+- type: feature
+  component: general
+  description: add `Git.pull(quiet)` argument
+  fixes: []

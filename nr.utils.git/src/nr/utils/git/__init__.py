@@ -137,7 +137,7 @@ class Git:
       command.insert(2, '-f')
     sp.check_call(command, cwd=self.cwd)
 
-  def pull(self, remote: str = None, branch: str = None):
+  def pull(self, remote: str = None, branch: str = None, quiet: bool = False):
     """
     Pull from the specified Git remote.
     """
@@ -145,6 +145,8 @@ class Git:
     command = ['git', 'pull']
     if remote and branch:
       command += [remote, branch]
+    if quiet:
+      command += ['-q']
     elif remote or branch:
       raise ValueError('remote and branch arguments can only be specified together')
 
