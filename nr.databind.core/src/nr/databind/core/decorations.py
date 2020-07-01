@@ -46,6 +46,8 @@ class ClassDecoration(Decoration):
   can be enabled by setting the #inheritable property to #True.
   """
 
+  inheritable = False
+
   def __init__(self, inheritable=False):  # type: () -> None
     self.inheritable = inheritable
 
