@@ -265,7 +265,7 @@ class StructSerializer(object):
           kwargs[field.name] = defaults[field.name]
           return
         msg = 'member "{}" is missing for {} object'.format(key, struct_cls.__name__)
-        raise node.value_error(msg)
+        raise node.type_error(msg)
       if json_default:
         value = json_default.value
       else:
@@ -587,7 +587,7 @@ class MultiTypeSerializer(object):
     for datatype in node.datatype.types:
       try:
         return dispatcher(node.replace(datatype=datatype))
-      except SerializationError as exc:
+      except SerializationTypeError as exc:
         errors.append(exc)
     error_lines = ['Unable to {} MultiType for value "{}".'.format(method, type(node.value).__name__)]
     for error in errors:

@@ -1,0 +1,8 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: The `MultiType` serializer now (again) catches only `SerializationTypeError`,
+    but the `Struct` serializer now raises a `SerializationTypeError` instead of `SerializationValueError`
+    if a field is missing
+  fixes: []
