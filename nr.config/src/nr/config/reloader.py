@@ -19,8 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from typing import Any, Callable, Optional, Type
 import logging
 import os
+import time
 import threading
 import sys
 
@@ -33,24 +35,122 @@ else:
   from watchdog.observers import Observer
   from watchdog.events import FileSystemEventHandler as MaybeFileSystemEventHandler
 
+LoadConfigFunc = Callable[[str], Any]
 
-class ConfigReloaderTask(object):
+
+class BaseObserver:
+
+  def __init__(self, filename: str, callback: Callable[[], Any]) -> None:
+    self.filename = os.path.normpath(os.path.abspath(filename))
+    self.callback = callback
+
+  def start(self):
+    raise NotImplementedError
+
+  def stop(self):
+    raise NotImplementedError
+
+  def join(self):
+    raise NotImplementedError
+
+
+class WatchdogFileObserver(BaseObserver, MaybeFileSystemEventHandler):
+
+  def __init__(self, filename: str, callback: Callable[[], Any]):
+    if watchdog is None:
+      raise RuntimeError('watchdog module is not available')
+    MaybeFileSystemEventHandler.__init__(self)
+    BaseObserver.__init__(self, os.path.normpath(os.path.abspath(filename)), callback)
+    self._observer = Observer()
+    self._observer.schedule(self, path=os.path.dirname(self.filename), recursive=False)
+
+  def start(self):
+    self._observer.start()
+
+  def stop(self):
+    self._observer.stop()
+
+  def join(self):
+    self._observer.join()
+
+  def on_modified(self, event):
+    if event.src_path == self.filename:
+      self.callback()
+
+
+class PollingFileObserver(BaseObserver):
+
+  def __init__(self, filename: str, callback: Callable[[], Any], poll_interval: float = 2):
+    super().__init__(filename, callback)
+    self.poll_interval = poll_interval
+    self._thread = None
+    self._stopped = False
+
+  def start(self):
+    if self._thread is not None:
+      raise RuntimeError('already started')
+    self._stopped = False
+    self._thread = threading.Thread(target=self._run)
+    self._thread.daemon = True
+    self._thread.start()
+
+  def stop(self):
+    self._stopped = True
+
+  def join(self):
+    self._thread.join()
+
+  def _get_time(self) -> Optional[float]:
+    try:
+      return os.path.getmtime(self.filename)
+    except FileNotFoundError:
+      return None
+
+  def _run(self):
+    mtime = self._get_time()
+    while not self._stopped:
+      time.sleep(self.poll_interval)
+      new_mtime = self._get_time()
+      if mtime != new_mtime:
+        try:
+          self.callback()
+        except:
+          logger.exception('PollingFileObserver: error in callback')
+        mtime = new_mtime
+
+
+class ReloadTask:
   """
   A helper class to help reloading config files in the background.
   """
 
-  def __init__(self, filename, load_config_function, logger=None):
+  LOGGER = logging.getLogger(__name__ + '.ReloadTask')
+
+  def __init__(
+    self,
+    filename: str,
+    load_config_function: LoadConfigFunc,
+    logger: logging.Logger = None,
+    observer_class: Type = None,
+  ) -> None:
+    if observer_class is None:
+      if watchdog is not None:
+        observer_class = WatchdogFileObserver
+      else:
+        logger.info('"watchdog" module is not available, falling back to PollingFileObserver')
+        observer_class = PollingFileObserver
     self.filename = filename
     self.load_config_function = load_config_function
+    self.observer_class = observer_class
     self._num_reloads = 0
     self._observer = None
     self._callbacks = []
-    self._logger = logger or logging.getLogger('ConfigReloaderTask'.format(filename))
+    self._logger = logger or self.LOGGER
     self._value = None
     self._reload_lock = threading.Lock()
     self._data_lock = threading.Condition()
 
-  def get(self):  # type: () -> Any
+  def get(self) -> Any:
     """
     Returns the currently loaded configuration. If the configuration was never
     loaded, it will be loaded for the first time. Note that this can return None
@@ -112,9 +212,9 @@ class ConfigReloaderTask(object):
 
   def start(self):
     if self._observer:  # TODO: Check if the observer is running.
-      raise RuntimeError('ConfigReloaderTask is already running.')
+      raise RuntimeError('ReloadTask is already running.')
     self._logger.debug('filename=%r, starting reloader thread.', self.filename)
-    self._observer = WatchdogFileObserver(self.filename, self._file_modified)
+    self._observer = self.observer_class(self.filename, self._file_modified)
     self._observer.start()
 
   def stop(self):
@@ -123,30 +223,6 @@ class ConfigReloaderTask(object):
       self._observer.join()
       self._observer = None
 
-  def _file_modified(self, event):
+  def _file_modified(self):
     self._logger.debug('filename=%r, received file modified event.', self.filename)
     self.reload()
-
-
-class WatchdogFileObserver(MaybeFileSystemEventHandler):
-
-  def __init__(self, filename, callback):
-    if watchdog is None:
-      raise RuntimeError('watchdog module is not available')
-    self.filename = os.path.normpath(os.path.abspath(filename))
-    self.callback = callback
-    self.observer = Observer()
-    self.observer.schedule(self, path=os.path.dirname(self.filename), recursive=False)
-
-  def start(self):
-    self.observer.start()
-
-  def stop(self):
-    self.observer.stop()
-
-  def join(self):
-    self.observer.join()
-
-  def on_modified(self, event):
-    if event.src_path == self.filename:
-      self.callback(event)

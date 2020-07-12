@@ -19,5 +19,36 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.6'
+from .reloader import ReloadTask, WatchdogFileObserver, PollingFileObserver
+import os
+import nr.fs
+import time
+import threading
+
+
+def _test_reload_task(observer_class):
+  event = threading.Event()
+  with nr.fs.tempfile() as fp:
+    fp.close()
+    try:
+      task = ReloadTask(fp.name, lambda fn: event.set(), observer_class=observer_class)
+      task.start()
+      time.sleep(0.1)
+      assert not event.is_set()
+      mtime = os.path.getmtime(fp.name)
+      temp_fp = open(fp.name, 'w')
+      temp_fp.write('test')
+      temp_fp.close()
+      assert os.path.getmtime(fp.name) != mtime
+      event.wait(5)
+      assert event.is_set(), 'file change not detected'
+    finally:
+      task.stop()
+
+
+def test_watchdog_file_observer():
+  _test_reload_task(WatchdogFileObserver)
+
+
+def test_polling_file_observer():
+  _test_reload_task(lambda f, c: PollingFileObserver(f, c, poll_interval=0.1))

@@ -19,5 +19,35 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.6'
+from .util import AccessorList, merge_dicts
+
+
+def test_accessor_list():
+  assert AccessorList('a.b[*].c[1]')._items == ['a', 'b', AccessorList.WILDCARD, 'c', 1]
+
+  data = {
+    'books': [
+      {
+        'title': 'Python Coding - Part 1',
+        'keywords': ['python', 'software', 'coding', 'tutorial'],
+      },
+      {
+        'title': 'Da Vinci',
+        'keywords': ['novel', 'illuminati'],
+      },
+    ],
+  }
+
+  assert AccessorList('books[1].title')(data) == 'Da Vinci'
+  assert AccessorList('books[*].title')(data) == ['Python Coding - Part 1', 'Da Vinci']
+
+
+def test_merge_dicts():
+  assert merge_dicts(
+    {'a': {'b': 0, 'c': 1}, 'd': [2, 3]},
+    {'a': {'c': 42}, 'd': None},
+  ) == {'a': {'b': 0, 'c': 42}, 'd': None}
+  assert merge_dicts(
+    {'a': 'foo'},
+    {'a': '{{exclude}}'},
+  ) == {}

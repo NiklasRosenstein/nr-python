@@ -19,5 +19,25 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.6'
+from .yaml import safe_load
+from textwrap import dedent
+
+
+def test_safe_load_with_line_numbers():
+  yaml_code = dedent('''
+  books:
+  - title: Python Coding - Volume 1
+    keywords:
+    - a
+    - b
+    - c
+  - title: Da Vinci
+    keywords: [novel]
+  ''')
+
+  result = safe_load(yaml_code, filename='<string>')
+  assert result.filename == '<string>'
+  assert result.lineno == 2
+  assert result['books'].lineno == 2
+  assert result['books'][0].lineno == 3
+  assert result['books'][1].lineno == 8

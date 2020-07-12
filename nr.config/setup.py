@@ -22,9 +22,9 @@ else:
 requirements = ['nr.collections >=0.0.1,<1.0.0', 'nr.pylang.utils >=0.0.1,<0.1.0', 'six >=1.14.0,<2.0.0']
 extras_require = {}
 extras_require['reloader'] = ['watchdog >=0.10.2,<0.11.0']
-extras_require['test'] = ['PyYAML']
+extras_require['test'] = ['pytest', 'PyYAML', 'nr.fs >=1.6.0,<2.0.0']
 tests_require = []
-tests_require = ['PyYAML']
+tests_require = ['pytest', 'PyYAML', 'nr.fs >=1.6.0,<2.0.0']
 
 setuptools.setup(
   name = 'nr.config',

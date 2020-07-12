@@ -20,11 +20,11 @@
 # IN THE SOFTWARE.
 
 """
-Allows you to load YAML files with filename and lineno information in
-sets, lists and dicts.
+Provides functionality to mock a #yaml.Loader such that it attaches filename and line
+number information to the deserialized sets, lists and dicts.
 """
 
-from __future__ import absolute_import
+from typing import Optional, Type
 import collections
 import io
 import types
@@ -109,25 +109,25 @@ class YamlLineNumberLoaderMixin(object):
     data.update(value)
 
 
-def load(_data=None, *args, **kwargs):
+def mock_loader_class(loader_cls: Type[yaml.Loader], filename: Optional[str]) -> yaml.Loader:
   """
-  Loads YAML data from a file, adding line numbers to every type of collection
-  returned from the loader (sets, lists and dicts). The specified YAML loader
-  will be mixed with the #YamlLineNumberLoaderMixin class. The default loader
-  is #yaml.SafeLoader.
+  Mocks a YAML loader class such that the sets, lists and dicts it deserializes contain
+  filename and line number information.
   """
 
-  loader_cls = kwargs.pop('Loader', yaml.SafeLoader)
-  filename = kwargs.pop('filename', None)
-
-  if _data is None and filename is not None:
-    with io.open(filename, encoding=kwargs.pop('encoding', None)) as fp:
-      _data = fp.read()
-
-  class _YamlLoader(YamlLineNumberLoaderMixin, loader_cls):
+  class _YamlLoaderWithFilenameAndLineNo(YamlLineNumberLoaderMixin, loader_cls):
     def __init__(self, *args, **kwargs):
       loader_cls.__init__(self, *args, **kwargs)
       YamlLineNumberLoaderMixin.__init__(self, filename)
 
-  loader = _YamlLoader(_data, *args, **kwargs)
-  return loader.get_single_data()
+  return _YamlLoaderWithFilenameAndLineNo
+
+
+def load(stream, Loader: Type[yaml.Loader] = None, filename: str = None):
+  if Loader is None:
+    Loader = yaml.Loader
+  return yaml.load(stream, mock_loader_class(Loader, filename))
+
+
+def safe_load(stream, filename: str = None):
+  return load(stream, yaml.SafeLoader, filename)
