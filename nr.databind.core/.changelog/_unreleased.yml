@@ -5,3 +5,8 @@ changes:
   description: fix `ImportTypeResolver.resolve()` when the `type_name` does not contain
     a module name (i.e. there is no dot in the name)
   fixes: []
+- type: improvement
+  component: union
+  description: add `IUnionTypeResolver.__repr__()` with default implementation, making
+    the numan readable representation of `UnionType` more easily readable
+  fixes: []

@@ -28,7 +28,7 @@ import typing
 from nr.collections import abc
 from nr.pylang.utils import classdef
 from nr.pylang.utils.typing import is_generic, get_generic_args
-from nr.interface import attr, default, implements, Interface
+from nr.interface import attr, default, implements, optional, Interface
 
 from nr.databind.core import IDataType, InvalidTypeDefinitionError
 from nr.databind.core.datatypes import PythonClassType, translate_type_def
@@ -80,6 +80,11 @@ class IUnionTypeResolver(Interface):
   """ An interface for resolving union types by a name. """
 
   classdef.comparable([])
+
+  @default
+  @optional
+  def __repr__(self):
+    return type(self).__name__
 
   def resolve(self, type_name):  # type: (str) -> IUnionTypeMember
     """ Resolve the *type_name* to a #IUnionTypeMember instance. If the
@@ -217,7 +222,11 @@ class EntrypointTypeResolver(StandardTypeResolver):
     for ep in pkg_resources.iter_entry_points(entrypoint_group):
       types[ep.name] = self._Member(ep.name, ep, base_type)
     super(EntrypointTypeResolver, self).__init__(types)
+    self.entrypoint_group = entrypoint_group
     self.base_type = base_type
+
+  def __repr__(self):
+    return '{}({})'.format(type(self).__name__, self.entrypoint_group)
 
 
 @implements(IUnionTypeResolver)
