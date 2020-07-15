@@ -232,6 +232,8 @@ class ImportTypeResolver(object):
     module_name, member = type_name.rpartition('.')[::2]
     if six.PY2 and module_name == 'builtins':
       module_name = '__builtin__'
+    if not module_name:
+      raise UnknownUnionTypeError(type_name)
     try:
       module = importlib.import_module(module_name)
     except ImportError:

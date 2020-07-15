@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: union
+  description: fix `ImportTypeResolver.resolve()` when the `type_name` does not contain
+    a module name (i.e. there is no dot in the name)
+  fixes: []
