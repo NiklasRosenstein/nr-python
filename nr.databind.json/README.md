@@ -14,7 +14,7 @@ from nr.databind.json import JsonModule
 class Person(Struct):
     name = Field(str, prominent=True)
     age = Field(int)
-    address = Field(int, default=None)
+    address = Field(str, default=None)
 
 mapper = ObjectMapper(JsonModule())
 print(mapper.deserialize({'name': 'John Wick', 'age': 48, 'address': 'Wicked St.'}))  # Person(name='John Wick')
