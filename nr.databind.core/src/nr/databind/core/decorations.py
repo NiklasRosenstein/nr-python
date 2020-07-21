@@ -111,7 +111,7 @@ def get_decoration(decoration_cls, *decorations_lists):
 
 # Common concrete decorations.
 
-class Collect(GlobalDecoration):
+class NodeCollector(GlobalDecoration):
   """
   A global decoration that, if present, will be used to collect all nodes
   that are passed into #ObjectMapper.deserialize_node() or
@@ -120,6 +120,10 @@ class Collect(GlobalDecoration):
 
   def __init__(self):
     self.nodes = []
+
+
+# Backwards compatibility
+Collect = NodeCollector
 
 
 class FieldName(FieldDecoration):

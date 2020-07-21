@@ -291,9 +291,9 @@ class Node(object):
     self.decorations = decorations or []
     self.result = None
     self.unknowns = set()
-    collect = get_decoration(Collect, context.decorations)
-    if collect:
-      collect.nodes.append(self)
+    collector = get_decoration(NodeCollector, context.decorations)
+    if collector:
+      collector.nodes.append(self)
 
   def __repr__(self):
     return 'Node(locator={!r}, datatype={!r})'.format(self.locator, self.datatype)

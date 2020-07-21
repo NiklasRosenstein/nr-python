@@ -10,3 +10,7 @@ changes:
   description: add `IUnionTypeResolver.__repr__()` with default implementation, making
     the numan readable representation of `UnionType` more easily readable
   fixes: []
+- type: refactor
+  component: general
+  description: rename `Collect` decoration to `NodeCollector`
+  fixes: []
