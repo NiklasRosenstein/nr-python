@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.20.post1'
+__version__ = '0.0.21'
 
 from nr.pylang.utils import NotSet
 import inspect
