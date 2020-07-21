@@ -299,9 +299,9 @@ def test_store_node_decoration(mapper):
 
 
 def test_context_collect(mapper):
-  from nr.databind.core import StringType, Collect
+  from nr.databind.core import StringType, NodeCollector
 
-  collect = Collect()
+  collect = NodeCollector()
   mapper.deserialize('foo', StringType(), decorations=[collect])
   assert len(collect.nodes) == 1
   assert collect.nodes[0].value == 'foo'
