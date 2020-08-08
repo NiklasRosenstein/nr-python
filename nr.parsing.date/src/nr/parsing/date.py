@@ -162,7 +162,19 @@ class TimezoneFormatOption(BaseFormatOption):
       return string
 
 
-class FormatOptionSet(object):
+@six.add_metaclass(abc.ABCMeta)
+class DatetimeFormat(object):
+
+  @abc.abstractmethod
+  def parse(self, string):  # type: (str) -> datetime
+    pass
+
+  @abc.abstractmethod
+  def format(self, datetime):  # type: (datetime) -> str
+    pass
+
+
+class FormatOptionSet(DatetimeFormat):
 
   def __init__(self, options=()):
     self._options = {}
@@ -271,7 +283,7 @@ class DateFormat(object):
     return result.getvalue()
 
 
-class DateFormatSet(list):
+class DateFormatSet(list, DatetimeFormat):
   """
   Represents a set of date formats.
   """
@@ -410,6 +422,16 @@ class Duration(object):
 
     return timedelta(seconds=self.total_seconds(*args, **kwargs))
 
+  def as_relativedelta(self):  # type: () -> dateutil.relativedelta.relativedelta
+    """
+    Converts the #Duration object to a #dateutil.relativedelta.relativedelta object. Requires
+    the `python-dateutil` module.
+    """
+
+    from dateutil.relativedelta import relativedelta
+    return relativedelta(years=self.years, months=self.months, weeks=self.weeks, days=self.days,
+                         hours=self.hours, minutes=self.minutes, seconds=self.seconds)
+
   @classmethod
   def parse(cls, s):  # type: (str) -> Duration
     """
@@ -455,6 +477,7 @@ class Duration(object):
     return cls(**fields)
 
 
+#@deprecated
 def parse_iso8601_duration(d):  # type: (str) -> int
   """
   *Deprecated. Use #Duration.parse() instead.*
@@ -463,18 +486,6 @@ def parse_iso8601_duration(d):  # type: (str) -> int
   """
 
   return Duration.parse(d).total_seconds()
-
-
-@six.add_metaclass(abc.ABCMeta)
-class DatetimeFormat(object):
-
-  @abc.abstractmethod
-  def parse(self, string):  # type: (str) -> datetime
-    pass
-
-  @abc.abstractmethod
-  def format(self, datetime):  # type: (datetime) -> str
-    pass
 
 
 class Iso8601(DatetimeFormat):
@@ -513,3 +524,7 @@ class JavaOffsetDatetime(DatetimeFormat):
 
   def format(self, datetime):
     return self._format_set.format(datetime)
+
+
+def create_datetime_format_set(name, formats):
+  return root_option_set.create_format_set(name, formats)

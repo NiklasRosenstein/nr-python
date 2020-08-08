@@ -1,0 +1,16 @@
+release_date: '2020-08-08'
+changes:
+- type: change
+  component: general
+  description: '`FormatOptionSet` and `DateFormatSet` now implement the `DatetimeFormat`
+    abstract class.'
+  fixes: []
+- type: feature
+  component: general
+  description: Added `Duration.as_relativedate()`. Note that no dependency on `python-dateutil`
+    was added. Calling this method requires that the package is installed separately.
+  fixes: []
+- type: feature
+  component: general
+  description: Added `create_datetime_format_set()` function.
+  fixes: []
