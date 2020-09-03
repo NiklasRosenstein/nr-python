@@ -1,0 +1,10 @@
+name: nr.proxy
+version: 0.0.2
+author: Niklas Rosenstein <rosensteinniklas@gmail.com>
+license: MIT
+url: https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy
+description: |
+  Provides proxy classes that allow accessing objects that are usually only accessible via
+  function calls as objects directly.
+requirements:
+- python ^3.5

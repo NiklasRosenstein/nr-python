@@ -19,17 +19,20 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.collections import abc
-from nr.proxy import Proxy, proxy_decorator, make_proxy_class
+import threading
+from collections import abc
+from nr.proxy import *
+
+import pytest
 
 
 def test_proxy():
-    p = Proxy(lambda: None)
+    p = proxy(lambda: None)
 
     assert p == None
 
-    # An unfortunate behavior, that is why we have the [[make_proxy_class()]]
-    # function (see [[test_proxy_iterable()]] below.
+    # An unfortunate behavior, that is why we have the #make_cls()
+    # function (see #test_proxy_iterable() below.
     assert isinstance(p, abc.Iterable)
 
     # TODO(NiklasRosenstein): Why does it not behave like abc.Iterable?
@@ -37,7 +40,9 @@ def test_proxy():
 
 
 def test_proxy_iterable():
-    NonIterableProxy = make_proxy_class('NonIterableProxy', exclude=['__iter__'])
+    NonIterableProxy = make_cls('NonIterableProxy', exclude=['__iter__'])
+    print(NonIterableProxy)
+    print(NonIterableProxy.__bases__)
 
     p = NonIterableProxy(lambda: None)
     assert p == None
@@ -46,11 +51,12 @@ def test_proxy_iterable():
     assert not isinstance(p, abc.Mapping)
     assert not isinstance(p, abc.Iterable), NonIterableProxy.__mro__
 
-    NonIterableLazyProxy = make_proxy_class('NonIterableLazyProxy', exclude=['__iter__'])
-    @proxy_decorator(NonIterableLazyProxy, lazy=True)
-    def p():
+    NonIterableLazyProxy = make_cls('NonIterableLazyProxy', exclude=['__iter__'])
+
+    def _func():
         count[0] += 1
         return count[0]
+    p = NonIterableLazyProxy(_func, lazy=True)
 
     count = [0]
     assert p == 1
@@ -65,10 +71,10 @@ def test_proxy_iterable():
 def test_proxy_auto_increment():
     count = [0]
 
-    @proxy_decorator()
-    def auto_increment():
+    def auto_increment_():
         count[0] += 1
         return count[0]
+    auto_increment = proxy(auto_increment_)
 
     assert auto_increment == 1
     assert auto_increment == 2
@@ -79,12 +85,40 @@ def test_proxy_auto_increment():
 def test_proxy_lazy_not_auto_increment():
     count = [0]
 
-    @proxy_decorator(lazy=True)
-    def not_incrementing():
+    def auto_increment_():
         count[0] += 1
         return count[0]
+    auto_increment = proxy(auto_increment_, lazy=True)
 
-    assert not_incrementing == 1
-    assert not_incrementing == 1
-    assert not_incrementing == 1
+    assert auto_increment == 1
+    assert auto_increment == 1
+    assert auto_increment == 1
     assert count[0] == 1
+
+
+def test_threadlocal():
+    l = threadlocal[int]()
+    sink = set()
+    lock = threading.Lock()
+
+    def _run(value: int):
+        for i in range(1000):
+            assert empty(l)
+            push(l, value)
+            assert not empty(l)
+            assert get(l) == value
+            assert pop(l) == value
+            assert empty(l)
+        with lock:
+            sink.add(value)
+
+    threads = [
+        threading.Thread(target=lambda: _run(99)),
+        threading.Thread(target=lambda: _run(10)),
+        threading.Thread(target=lambda: _run(321)),
+    ]
+    [t.start() for t in threads]
+    _run(42)
+    [t.join() for t in threads]
+
+    assert sink == set([99, 10, 321, 42])

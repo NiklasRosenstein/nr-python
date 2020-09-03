@@ -1,0 +1,8 @@
+release_date: '2020-09-03'
+changes:
+- type: change
+  component: general
+  description: rewrite API entirely, rename `Proxy` to `proxy`, `make_proxy_class`
+    to `make_cls`, remove `proxy_decorator`, remove other functions and add new ones,
+    add `threadlocal` proxy class, require `Python >=3.5` and use `typing`
+  fixes: []
