@@ -11,7 +11,7 @@ requirements = []
 
 setuptools.setup(
   name = 'nr.proxy',
-  version = '2.0.0',
+  version = '1.0.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Provides proxy classes that allow accessing objects that are usually only accessible via function calls as objects directly.',
