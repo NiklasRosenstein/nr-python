@@ -3,5 +3,4 @@ version: "0.0.4"
 license: "MIT"
 description: "Package description here."
 requirements:
-  - python ^3.4
-  - test: []
+- python ^3.4

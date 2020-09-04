@@ -2,16 +2,15 @@ name: nr.databind.core
 version: "0.0.21"
 description: Bind structured data directly to typed objects.
 requirements:
-  - python ^2.7|^3.4
-  - nr.collections ^0.0.1
-  - nr.interface ~0.0.1
-  - nr.stream ~0.0.1
-  - nr.pylang.utils ~0.0.3
-  - test:
-    - pytest
-    - PyYAML
-
+- python ^2.7|^3.4
+- nr.collections ^0.0.1
+- nr.interface ~0.0.1
+- nr.stream ~0.0.1
+- nr.pylang.utils ~0.0.3
+test-requirements:
+- pytest
+- PyYAML
 entrypoints:
   nr.databind.core.union.test_entrypoints:
-    - int = test_union_type:Integer
-    - string = test_union_type:String
+  - int = test_union_type:Integer
+  - string = test_union_type:String

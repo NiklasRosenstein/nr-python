@@ -2,7 +2,7 @@ name: nr.collections
 version: "0.1.0"
 description: Useful container datatypes for Python 2 and 3.
 requirements:
-  - nr.metaclass ~0.0.1
-  - six ^1.11.0
-  - test:
-    - nr.fs ^1.5.0
+- nr.metaclass ~0.0.1
+- six ^1.11.0
+test-requirements:
+- nr.fs ^1.5.0

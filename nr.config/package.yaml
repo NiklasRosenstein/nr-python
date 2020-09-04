@@ -8,10 +8,10 @@ requirements:
 - nr.collections ^0.0.1
 - nr.pylang.utils ~0.0.1
 - six ^1.14.0
-- test:
-  - pytest
-  - PyYAML
-  - nr.fs ^1.6.0
-- extra:
-    reloader:
-    - watchdog ~0.10.2
+test-requirements:
+- pytest
+- PyYAML
+- nr.fs ^1.6.0
+extra-requirements:
+  reloader:
+  - watchdog ~0.10.2
