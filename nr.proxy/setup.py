@@ -7,16 +7,24 @@ import os
 import setuptools
 import sys
 
+readme_file = 'README.md'
+if os.path.isfile(readme_file):
+  with io.open(readme_file, encoding='utf8') as fp:
+    long_description = fp.read()
+else:
+  print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
+  long_description = None
+
 requirements = []
 
 setuptools.setup(
   name = 'nr.proxy',
-  version = '1.0.0',
+  version = '1.0.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Provides proxy classes that allow accessing objects that are usually only accessible via function calls as objects directly.',
-  long_description = None,
-  long_description_content_type = None,
+  long_description = long_description,
+  long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy',
   license = 'MIT',
   py_modules = ['nr.proxy'],
