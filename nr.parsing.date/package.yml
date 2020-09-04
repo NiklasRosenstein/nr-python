@@ -1,0 +1,12 @@
+name: nr.parsing.date
+version: 0.3.0
+author: Niklas Rosenstein <rosensteinniklas@gmail.com>
+license: MIT
+url: https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy
+description: A simple and fast date parsing library. Uses dateutil for timezone offset support.
+requirements:
+- python ^2.7|^3.4
+- nr.utils.re ~0.1.0
+test-requirements:
+- pytest
+- python-dateutil
