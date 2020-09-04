@@ -91,6 +91,7 @@ class timezone(tzinfo):
 
 
 timezone.utc = timezone('UTC', 0)
+timezone.local = timezone('local', (datetime.now() - datetime.utcnow()).total_seconds())
 
 
 class BaseFormatOption(object):
