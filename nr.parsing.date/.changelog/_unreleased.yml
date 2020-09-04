@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: fix `python_requires` in `setup.py`
+  fixes: []

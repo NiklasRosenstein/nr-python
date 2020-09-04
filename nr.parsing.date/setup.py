@@ -39,7 +39,7 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = test_requirements,
-  python_requires = '>=2.7,<3.0.0|>=3.4,<4.0.0',
+  python_requires = None,  # '>=2.7,<3.0.0|>=3.4,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},
