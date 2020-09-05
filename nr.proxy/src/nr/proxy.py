@@ -404,4 +404,4 @@ def make_cls(
     if take:
       filtered_members[key] = value
 
-  return types.new_class(name, (Generic,), exec_body=lambda ns: ns.update(filtered_members))
+  return types.new_class(name, (Generic[T],), exec_body=lambda ns: ns.update(filtered_members))

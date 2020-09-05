@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: Fix `make_cls()` inheriting from `Generic[T]` instead of `Generic`
+    (the latter is an error in Python 3.6)
+  fixes: []
