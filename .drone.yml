@@ -10,7 +10,7 @@ steps:
       PYTHON_PIP: pip
       VIRTUALENV: python -m venv
     commands:
-      - pip install shut==0.5.4 -q
+      - pip install shut==0.5.5 -q
       - shut mono test --isolate
 
 ---
@@ -25,7 +25,7 @@ steps:
       PYTHON_PIP: pip
       VIRTUALENV: virtualenv
     commands:
-      - pip install shut==0.5.4 -q
+      - pip install shut==0.5.5 -q
 
       # This is a bit dirty but we rely on Python2.7 to be available in the image as well.
       - curl https://bootstrap.pypa.io/get-pip.py | python2.7 - -q
