@@ -6,4 +6,3 @@ description: "Extends the misaka Markdown parser and renderer for some nifty fea
 requirements:
 - python ^3.4
 - misaka ^2.1.1
-test-driver: {type: pytest}
