@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .transform import Transformer, Substitution, ValueTransformer
+from nr.config.transform import Transformer, Substitution, ValueTransformer
 from pytest import raises
 
 

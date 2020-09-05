@@ -12,6 +12,8 @@ test-requirements:
 - pytest
 - PyYAML
 - nr.fs ^1.6.0
+- watchdog
 extra-requirements:
   reloader:
   - watchdog ~0.10.2
+test-driver: {type: pytest}

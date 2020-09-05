@@ -6,3 +6,5 @@ requirements:
 - six ^1.11.0
 test-requirements:
 - nr.fs ^1.5.0
+- pytest
+test-driver: {type: pytest}

@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .reloader import ReloadTask, WatchdogFileObserver, PollingFileObserver
+from nr.config.reloader import ReloadTask, WatchdogFileObserver, PollingFileObserver
 import os
 import nr.fs
 import time

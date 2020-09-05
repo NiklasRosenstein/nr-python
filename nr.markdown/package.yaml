@@ -4,5 +4,6 @@ author: "Niklas Rosenstein <rosensteinniklas@gmail.com>"
 license: "MIT"
 description: "Extends the misaka Markdown parser and renderer for some nifty features."
 requirements:
-  - python ^3.4
-  - misaka ^2.1.1
+- python ^3.4
+- misaka ^2.1.1
+test-driver: {type: pytest}

@@ -2,5 +2,5 @@ name: nr.fs
 version: "1.6.2"
 description: Filesystem and path manipulation tools.
 requirements:
-  - python ^2.7|^3.4
-  - six ^1.11.0
+- python ^2.7|^3.4
+- six ^1.11.0

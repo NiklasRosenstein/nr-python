@@ -1,5 +1,5 @@
 
-from . import match_all
+from nr.utils.re import match_all
 import pytest
 
 

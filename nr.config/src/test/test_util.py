@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from .util import AccessorList, merge_dicts
+from nr.config.util import AccessorList, merge_dicts
 
 
 def test_accessor_list():

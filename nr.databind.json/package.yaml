@@ -10,5 +10,4 @@ requirements:
 - nr.pylang.utils ~0.0.1
 test-requirements:
 - pytest
-- PyYAML
-- flask
+test-driver: {type: pytest}

@@ -10,3 +10,4 @@ requirements:
 test-requirements:
 - pytest
 - python-dateutil
+test-driver: {type: pytest}

@@ -8,3 +8,6 @@ description: |
   function calls as objects directly.
 requirements:
 - python ^3.5
+test-requirements:
+- pytest
+test-driver: {type: pytest}

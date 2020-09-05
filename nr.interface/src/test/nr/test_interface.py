@@ -795,7 +795,7 @@ def test_optional_method():
 def test_subclassing_with_default():
   class A(Interface):
     def a(self):
-      ...
+      pass
     @default
     def b(self):
       return 'A.b()'

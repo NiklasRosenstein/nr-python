@@ -3,6 +3,6 @@ version: "0.0.1"
 license: "MIT"
 description: "Package description here."
 requirements:
-  - python ^3.4
-  - nr.pylang.utils ^0.0.1
-  - pony ^0.7.0
+- python ^3.4
+- nr.pylang.utils ^0.0.1
+- pony ^0.7.0

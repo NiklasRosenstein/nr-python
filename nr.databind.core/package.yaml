@@ -10,6 +10,7 @@ requirements:
 test-requirements:
 - pytest
 - PyYAML
+test-driver: {type: pytest}
 entrypoints:
   nr.databind.core.union.test_entrypoints:
   - int = test_union_type:Integer
