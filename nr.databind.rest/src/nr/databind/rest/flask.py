@@ -71,7 +71,7 @@ class FlaskParamVisitor(ParamVisitor):
     if value is None:
       if param.default is not NotSet:
         return param.default
-      raise BadRequest('missing required header', parameters={'header': param.name})
+      raise BadRequest('missing required header', header=param.name)
     return self.mapper.dd(PATH_PARAMETER_CONTENT_TYPE, value, param.type_annotation)
 
   def visit_Query(self, param: RouteParam.Query) -> Any:
@@ -79,7 +79,7 @@ class FlaskParamVisitor(ParamVisitor):
     if not value:
       if param.default is not NotSet:
         return param.default
-      raise BadRequest('missing required query parameter', parameters={'queryParam': param.name})
+      raise BadRequest('missing required query parameter', queryParam=param.name)
     type_def = translate_type_def(param.type_annotation)
     if not isinstance(type_def, CollectionType):
       value = value[0]

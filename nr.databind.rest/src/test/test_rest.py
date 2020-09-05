@@ -1,4 +1,5 @@
 
+import inspect
 import pytest
 
 from nr.databind.rest import *
@@ -41,6 +42,7 @@ def test_route_decorator():
   routes = get_routes(MyResource)
   assert routes[0] == ParametrizedRoute(
     'foo',
+    inspect.signature(MyResource['foo'].original),
     RouteData(HttpData.parse('GET /{a}/foo/{b}'), 'application/json'),
     MyResource,
     {'a': RouteParam.Path(NotSet, 'a'), 'b': RouteParam.Path(str, 'b')},
@@ -48,6 +50,7 @@ def test_route_decorator():
   )
   assert routes[1] == ParametrizedRoute(
     'set',
+    inspect.signature(MyResource['set'].original),
     RouteData(HttpData.parse('POST /set'), 'application/json'),
     MyResource,
     {},

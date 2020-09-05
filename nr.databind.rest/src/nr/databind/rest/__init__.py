@@ -284,8 +284,8 @@ class ParametrizedRoute:
   #get_routes() function.
   """
 
-  classdef.comparable(['name', 'route', 'interface', 'parameters', 'return_'])
-  classdef.repr(['name', 'route', 'interface', 'parameters', 'return_'])
+  classdef.comparable(['name', 'signature', 'route', 'interface', 'parameters', 'return_'])
+  classdef.repr(['name', 'signature', 'route', 'interface', 'parameters', 'return_'])
 
   def __init__(
       self,
