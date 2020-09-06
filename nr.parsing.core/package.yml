@@ -1,5 +1,7 @@
 name: nr.parsing.core
-version: "0.0.1"
+version: 0.0.1
+author: Niklas Rosenstein <rosensteinniklas@gmail.com>
+license: MIT
 description: Simple library to scan or tokenize text.
 requirements:
 - python ^2.6|^3.4
