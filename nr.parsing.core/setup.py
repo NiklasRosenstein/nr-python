@@ -22,7 +22,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.parsing.core',
-  version = '0.0.1',
+  version = '1.0.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Simple library to scan or tokenize text.',
