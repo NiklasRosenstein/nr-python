@@ -309,8 +309,10 @@ class Lexer(object):
     if not self.token:
       self.next()
     while not self.token.type == eof:
+      current = self.token
       yield self.token
-      self.next()
+      if current == self.token:
+        self.next()
 
   def __bool__(self):
     if self.token and self.token.type == eof:

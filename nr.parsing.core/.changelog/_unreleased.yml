@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: breaking_change
+  component: general
+  description: '`Lexer.__iter__()` now only continues on to the next token if the
+    lexer was advanced by the user between iteration steps. This is a breaking change'
+  fixes: []
