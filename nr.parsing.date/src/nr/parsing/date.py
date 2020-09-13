@@ -30,15 +30,7 @@ import abc
 import importlib
 import io
 import os
-import six
 import warnings
-
-# Python 2 compatibility
-try:
-  unicode
-  StringIO = io.BytesIO
-except NameError:
-  StringIO = io.StringIO
 
 re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))
 
@@ -163,8 +155,7 @@ class TimezoneFormatOption(BaseFormatOption):
       return string
 
 
-@six.add_metaclass(abc.ABCMeta)
-class DatetimeFormat(object):
+class DatetimeFormat(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def parse(self, string):  # type: (str) -> datetime
@@ -226,7 +217,7 @@ class DateFormat(object):
 
   def __init__(self, string, option_set):
     index = 0
-    pattern = StringIO()
+    pattern = io.StringIO()
     options = []
     join_sequence = []
     def write(char):
@@ -275,7 +266,7 @@ class DateFormat(object):
     return datetime(**kwargs)
 
   def format(self, date):
-    result = StringIO()
+    result = io.StringIO()
     for item in self._join_sequence:
       if isinstance(item, str):
         result.write(item)

@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: breaking_change
+  component: general
+  description: Require Python 3.5 at least, remove `six` dependency
+  fixes: []
