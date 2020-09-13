@@ -7,6 +7,7 @@ description: A simple and fast date parsing library. Uses dateutil for timezone 
 requirements:
 - python ^2.7|^3.4
 - nr.utils.re ~0.1.0
+- six
 test-requirements:
 - pytest
 - python-dateutil

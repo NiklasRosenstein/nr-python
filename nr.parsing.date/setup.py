@@ -17,6 +17,7 @@ else:
 
 requirements = [
   'nr.utils.re >=0.1.0,<0.2.0',
+  'six',
 ]
 test_requirements = [
   'pytest',
