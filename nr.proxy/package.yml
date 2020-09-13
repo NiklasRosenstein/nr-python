@@ -2,12 +2,14 @@ name: nr.proxy
 version: 1.0.1
 author: Niklas Rosenstein <rosensteinniklas@gmail.com>
 license: MIT
-url: https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy
 description: |
   Provides proxy classes that allow accessing objects that are usually only accessible via
   function calls as objects directly.
+url: https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy
+typed: true
 requirements:
-- python ^3.5
+- python ^3.6
 test-requirements:
 - pytest
-test-driver: {type: pytest}
+test-driver:
+  type: pytest

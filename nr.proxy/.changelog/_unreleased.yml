@@ -5,3 +5,8 @@ changes:
   description: Fix `make_cls()` inheriting from `Generic[T]` instead of `Generic`
     (the latter is an error in Python 3.6)
   fixes: []
+- type: fix
+  component: general
+  description: Indicate that package is typed, fix missing declaration of threadlocal
+    members and increase Python minimum version requires to 3.6
+  fixes: []

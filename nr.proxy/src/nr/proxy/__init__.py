@@ -227,6 +227,7 @@ class proxy(bindable_proxy[T]):
     object.__setattr__(self, "__name__", name)
 
   def _set(self, value: T) -> None:
+    # NOTE: We can set directly now that the attributes exist from the constructor.
     self.__func = None
     self.__lazy = True
     self.__cache = value
@@ -266,6 +267,10 @@ class threadlocal(stackable_proxy[T]):
   """
   A proxy that contains a thread-local stack of objects.
   """
+
+  __local: threading.local
+  __error_message: Optional[str]
+  __name__: Optional[str]
 
   def __init__(self, name: Optional[str] = None, error_message: Optional[str] = None) -> None:
     """

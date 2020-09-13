@@ -16,6 +16,9 @@ else:
   long_description = None
 
 requirements = []
+test_requirements = [
+  'pytest',
+]
 
 setuptools.setup(
   name = 'nr.proxy',
@@ -27,17 +30,17 @@ setuptools.setup(
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy',
   license = 'MIT',
-  py_modules = ['nr.proxy'],
+  packages = setuptools.find_packages('src', ['test', 'test.*', 'tests', 'tests.*', 'docs', 'docs.*']),
   package_dir = {'': 'src'},
   include_package_data = True,
   install_requires = requirements,
   extras_require = {},
-  tests_require = [],
-  python_requires = '>=3.5.0,<4.0.0',
+  tests_require = test_requirements,
+  python_requires = '>=3.6.0,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},
   keywords = [],
   classifiers = [],
-  zip_safe = True,
+  zip_safe = False,
 )
