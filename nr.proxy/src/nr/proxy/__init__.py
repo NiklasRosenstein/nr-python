@@ -227,10 +227,9 @@ class proxy(bindable_proxy[T]):
     object.__setattr__(self, "__name__", name)
 
   def _set(self, value: T) -> None:
-    # NOTE: We can set directly now that the attributes exist from the constructor.
-    self.__func = None
-    self.__lazy = True
-    self.__cache = value
+    object.__setattr__(self, "_proxy__func", None)
+    object.__setattr__(self, "_proxy__lazy", True)
+    object.__setattr__(self, "_proxy__cache", value)
 
   # proxy_base
 
@@ -240,7 +239,7 @@ class proxy(bindable_proxy[T]):
         if self.__func is None:
           raise RuntimeError('unbound proxy')
         object.__setattr__(self, "_proxy__cache", self.__func())
-      return self.__cache
+      return cast(T, self.__cache)
     elif self.__func is None:
       raise RuntimeError('unbound proxy')
     else:
@@ -409,4 +408,4 @@ def make_cls(
     if take:
       filtered_members[key] = value
 
-  return types.new_class(name, (Generic[T],), exec_body=lambda ns: ns.update(filtered_members))
+  return types.new_class(name, (Generic[T],), exec_body=lambda ns: ns.update(filtered_members))  # type: ignore
