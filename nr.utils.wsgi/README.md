@@ -1,3 +1,7 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
 # nr.utils.wsgi
 
 Utilities for writing WSGI applications.
@@ -42,3 +46,7 @@ from nr.utils.wsgi.runners import WsgiAppConfig, GunicornRunner
 runner = GunicornRunner(num_workers=4)
 runner.run(WsgiAppConfig('my_application.wsgi:app'), daemonize=True)
 ```
+
+---
+
+<p align="center">Copyright &copy; 2020 Niklas Rosenstein</p>

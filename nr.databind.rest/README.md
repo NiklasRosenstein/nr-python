@@ -1,3 +1,9 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
+> This package is superseded by [astra.http](https://pypi.org/project/astra-http/).
+
 # nr.databind.rest
 
 This module can be used to define a REST API interface using Python 3
@@ -63,3 +69,7 @@ app = Flask(__name__)
 mapper = MimeTypeMapper.json()
 bind_resource(app, '/my-resource', MyResourceImpl(), mapper=mapper)
 ```
+
+---
+
+<p align="center">Copyright &copy; 2020 Niklas Rosenstein</p>

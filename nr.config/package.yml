@@ -1,0 +1,19 @@
+name: nr.config
+version: 0.1.0
+description: Utility library to implement composable YAML configuration files.
+requirements:
+- python ^3.4
+- nr.collections ^0.0.1
+- nr.pylang.utils ~0.0.1
+- six ^1.14.0
+test-requirements:
+- pytest
+- PyYAML
+- nr.fs ^1.6.0
+- watchdog
+extra-requirements:
+  reloader:
+  - watchdog ~0.10.2
+test-driver:
+  type: pytest
+typed: true

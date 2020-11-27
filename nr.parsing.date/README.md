@@ -1,3 +1,7 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
 # nr.parsing.date
 
 This package provides a fast parser for fixed format date strings with 
@@ -110,3 +114,7 @@ TODO
 ### v0.0.1 (2020-02-24)
 
 * Initial version
+
+---
+
+<p align="center">Copyright &copy; 2020 Niklas Rosenstein</p>

@@ -10,43 +10,20 @@ steps:
       PYTHON_PIP: pip
       VIRTUALENV: python -m venv
     commands:
-      - pip install shut==0.5.5 -q
+      - pip install shut==0.10.0 -q
       - shut mono test --isolate
 
 ---
 kind: pipeline
 type: docker
-name: python-2.7
+name: python-3.9
 steps:
 
   - name: test-all
-    image: python:3.6
+    image: python:3.9
     environment:
       PYTHON_PIP: pip
-      VIRTUALENV: virtualenv
+      VIRTUALENV: python -m venv
     commands:
-      - pip install shut==0.5.5 -q
-
-      # This is a bit dirty but we rely on Python2.7 to be available in the image as well.
-      - curl https://bootstrap.pypa.io/get-pip.py | python2.7 - -q
-      - python2.7 -m pip install virtualenv -q
-      - export PYTHON=python2.7
-      - export PIP="python2.7 -m pip"
-      - export VIRTUALENV="python2.7 -m virtualenv"
-
+      - pip install shut==0.10.0 -q
       - shut mono test --isolate
-
----
-kind: pipeline
-type: docker
-name: python-2.6
-steps:
-
-  - name: test-nr.interface
-    image: niklasrosenstein/python:pytest-2.6
-    environment:
-      PACKAGES: nr.interface
-      VIRTUALENV: virtualenv
-    commands:
-      - pip install pytest ./nr.interface -q
-      - pytest nr.interface/src

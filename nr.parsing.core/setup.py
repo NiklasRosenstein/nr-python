@@ -28,7 +28,7 @@ setuptools.setup(
   description = 'Simple library to scan or tokenize text.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = None,
+  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
   license = 'MIT',
   py_modules = ['nr.parsing.core'],
   package_dir = {'': 'src'},

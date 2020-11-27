@@ -1,3 +1,9 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
+> This package is superseded by [databind.core](https://pypi.org/project/databind.core/).
+
 # nr.databind.core
 
 The `nr.databind.core` package provides a framework for binding structured data to typed objects
@@ -17,3 +23,7 @@ class Person(Struct):
 
 print(Person('John Wick', 48, 'Wicked St.'))  # Person(name='John Wick')
 ```
+
+---
+
+<p align="center">Copyright &copy; 2020 Niklas Rosenstein</p>

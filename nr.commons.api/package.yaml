@@ -1,7 +1,0 @@
-name: "nr.commons.api"
-version: "0.0.1"
-author: "Niklas Rosenstein <rosensteinniklas@gmail.com>"
-license: "MIT"
-description: "Package description here."
-requirements:
-- python ^3.4

@@ -1,0 +1,6 @@
+name: nr.utils.git
+version: 0.1.5
+description: A simple wrapper around the Git CLI.
+requirements:
+- python ^3.4
+typed: true

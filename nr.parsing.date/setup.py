@@ -17,7 +17,6 @@ else:
 
 requirements = [
   'nr.utils.re >=0.1.0,<0.2.0',
-  'six',
 ]
 test_requirements = [
   'pytest',
@@ -32,7 +31,7 @@ setuptools.setup(
   description = 'A simple and fast date parsing library. Uses dateutil for timezone offset support.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy',
+  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
   license = 'MIT',
   py_modules = ['nr.parsing.date'],
   package_dir = {'': 'src'},

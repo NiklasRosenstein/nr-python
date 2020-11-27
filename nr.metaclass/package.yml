@@ -1,0 +1,7 @@
+name: nr.metaclass
+version: 0.0.5
+description: Metaclass utilities.
+test-requirements:
+- pytest
+test-driver:
+  type: pytest

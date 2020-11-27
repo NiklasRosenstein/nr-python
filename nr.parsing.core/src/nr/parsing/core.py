@@ -546,16 +546,19 @@ class Regex(Rule):
   regex (Pattern): A compiled regular expression.
   """
 
-  def __init__(self, name, regex, flags=0, skip=False):
+  def __init__(self, name, regex, flags=0, skip=False, group=None):
     super(Regex, self).__init__(name, skip)
     if isinstance(regex, string_types):
       regex = re.compile(regex, flags)
     self.regex = regex
+    self.group = group
 
   def tokenize(self, scanner):
     result = scanner.match(self.regex)
     if result is None or result.start() == result.end():
       return None
+    if self.group is not None:
+      return result.group(self.group)
     return result, result.group()
 
 

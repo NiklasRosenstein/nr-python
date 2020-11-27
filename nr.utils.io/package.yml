@@ -1,0 +1,6 @@
+name: nr.utils.io
+version: 0.1.0
+description: Collection for IO utilities.
+requirements:
+- python ^3.4
+typed: true

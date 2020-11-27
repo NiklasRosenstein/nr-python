@@ -1,3 +1,7 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
 # nr.utils.ponyorm
 
 Utilities for [Pony ORM](https://ponyorm.org/).
@@ -44,3 +48,7 @@ Available converters are
 * `get_one(entity_cls, kwargs)`
 * `get_or_create(entity_cls, get, set=None)`
 * `upsert(entity_cls, get, set=None, mutate=True)`
+
+---
+
+<p align="center">Copyright &copy; 2020 Niklas Rosenstein</p>

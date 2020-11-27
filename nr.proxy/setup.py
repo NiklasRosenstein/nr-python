@@ -28,7 +28,7 @@ setuptools.setup(
   description = 'Provides proxy classes that allow accessing objects that are usually only accessible via function calls as objects directly.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr/src/branch/develop/nr.proxy',
+  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
   license = 'MIT',
   packages = setuptools.find_packages('src', ['test', 'test.*', 'tests', 'tests.*', 'docs', 'docs.*']),
   package_dir = {'': 'src'},

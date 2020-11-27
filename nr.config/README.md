@@ -1,3 +1,7 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
 # nr.config
 
 The `nr.config` package helps with configuration file processing and dynamic reloading tasks.
@@ -44,3 +48,7 @@ reload_task.reload_callback(callback)
 reload_task.start()
 config = Proxy(reload_task.get)
 ```
+
+---
+
+<p align="center">Copyright &copy; 2020 Niklas Rosenstein</p>
