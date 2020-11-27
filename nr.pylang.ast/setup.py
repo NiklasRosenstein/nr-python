@@ -33,7 +33,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.pylang.ast',
-  version = '0.0.1',
+  version = '0.0.2',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Package description here.',
