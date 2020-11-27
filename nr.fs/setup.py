@@ -30,7 +30,7 @@ requirements = [
 
 setuptools.setup(
   name = 'nr.fs',
-  version = '1.6.2',
+  version = '1.6.3',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Filesystem and path manipulation tools.',
