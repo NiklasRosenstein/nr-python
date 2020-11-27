@@ -31,7 +31,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.metaclass',
-  version = '0.0.5',
+  version = '0.0.6',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Metaclass utilities.',
