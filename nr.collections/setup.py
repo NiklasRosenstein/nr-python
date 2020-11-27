@@ -35,7 +35,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.collections',
-  version = '0.1.0',
+  version = '0.1.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Useful container datatypes for Python 2 and 3.',
