@@ -1,5 +1,5 @@
 name: nr.pylang.utils
-version: 0.0.3
+version: 0.0.4
 description: Package description here.
 requirements:
 - python ^3.4
