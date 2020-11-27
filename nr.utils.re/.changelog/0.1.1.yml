@@ -1,3 +1,5 @@
+release_date: '2020-11-27'
+changes:
 - type: feature
   component: general
   description: Initial version
