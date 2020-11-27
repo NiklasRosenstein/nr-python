@@ -33,7 +33,7 @@ from nr.pylang.utils import NotSet
 from six.moves import range, filter as _filter, filterfalse as _filterfalse, zip_longest
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 _slice = slice
 _next = next
