@@ -37,7 +37,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.databind.json',
-  version = '0.0.13',
+  version = '0.0.14',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Deserialize JSON into Python objects and reverse.',
