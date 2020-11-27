@@ -37,7 +37,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.databind.core',
-  version = '0.0.21',
+  version = '0.0.22',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Bind structured data directly to typed objects.',
