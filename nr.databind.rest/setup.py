@@ -41,7 +41,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.databind.rest',
-  version = '0.0.2',
+  version = '0.0.3',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Package description here.',
