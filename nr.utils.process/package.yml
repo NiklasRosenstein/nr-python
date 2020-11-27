@@ -1,5 +1,5 @@
 name: nr.utils.process
-version: 0.0.4
+version: 0.0.5
 description: Utilities for cross-platform process handling and privilege escalation.
 requirements:
 - python ^3.4

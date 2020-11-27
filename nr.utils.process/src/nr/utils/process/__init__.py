@@ -26,7 +26,7 @@ import sys
 import time
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 
 def process_exists(pid):  # type: (int) -> bool
