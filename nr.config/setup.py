@@ -42,7 +42,7 @@ extras_require['reloader'] = [
 
 setuptools.setup(
   name = 'nr.config',
-  version = '0.1.0',
+  version = '0.1.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Utility library to implement composable YAML configuration files.',

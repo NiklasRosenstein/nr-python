@@ -1,5 +1,5 @@
 name: nr.config
-version: 0.1.0
+version: 0.1.1
 description: Utility library to implement composable YAML configuration files.
 requirements:
 - python ^3.4
