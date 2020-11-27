@@ -6,4 +6,3 @@ requirements:
 - nr.pylang.utils ~0.0.2
 test-requirements:
 - pytest
-typed: true

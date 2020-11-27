@@ -7,6 +7,15 @@ import os
 import setuptools
 import sys
 
+def _tempcopy(src, dst):
+  import atexit, shutil
+  if not os.path.isfile(dst):
+    shutil.copyfile(src, dst)
+    atexit.register(lambda: os.remove(dst))
+
+
+_tempcopy('../LICENSE.txt', 'LICENSE.txt')
+
 readme_file = 'README.md'
 if os.path.isfile(readme_file):
   with io.open(readme_file, encoding='utf8') as fp:
@@ -22,7 +31,7 @@ setuptools.setup(
   version = '0.0.4',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Package description here.',
+  description = 'Utilities for cross-platform process handling and privilege escalation.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',

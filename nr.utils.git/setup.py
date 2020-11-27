@@ -31,7 +31,7 @@ setuptools.setup(
   version = '0.1.5',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'A wrapper around the Git CLI.',
+  description = 'A simple wrapper around the Git CLI.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
@@ -48,5 +48,5 @@ setuptools.setup(
   cmdclass = {},
   keywords = [],
   classifiers = [],
-  zip_safe = True,
+  zip_safe = False,
 )

@@ -7,6 +7,23 @@ import os
 import setuptools
 import sys
 
+def _tempcopy(src, dst):
+  import atexit, shutil
+  if not os.path.isfile(dst):
+    shutil.copyfile(src, dst)
+    atexit.register(lambda: os.remove(dst))
+
+
+_tempcopy('../LICENSE.txt', 'LICENSE.txt')
+
+readme_file = 'README.md'
+if os.path.isfile(readme_file):
+  with io.open(readme_file, encoding='utf8') as fp:
+    long_description = fp.read()
+else:
+  print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
+  long_description = None
+
 requirements = [
   'nr.collections >=0.0.1,<1.0.0',
   'nr.metaclass >=0.0.1,<0.1.0',
@@ -23,8 +40,8 @@ setuptools.setup(
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Interface definitions for Python.',
-  long_description = None,
-  long_description_content_type = None,
+  long_description = long_description,
+  long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
   license = 'MIT',
   py_modules = ['nr.interface'],
