@@ -30,7 +30,7 @@ requirements = [
 
 setuptools.setup(
   name = 'nr.markdown',
-  version = '1.0.6',
+  version = '1.0.7',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Extends the misaka Markdown parser and renderer for some nifty features.',

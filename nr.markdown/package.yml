@@ -1,5 +1,5 @@
 name: nr.markdown
-version: 1.0.6
+version: 1.0.7
 description: Extends the misaka Markdown parser and renderer for some nifty features.
 requirements:
 - python ^3.4
