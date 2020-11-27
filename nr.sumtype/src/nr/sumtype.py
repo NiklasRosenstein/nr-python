@@ -27,7 +27,7 @@ import collections
 import re
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 
 def _merge_dicts(*dicts):
