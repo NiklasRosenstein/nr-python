@@ -19,10 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from typing import Iterable, List, Optional
 import collections
 import os
 import subprocess as sp
+import typing as t
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.1.6'
@@ -57,7 +57,7 @@ class Git:
       if not clone_url.startswith('https://'):
         raise ValueError('cannot specify username/password for non-HTTPS clone URL.')
       schema, remainder = clone_url.partition('://')[::2]
-      auth = ':'.join(filter(bool, (username, password)))
+      auth = ':'.join(t.cast(t.List[str], filter(bool, [username, password])))
       clone_url = schema + '://' + auth + '@' + remainder
 
     command = ['git', 'clone', clone_url, to_directory]
@@ -73,7 +73,7 @@ class Git:
     sp.check_call(command, cwd=self.cwd)
     return Git(to_directory)
 
-  def add(self, files: List[str]) -> None:
+  def add(self, files: t.List[str]) -> None:
     """
     Add files to the index.
     """
@@ -81,7 +81,7 @@ class Git:
     command = ['git', 'add', '--'] + files
     sp.check_call(command, cwd=self.cwd)
 
-  def get_branches(self) -> List[Branch]:
+  def get_branches(self) -> t.List[Branch]:
     """
     Get the branches of the repository. Returns a list of #Branch objects.
     """
@@ -97,7 +97,7 @@ class Git:
 
     return results
 
-  def get_branch_names(self) -> List[str]:
+  def get_branch_names(self) -> t.List[str]:
     """
     Get the branch names.
     """
@@ -115,7 +115,7 @@ class Git:
 
     raise RuntimeError('no curent branch ?')
 
-  def get_remote_refs(self, remote: str) -> List[RefWithSha]:
+  def get_remote_refs(self, remote: str) -> t.List[RefWithSha]:
     result = []
     command = ['git', 'ls-remote', '--heads', 'origin']
     for line in sp.check_output(command, cwd=self.cwd).decode().splitlines():
@@ -123,7 +123,7 @@ class Git:
       result.append(RefWithSha(ref, sha))
     return result
 
-  def get_remote_branch_names(self, remote: str) -> List[str]:
+  def get_remote_branch_names(self, remote: str) -> t.List[str]:
     refs = self.get_remote_refs(remote)
     return [x.ref[11:] for x in refs if x.ref.startswith('refs/heads/')]
 
@@ -152,7 +152,7 @@ class Git:
 
     sp.check_call(command, cwd=self.cwd)
 
-  def porcelain(self) -> Iterable[FileStatus]:
+  def porcelain(self) -> t.Iterable[FileStatus]:
     """
     Returns the file status for the working tree.
     """
@@ -179,7 +179,7 @@ class Git:
     command = ['git', 'tag', tag_name] + (['-f'] if force else [])
     sp.check_call(command)
 
-  def rev_parse(self, rev: str) -> Optional[str]:
+  def rev_parse(self, rev: str) -> t.Optional[str]:
     """
     Parse a Git ref into a shasum.
     """
@@ -190,7 +190,7 @@ class Git:
     except sp.CalledProcessError:
       return None
 
-  def rev_list(self, rev: str, path: str = None) -> List[str]:
+  def rev_list(self, rev: str, path: str = None) -> t.List[str]:
     """
     Return a list of all Git revisions, optionally in the specified path.
     """
@@ -198,7 +198,10 @@ class Git:
     command = ['git', 'rev-list', rev]
     if path:
       command += ['--', path]
-    revlist = sp.check_output(command, stderr=sp.STDOUT, cwd=self.cwd).decode().strip().split('\n')
+    try:
+      revlist = sp.check_output(command, stderr=sp.STDOUT, cwd=self.cwd).decode().strip().split('\n')
+    except sp.CalledProcessError:
+      return []
     if revlist == ['']:
       revlist = []
     return revlist
@@ -226,7 +229,7 @@ class Git:
       command += ['--orphan']
     sp.check_call(command, cwd=self.cwd)
 
-  def checkout(self, ref: str = None, files: List[str] = None, quiet: bool = False):
+  def checkout(self, ref: str = None, files: t.List[str] = None, quiet: bool = False):
     """
     Check out the specified ref or files.
     """
@@ -240,7 +243,7 @@ class Git:
       command += ['--'] + files
     sp.check_call(command, cwd=self.cwd)
 
-  def reset(self, ref: str = None, files: List[str] = None, hard: bool = False):
+  def reset(self, ref: str = None, files: t.List[str] = None, hard: bool = False, quiet: bool = False):
     """
     Reset to the specified ref or reset the files.
     """
@@ -261,10 +264,34 @@ class Git:
 
     return sp.check_output(['git', 'log', '-1', rev, '--pretty=%B']).decode()
 
-  def get_diff(self, files: List[str] = None, cached: bool = False):
+  def get_diff(self, files: t.List[str] = None, cached: bool = False):
     command = ['git', '--no-pager', 'diff', '--color=never']
     if cached:
       command += ['--cached']
     if files is not None:
       command += ['--'] + files
     return sp.check_output(command, cwd=self.cwd).decode()
+
+  def describe(self,
+    all: bool = False,
+    tags: bool = False,
+    contains: bool = False,
+    commitish: t.Optional[str] = None,
+  ) -> t.Optional[str]:
+
+    command = ['git', 'describe']
+    if all:
+      command.append('--all')
+    if tags:
+      command.append('--tags')
+    if contains:
+      command.append('--contains')
+    if commitish:
+      command.append(commitish)
+
+    try:
+      return sp.check_output(command, stderr=sp.DEVNULL).decode().strip()
+    except FileNotFoundError:
+      raise
+    except sp.CalledProcessError:
+      return None
