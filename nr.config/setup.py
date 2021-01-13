@@ -10,6 +10,9 @@ import sys
 def _tempcopy(src, dst):
   import atexit, shutil
   if not os.path.isfile(dst):
+    if not os.path.isfile(src):
+      print('warning: source file "{}" for destination "{}" does not exist'.format(src, dst))
+      return
     shutil.copyfile(src, dst)
     atexit.register(lambda: os.remove(dst))
 
@@ -25,9 +28,10 @@ else:
   long_description = None
 
 requirements = [
-  'nr.collections >=0.0.1,<1.0.0',
-  'nr.pylang.utils >=0.0.1,<0.1.0',
+  'nr.collections >=0.1.1,<1.0.0',
+  'nr.pylang.utils >=0.0.4,<1.0.0',
   'six >=1.14.0,<2.0.0',
+  'Jinja2 >=2.11.2,<3.0.0',
 ]
 test_requirements = [
   'pytest',
