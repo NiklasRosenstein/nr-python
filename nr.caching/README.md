@@ -1,3 +1,7 @@
+
+> Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
+> changes with minor version increments.
+
 # nr.caching
 
 A simple key-value caching API with default implementations for an SQLite3 storage backend and
