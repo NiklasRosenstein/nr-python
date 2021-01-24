@@ -1,5 +1,5 @@
 name: nr.parsing.core
-version: 1.0.1
+version: 1.1.0
 description: Simple library to scan or tokenize text.
 requirements:
 - python ^2.6|^3.4
