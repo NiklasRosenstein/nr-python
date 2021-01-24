@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: feature
+  component: general
+  description: add `Lexer.checkpoint()`, `.restore()`, `.enable[d]()`, `.disable[d]()`
+    methods, add `Token.tv` property
+  fixes: []

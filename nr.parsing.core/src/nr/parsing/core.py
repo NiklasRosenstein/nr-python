@@ -38,6 +38,7 @@ __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '1.0.1'
 
 import collections
+import contextlib
 import os
 import re
 import string
@@ -47,7 +48,13 @@ eof = 'eof'
 string_types = (str,) if sys.version_info[0] == 3 else (str, unicode)
 
 Cursor = collections.namedtuple('Cursor', 'index lineno colno')
-Token = collections.namedtuple('Token', 'type cursor value string_repr')
+
+
+class Token(collections.namedtuple('Token', 'type cursor value string_repr')):
+
+  @property
+  def tv(self):
+    return (self.type, self.value)
 
 
 class Scanner(object):
@@ -300,6 +307,7 @@ class Lexer(object):
     self.rules = list(rules) if rules else []
     self.update()
     self.token = None
+    self.skipped_types = set()
 
   def __repr__(self):
     ctok = self.token.type if self.token else None
@@ -320,6 +328,41 @@ class Lexer(object):
     return True
 
   __nonzero__ = __bool__  # Python 2
+
+  def enable(self, *token_types):
+    """
+    Enable the specified list of token types, meaning that they will not be skipped by the
+    lexer anymore.
+    """
+
+    self.skipped_types -= set(token_types)
+
+  def disable(self, *token_types):
+    """
+    Disable the specified list of token types, meaning that the lexer will simply skip over them.
+    """
+
+    self.skipped_types |= set(token_types)
+    if self.token.type in self.skipped_types:
+      self.next()
+
+  @contextlib.contextmanager
+  def enabled(self, *token_types):
+    currently_disabled = set(token_types) & self.skipped_types
+    self.enable(*currently_disabled)
+    try:
+      yield
+    finally:
+      self.disable(*currently_disabled)
+
+  @contextlib.contextmanager
+  def disabled(self, *token_types):
+    currently_enabled = set(token_types) - self.skipped_types
+    self.disable(*currently_enabled)
+    try:
+      yield
+    finally:
+      self.enable(*currently_enabled)
 
   def update(self):
     """
@@ -481,7 +524,7 @@ class Lexer(object):
         token = value
 
         expected = rule.name in expectation
-        if not expected and rule.skip:
+        if not expected and (rule.skip or token.type in self.skipped_types):
           # If we didn't expect this rule to match, and if its skippable,
           # just skip it. :-)
           token = None
@@ -503,6 +546,14 @@ class Lexer(object):
       raise UnexpectedTokenError(expectation, token)
     assert not as_accept or (token and token.type in expectation)
     return token
+
+  def checkpoint(self):
+    return (self.scanner.cursor, self.token, set(self.skipped_types))
+
+  def restore(self, checkpoint):
+    self.scanner.restore(checkpoint[0])
+    self.token = checkpoint[1]
+    self.skipped_types = checkpoint[2]
 
 
 class Rule(object):
