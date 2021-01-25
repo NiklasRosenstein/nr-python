@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: fix parsing of %f format for higher than microsecond precisions (by
+    truncating)
+  fixes: []

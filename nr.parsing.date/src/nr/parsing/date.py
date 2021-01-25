@@ -292,7 +292,7 @@ class DateFormatSet(list, DatetimeFormat):
     for fmt in self:
       try:
         return fmt.parse(string)
-      except ValueError as exc:
+      except ValueError:
         pass
     msg = 'Date "{}" does not match any of the {!r} formats.\n- {}'
     formats = '\n- '.join(x.string for x in self)
@@ -319,7 +319,7 @@ root_option_set = FormatOptionSet([
     FormatOption('S', 'second', r'\d{2}', int, lambda d: str(d.second).rjust(2, '0')),
     FormatOption(
       'f', 'microsecond', r'\d+',
-      parse=lambda s: int(s) * (10 ** max(6-len(s), 0)),
+      parse=lambda s: int(str(int(s) * (10 ** max(6-len(s), 0)))[:6]),  # Truncate higher precisions that microseconds
       render=lambda d: str(d.microsecond).rjust(6, '0').rstrip('0') or '0'
     ),
     TimezoneFormatOption(),
