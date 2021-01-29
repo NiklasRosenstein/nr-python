@@ -1,7 +1,9 @@
 
+import contextlib
 import math
 import sqlite3
 import string
+import threading
 import time
 import typing as t
 from contextlib import closing
@@ -22,12 +24,16 @@ class SqliteStore(KeyValueStore):
   Implements a key-value store on top of an Sqlite3 database. Namespaces are represented as
   tables in the database. Value expiration only has a second-resolution (rounded up). Namespaces
   can only consist of ASCII letters, digits, underscores, dots and hyphens.
+
+  The SqliteStore is thread-safe, but may be slow to access concurrently due to locking
+  requirements.
   """
 
   NAMESPACE_CHARS = frozenset(string.ascii_letters + string.digits + '._-')
 
   def __init__(self, filename: str) -> None:
-    self._conn = sqlite3.connect(filename)
+    self._lock = threading.Lock()
+    self._conn = sqlite3.connect(filename, check_same_thread=False)
     self._created_namespaces: t.Set[str] = set()
 
   @staticmethod
@@ -45,13 +51,18 @@ class SqliteStore(KeyValueStore):
       WHERE type = 'table' AND name NOT like 'sqlite_%';''')
     yield from (x[0] for x in _fetch_all(cursor))
 
+  @contextlib.contextmanager
+  def _locked_cursor(self) -> t.Iterator[sqlite3.Cursor]:
+    with self._lock, closing(self._conn.cursor()) as cursor:
+      yield cursor
+
   def get_namespaces(self) -> t.Iterator[str]:
     """
     Returns an iterator that returns the name of all namespaces known to the Sqlite store. Note
     that new namespaces are created on-deman using #store().
     """
 
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
       yield from self._get_namespaces(cursor)
 
   def get_keys(self, namespace: str) -> t.Iterator[t.Tuple[str, t.Optional[int]]]:
@@ -60,7 +71,7 @@ class SqliteStore(KeyValueStore):
     timestamp. This includes any keys that are already expired but not yet expunged.
     """
 
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
       try:
         cursor.execute('SELECT key, exp FROM "' + namespace + '"')
       except sqlite3.OperationalError as exc:
@@ -81,7 +92,7 @@ class SqliteStore(KeyValueStore):
 
   def load(self, namespace: str, key: str) -> t.Optional[bytes]:
     self._validate_namespace(namespace)
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
       try:
         cursor.execute('''
           SELECT value FROM "''' + namespace + '''"
@@ -99,7 +110,7 @@ class SqliteStore(KeyValueStore):
 
   def store(self, namespace: str, key: str, value: bytes, expires_in: t.Optional[int]) -> None:
     self._validate_namespace(namespace)
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
 
       # Create the table for the namespace if it does not exist.
       self._ensure_namespace(cursor, namespace)
@@ -115,7 +126,7 @@ class SqliteStore(KeyValueStore):
       self._conn.commit()
 
   def expunge(self) -> None:
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
       for namespace in list(self._get_namespaces(cursor)):
         cursor.execute('''
           DELETE FROM "''' + namespace + '''" WHERE exp < ?''',
@@ -126,13 +137,13 @@ class SqliteStore(KeyValueStore):
   # NamespaceAware
 
   def ensure_namespace(self, namespace: str) -> None:
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
       self._ensure_namespace(cursor, namespace)
       self._conn.commit()
 
   def drop_namespace(self, namespace: str) -> None:
     self._validate_namespace(namespace)
-    with closing(self._conn.cursor()) as cursor:
+    with self._locked_cursor() as cursor:
       try:
         cursor.execute('DROP TABLE "' + namespace + '"')
       except sqlite3.OperationalError as exc:

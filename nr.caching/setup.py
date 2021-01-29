@@ -7,6 +7,18 @@ import os
 import setuptools
 import sys
 
+def _tempcopy(src, dst):
+  import atexit, shutil
+  if not os.path.isfile(dst):
+    if not os.path.isfile(src):
+      print('warning: source file "{}" for destination "{}" does not exist'.format(src, dst))
+      return
+    shutil.copyfile(src, dst)
+    atexit.register(lambda: os.remove(dst))
+
+
+_tempcopy('../LICENSE.txt', 'LICENSE.txt')
+
 readme_file = 'README.md'
 if os.path.isfile(readme_file):
   with io.open(readme_file, encoding='utf8') as fp:
