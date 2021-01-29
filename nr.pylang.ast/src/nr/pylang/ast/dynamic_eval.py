@@ -72,6 +72,7 @@ class NameRewriter(ast.NodeTransformer):
     self.store = store
     self.delete = delete
     self.stack = []
+    self.__push_stack()
 
   def __push_stack(self):
     self.stack.append({'external': set(), 'vars': set()})
