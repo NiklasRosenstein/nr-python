@@ -66,8 +66,11 @@ class NameRewriter(ast.NodeTransformer):
     del __importlib, __module, __vars, __key
   ''')
 
-  def __init__(self, data_var):
+  def __init__(self, data_var, load, store, delete):
     self.data_var = data_var
+    self.load = load
+    self.store = store
+    self.delete = delete
     self.stack = []
 
   def __push_stack(self):
@@ -77,6 +80,8 @@ class NameRewriter(ast.NodeTransformer):
     self.stack.pop()
 
   def __is_local(self, name):
+    if name == self.data_var:
+      return True
     if not self.stack:
       return False
     for frame in reversed(self.stack):
@@ -138,7 +143,7 @@ class NameRewriter(ast.NodeTransformer):
     result = node
     if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
       self.__add_variable(node.name)
-      if not self.__is_local(node.name):
+      if not self.__is_local(node.name) and self.store:
         assign = self.__get_subscript_assign(node.name)
         result = [node, ast.copy_location(assign, node)]
 
@@ -176,7 +181,10 @@ class NameRewriter(ast.NodeTransformer):
     return node
 
   def visit_Name(self, node):
-    if not self.__is_local(node.id):
+    if not self.__is_local(node.id) and (
+        (isinstance(node.ctx, ast.Load) and self.load) or
+        (isinstance(node.ctx, ast.Store) and self.store) or
+        (isinstance(node.ctx, ast.Del) and self.delete)):
       node = ast.copy_location(self.__get_subscript(node.id, node.ctx), node)
     return node
 
@@ -187,11 +195,14 @@ class NameRewriter(ast.NodeTransformer):
     return node
 
   def visit_Import(self, node):
-    assignments = []
-    for alias in node.names:
-      name = (alias.asname or alias.name).split('.')[0]
-      assignments.append(self.__get_subscript_assign(name))
-    return [node] + [ast.copy_location(x, node) for x in assignments]
+    if self.store:
+      assignments = []
+      for alias in node.names:
+        name = (alias.asname or alias.name).split('.')[0]
+        assignments.append(self.__get_subscript_assign(name))
+      return [node] + [ast.copy_location(x, node) for x in assignments]
+    else:
+      return node
 
   def visit_ImportFrom(self, node):
     assignments = []
@@ -246,8 +257,8 @@ class NameRewriter(ast.NodeTransformer):
       self.__add_external(name)
 
 
-def transform(ast_node, data_var='__dict__'):
-  ast_node = NameRewriter(data_var).visit(ast_node)
+def transform(ast_node, data_var='__dict__', load=True, store=True, delete=True):
+  ast_node = NameRewriter(data_var, load, store, delete).visit(ast_node)
   ast_node = ast.fix_missing_locations(ast_node)
   return ast_node
 
