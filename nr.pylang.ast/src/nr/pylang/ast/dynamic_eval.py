@@ -29,8 +29,9 @@ instead. Non-global variables are left untouched.
 __all__ = ['dynamic_exec', 'dynamic_eval', 'transform']
 
 import ast
-import textwrap
 import sys
+import textwrap
+import typing as t
 
 from nr.collections import abc
 from six import exec_, string_types
@@ -66,12 +67,35 @@ class NameRewriter(ast.NodeTransformer):
     del __importlib, __module, __vars, __key
   ''')
 
-  def __init__(self, data_var, load, store, delete):
+  def __init__(self,
+    data_var: str,
+    load: bool = True,
+    store: bool = True,
+    delete: bool = True,
+    scope_inheritance: bool = True,
+  ) -> None:
+
+    #: The name of the global varibale to replace loads/stores/deletes with, accessing that
+    #: variable via subscripts.
     self.data_var = data_var
+
+    #: Whether to replace loads with subscripts.
     self.load = load
+
+    #: Whether to replace stores with subscripts.
     self.store = store
+
+    #: Whether to replace deletes with subscripts.
     self.delete = delete
-    self.stack = []
+
+    #: Whether local variables are inherited by child scopes. Usually this is the case in
+    #: Python, but if the lookup from *data_var* is special in that regard, you may want to
+    #: disable this in order to enforce a lookup if the variable was not defined locally in
+    #: the same scope.
+    self.scope_inheritance = scope_inheritance
+
+    #: Keeps track of local variable definitions.
+    self.stack: t.List[t.Dict[str, t.Set[str]]] = []
     self.__push_stack()
 
   def __push_stack(self):
@@ -90,6 +114,8 @@ class NameRewriter(ast.NodeTransformer):
         return False
       if name in frame['vars']:
         return True
+      if not self.scope_inheritance:
+        return False
     return False
 
   def __add_variable(self, name):
@@ -258,8 +284,19 @@ class NameRewriter(ast.NodeTransformer):
       self.__add_external(name)
 
 
-def transform(ast_node, data_var='__dict__', load=True, store=True, delete=True):
-  ast_node = NameRewriter(data_var, load, store, delete).visit(ast_node)
+def rewrite_names(
+  ast_node: ast.AST,
+  data_var: str = '__dict__',
+  load: bool = True,
+  store: bool = True,
+  delete: bool = True,
+  scope_inheritance: bool = True,
+) -> ast.AST:
+  """
+  Transform the *ast_node* using a #NameRewriter.
+  """
+
+  ast_node = NameRewriter(data_var, load, store, delete, scope_inheritance).visit(ast_node)
   ast_node = ast.fix_missing_locations(ast_node)
   return ast_node
 
@@ -351,3 +388,7 @@ class DynamicMapping(object):
       return self[key]
     except NameError:
       return default
+
+
+# Backwards compatibility
+transform = rewrite_names
