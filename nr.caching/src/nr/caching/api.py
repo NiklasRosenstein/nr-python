@@ -11,52 +11,33 @@ class NamespaceDoesNotExist(Exception):
 
 @dataclasses.dataclass
 class KeyDoesNotExist(Exception):
-  namespace: str
   key: str
 
 
-class NamespaceAware(metaclass=abc.ABCMeta):
+class KeyValueStore(metaclass=abc.ABCMeta):
+  """
+  Interface for a simplistic key-value store based on unicode strings and binary values. On
+  storing, values can be associated with an expiration time. The storage for expired values may
+  be immediately reclaimed using the #expunge() method, but may also be automatically reclaimed
+  over time.
+  """
 
   @abc.abstractmethod
-  def ensure_namespace(self, namespace: str) -> None:
+  def load(self, key: str) -> bytes:
     """
-    Ensure that the specified namespace exists.
+    Load the value for a given key. Raises a #KeyDoesNotExist exception if the key can not be
+    found in the store (for example because it never existed or because it expired).
     """
 
     pass
 
   @abc.abstractmethod
-  def drop_namespace(self, namespace: str) -> None:
+  def store(self, key: str, value: bytes, expires_in: t.Optional[int] = None) -> None:
     """
-    Drop an entire namespace.
-    """
-
-    pass
-
-
-class KeyValueStore(NamespaceAware, metaclass=abc.ABCMeta):
-
-  @abc.abstractmethod
-  def load(self, namespace: str, key: str) -> t.Optional[bytes]:
-    """
-    Load the value for a given namespace/key pair. Raises a #NamespaceError if the namespace
-    does not exist. Raises a #KeyError if the key does not exist in the namespace. Expired
-    values are treated as non-existent.
-    """
-
-    pass
-
-  @abc.abstractmethod
-  def store(self, namespace: str, key: str, value: bytes, expires_in: t.Optional[int]) -> None:
-    """
-    Store a value for the given namespace/key pair. If specified, *expires_in* must be an
-    integer describing the seconds after which the value is set to expire in the store. If no
-    expiration time is specified, the value will be stored indefinitely. Setting *expires_in*
-    to 0 is equivalent to deleting the key.
-
-    Implementations may decide for themselves whether they automatically create the namespace
-    if it does not exist yet. If they decide not to, clients must call #ensure_namespace()
-    beforehand.
+    Store a value for the given key. If specified, *expires_in* must be an integer describing the
+    seconds after which the value is set to expire in the store. If no expiration time is
+    specified, the value will be stored indefinitely. Setting *expires_in* to 0 is equivalent to
+    deleting the key.
     """
 
     pass
@@ -64,7 +45,21 @@ class KeyValueStore(NamespaceAware, metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def expunge(self) -> None:
     """
-    Expunge any expired values from the key-value store.
+    Explicitly expunge any expired values from the store.
     """
 
+    pass
+
+
+class NamespaceStore(metaclass=abc.ABCMeta):
+  """
+  Interface that provides key-value stores based on a namespace identifier.
+  """
+
+  @abc.abstractmethod
+  def namespace(self, namespace: str) -> KeyValueStore:
+    pass
+
+  @abc.abstractmethod
+  def expunge(self, namespace: t.Optional[str] = None) -> None:
     pass

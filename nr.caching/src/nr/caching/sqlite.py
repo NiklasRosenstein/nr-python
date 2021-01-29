@@ -8,7 +8,9 @@ import time
 import typing as t
 from contextlib import closing
 
-from .api import KeyValueStore, KeyDoesNotExist, NamespaceDoesNotExist
+from overrides import overrides  # type: ignore
+
+from .api import KeyValueStore, KeyDoesNotExist, NamespaceStore, NamespaceDoesNotExist
 
 
 def _fetch_all(cursor: sqlite3.Cursor) -> t.Iterable[t.Tuple]:
@@ -19,7 +21,7 @@ def _fetch_all(cursor: sqlite3.Cursor) -> t.Iterable[t.Tuple]:
     yield from rows
 
 
-class SqliteStore(KeyValueStore):
+class SqliteStore(NamespaceStore):
   """
   Implements a key-value store on top of an Sqlite3 database. Namespaces are represented as
   tables in the database. Value expiration only has a second-resolution (rounded up). Namespaces
@@ -73,7 +75,7 @@ class SqliteStore(KeyValueStore):
 
     with self._locked_cursor() as cursor:
       try:
-        cursor.execute('SELECT key, exp FROM "' + namespace + '"')
+        cursor.execute(f'SELECT key, exp FROM "{namespace}"')
       except sqlite3.OperationalError as exc:
         if 'no such table' in str(exc):
           raise NamespaceDoesNotExist(namespace)
@@ -83,19 +85,17 @@ class SqliteStore(KeyValueStore):
   def _ensure_namespace(self, cursor: sqlite3.Cursor, namespace: str) -> None:
     self._validate_namespace(namespace)
     if namespace not in self._created_namespaces:
-      cursor.execute('''
-        CREATE TABLE IF NOT EXISTS "''' + namespace + '''"
+      cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS "{namespace}"
         (key TEXT PRIMARY KEY, value BLOB, exp INTEGER)''')
       self._created_namespaces.add(namespace)
 
-  # KeyValueStore
-
-  def load(self, namespace: str, key: str) -> t.Optional[bytes]:
+  def load(self, namespace: str, key: str) -> bytes:
     self._validate_namespace(namespace)
     with self._locked_cursor() as cursor:
       try:
-        cursor.execute('''
-          SELECT value FROM "''' + namespace + '''"
+        cursor.execute(f'''
+          SELECT value FROM "{namespace}"
             WHERE key = ? AND (? < exp OR exp IS NULL)''',
           (key, self._get_time(0)),
         )
@@ -105,7 +105,9 @@ class SqliteStore(KeyValueStore):
         raise
       result = cursor.fetchone()
       if result is None:
-        raise KeyDoesNotExist(namespace, key)
+        raise KeyDoesNotExist(namespace + ':' + key)
+      if not isinstance(result[0], bytes):
+        raise RuntimeError(f'expected data to be bytes, got {type(result[0]).__name__}')
       return result[0]
 
   def store(self, namespace: str, key: str, value: bytes, expires_in: t.Optional[int]) -> None:
@@ -117,37 +119,45 @@ class SqliteStore(KeyValueStore):
 
       # Insert the value into the database.
       exp = self._get_time(expires_in) if expires_in is not None else None
-      cursor.execute('''
-        INSERT OR REPLACE INTO ''' + namespace  + '''
+      cursor.execute(f'''
+        INSERT OR REPLACE INTO "{namespace}"
         VALUES (?, ?, ?)''',
         (key, value, exp),
       )
 
       self._conn.commit()
 
-  def expunge(self) -> None:
+  @overrides
+  def namespace(self, namespace: str) -> KeyValueStore:
     with self._locked_cursor() as cursor:
-      for namespace in list(self._get_namespaces(cursor)):
-        cursor.execute('''
-          DELETE FROM "''' + namespace + '''" WHERE exp < ?''',
+      self._ensure_namespace(cursor, namespace)
+    return SqliteKeyValueStore(self, namespace)
+
+  @overrides
+  def expunge(self, namespace: t.Optional[str] = None) -> None:
+    with self._locked_cursor() as cursor:
+      for namespace in [namespace] if namespace else list(self._get_namespaces(cursor)):
+        cursor.execute(f'''
+          DELETE FROM "{namespace}" WHERE exp < ?''',
           (self._get_time(0),),
         )
       self._conn.commit()
 
-  # NamespaceAware
 
-  def ensure_namespace(self, namespace: str) -> None:
-    with self._locked_cursor() as cursor:
-      self._ensure_namespace(cursor, namespace)
-      self._conn.commit()
+class SqliteKeyValueStore(KeyValueStore):
 
-  def drop_namespace(self, namespace: str) -> None:
-    self._validate_namespace(namespace)
-    with self._locked_cursor() as cursor:
-      try:
-        cursor.execute('DROP TABLE "' + namespace + '"')
-      except sqlite3.OperationalError as exc:
-        if 'no such table' in str(exc):
-          raise NamespaceDoesNotExist(namespace)
-        raise
-      self._conn.commit()
+  def __init__(self, store: SqliteStore, namespace: str) -> None:
+    self._store = store
+    self._namespace = namespace
+
+  @overrides
+  def load(self, key: str) -> bytes:
+    return self._store.load(self._namespace, key)
+
+  @overrides
+  def store(self, key: str, value: bytes, expires_in: t.Optional[int] = None) -> None:
+    self._store.store(self._namespace, key, value, expires_in)
+
+  @overrides
+  def expunge(self) -> None:
+    self._store.expunge(self._namespace)

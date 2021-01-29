@@ -27,7 +27,9 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = []
+requirements = [
+  'overrides >=3.1.0,<4.0.0',
+]
 
 setuptools.setup(
   name = 'nr.caching',
@@ -51,5 +53,5 @@ setuptools.setup(
   cmdclass = {},
   keywords = [],
   classifiers = [],
-  zip_safe = True,
+  zip_safe = False,
 )

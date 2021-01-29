@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: breaking_change
+  component: general
+  description: '`KeyValueStore` interface no longer deals with namespaces, added `NamespaceStore`
+    interface instead, same goes for `JsonCache` for which there is no `JsonCacheFactory`'
+  fixes: []

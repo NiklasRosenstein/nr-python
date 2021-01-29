@@ -11,10 +11,13 @@ a JSON convenience layer.
 
 ```py
 from nr.caching.sqlite import SqliteStore
-from nr.caching.json import JsonCache
+from nr.caching.json import hash_args, JsonCacheFactory
 
-cache = JsonCache(SqliteStore('.cache.db'))
-data = cache.loading('my-namespace', parameters, lambda: expensive_function(*parameters))
+caching_backend = SqliteStore('.cache.db')
+cache_factory = JsonCacheFactory(caching_backend, default_exp=60)
+data = cache_factory.namespace('my-namespace').loading(
+  f'expensive_function_{hash_args(parameters)}',
+  lambda: expensive_function(*parameters))
 ```
 
 ---

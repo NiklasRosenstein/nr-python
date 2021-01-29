@@ -3,14 +3,35 @@ import json
 import hashlib
 import sys
 import typing as t
+from dataclasses import dataclass
 
-from .api import KeyValueStore, KeyDoesNotExist, NamespaceAware, NamespaceDoesNotExist
+from overrides import overrides  # type: ignore
+
+from .api import KeyValueStore, KeyDoesNotExist, NamespaceStore, NamespaceDoesNotExist
 
 JsonObject = t.Dict[str, t.Any]
 T = t.TypeVar('T')
+_NotSet = object()
 
 
-class JsonCache(NamespaceAware):
+def hash_args(*args: t.Any) -> str:
+  """
+  Accepts a list of arbitrary values that are expected to be JSON serializable and generates an
+  MD5 hash of the data. This is useful to parametrize a key.
+  """
+
+  return hashlib.md5(json.dumps(args).encode('utf-8')).hexdigest()
+
+
+@dataclass
+class _JsonCacheBase:
+  default_exp: t.Optional[int] = None
+  encoding: str = 'utf-8'
+  encoder: t.Type[json.JSONEncoder] = json.JSONEncoder
+  decoder: t.Type[json.JSONDecoder] = json.JSONDecoder
+
+
+class JsonCacheFactory(_JsonCacheBase):
   """
   A caching layer on top of a #KeyValueStore that serializes/deserializes values to and from
   JSON. It provides a few useful methods to streamline cache integration in code with as little
@@ -25,127 +46,121 @@ class JsonCache(NamespaceAware):
   """
 
   def __init__(self,
+    store: NamespaceStore,
+    default_exp: t.Optional[int] = None,
+    encoding: str = 'utf-8',
+    encoder: t.Type[json.JSONEncoder] = json.JSONEncoder,
+    decoder: t.Type[json.JSONDecoder] = json.JSONDecoder,
+  ) -> None:
+
+    super().__init__(default_exp, encoding, encoder, decoder)
+    self._store = store
+
+  def namespace(self, namespace: str) -> 'JsonCache':
+    return JsonCache(
+      self._store.namespace(namespace),
+      self.default_exp,
+      self.encoding,
+      self.encoder,
+      self.decoder)
+
+
+class JsonCache(_JsonCacheBase):
+
+  def __init__(self,
     store: KeyValueStore,
     default_exp: t.Optional[int] = None,
     encoding: str = 'utf-8',
     encoder: t.Type[json.JSONEncoder] = json.JSONEncoder,
     decoder: t.Type[json.JSONDecoder] = json.JSONDecoder,
-    implict_namespaces: bool = True,
   ) -> None:
 
+    super().__init__(default_exp, encoding, encoder, decoder)
     self._store = store
-    self._default_exp = default_exp
-    self._encoding = encoding
-    self._encoder = encoder
-    self._decoder = decoder
-    self._implict_namespaces = implict_namespaces
 
-  def load(self, namespace: str, key: str) -> JsonObject:
-    """
-    Loads a value from the given namespace/key.
-    """
-
-    data = self._store.load(namespace, key)
+  def load(self, key: str) -> JsonObject:
+    data = self._store.load(key)
     assert data is not None, "NULL value is unexpected"
-    return json.loads(data.decode(self._encoding), cls=self._decoder)
+    return json.loads(data.decode(self.encoding), cls=self.decoder)
 
-  def load_or_none(self, namespace: str, key: str) -> t.Optional[JsonObject]:
+  @t.overload
+  def store(self, key: str, value: JsonObject) -> None:
+    pass  # Overload def
+
+  @t.overload
+  def store(self, key: str, value: JsonObject, expires_in: t.Optional[int] = None) -> None:
+    pass  # Overload def
+
+  def store(self, key, value, expires_in = _NotSet) -> None:
     """
-    Loads a value from the given namespace/key, returning #None if the key or namespace does not
-    exist. If *implict_namespaces* is enabled, a #NamespaceDoesNotExist error is also caught and
-    interpreted the same as #KeyDoesNotExist.
+    Store a value into the specified namespace/key. If *expires_in* is not specified, the
+    default expiration time will be used. Passing #None into *expires_in* will use store the
+    value without expiration, even if a default expiration is set.
+    """
+
+    if expires_in is _NotSet:
+      expires_in = self.default_exp
+
+    assert isinstance(expires_in, int) or expires_in is None, type(expires_in)
+    data = json.dumps(value, cls=self.encoder).encode(self.encoding)
+    self._store.store(key, data, expires_in)
+
+  def load_or_none(self, key: str) -> t.Optional[JsonObject]:
+    """
+    Loads a JSON value from the underlying key-value store as identified by the specified *key*,
+    but unlike #load() this method will return #None instead of raising a #KeyDoesNotExist error
+    if the key does not exist.
     """
 
     try:
-      return self.load(namespace, key)
+      return self.load(key)
     except KeyDoesNotExist:
       return None
-    except NamespaceDoesNotExist:
-      if self._implict_namespaces:
-        return None
-      raise
-
-  def store(self,
-    namespace: str,
-    key: str,
-    value: JsonObject,
-    expires_in: t.Optional[int] = None,
-  ) -> None:
-    """
-    Store a value into the specified namespace/key. If *expires_in* is not specified, the
-    default expiration time will be used.
-    """
-
-    if expires_in is None:
-      expires_in = self._default_exp
-
-    data = json.dumps(value, cls=self._encoder).encode(self._encoding)
-    self._store.store(namespace, key, data, expires_in)
 
   def loading(self,
-    namespace: str,
-    key: t.Union[str, t.Any],
+    key: str,
     or_get: t.Callable[[], JsonObject],
     if_: bool = True,
     expires_in: t.Optional[int] = None,
   ) -> JsonObject:
     """
-    Loads a value from the specified namespace/key. If the key does not exist, *or_get* is called
-    to retrieve the value instead. The value returned by *or_get* will be stored. The *if_*
-    parameter can be set to *False* to always call *or_get*.
-
-    If *key* is not a string, it must be a tuple of JSON serializable objects. The entire tuple
-    will be serialized and subsequently hashed using MD5, which represents the new key.
+    Loads a value from the specified key, or falls back to calling the *or_get* function and
+    storing it's result. When *if_* is set to #False, *or_get* will always be called regardless
+    of whether the key exists in the store or not.
     """
 
-    if not isinstance(key, str):
-      key = hashlib.md5(json.dumps(key).encode(self._encoding)).hexdigest()
-
     try:
-      if not if_:
-        raise KeyDoesNotExist(namespace, key)
-      return self.load(namespace, t.cast(str, key))
-    except (KeyDoesNotExist, NamespaceDoesNotExist) as e:
-      if not self._implict_namespaces and isinstance(e, NamespaceDoesNotExist):
-        raise
-      value = or_get()
-      self.store(namespace, t.cast(str, key), value, expires_in)
-      return value
+      if if_:
+        return self.load(t.cast(str, key))
+    except KeyDoesNotExist:
+      pass  # fallback
+
+    value = or_get()
+    self.store(key, value, expires_in)
+    return value
 
   def evolve(self,
-    namespace: str,
-    key: t.Union[str, t.Any],
+    key: str,
     update: t.Callable[[JsonObject], T],
     if_: bool = True,
     save_on_error: bool = True,
     expires_in: t.Optional[int] = None,
   ) -> T:
     """
-    Retrieves a JSON object stored under the specified namespace/key and passes it into *update*.
-    If the key does not exist, an empty dictionary will be used. After *update* was called, the
-    same dictionary will be stored again under the same namespace/key. The return value of the
+    Retrieves a JSON object stored under the specified key and passes it into the *update*
+    function. If the key does not exist, an empty dictionary will be used. After *update* was
+    called, the same dictionary will be stored again under the same key. The return value of the
     *update* function is returned from this function.
 
     With *save_on_error* enabled (default), the dictionary passed into *update* will be stored
-    even if an exception occurrs in the *update* function.
+    even if an exception occurred in the *update* function.
 
     The expiration time of the key will be renewed when calling this function.
     """
 
-    if not isinstance(key, str):
-      key = hashlib.md5(json.dumps(key).encode(self._encoding)).hexdigest()
-
-    value = (self.load_or_none(namespace, key) or {}) if if_ else {}
+    value = (self.load_or_none(key) or {}) if if_ else {}
     try:
       return update(value)
     finally:
       if not sys.exc_info() or save_on_error:
-        self.store(namespace, key, value, expires_in)
-
-  # NamespaceAware
-
-  def ensure_namespace(self, namespace: str) -> None:
-    self._store.ensure_namespace(namespace)
-
-  def drop_namespace(self, namespace: str) -> None:
-    self._store.drop_namespace(namespace)
+        self.store(key, value, expires_in)
