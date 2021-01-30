@@ -232,16 +232,19 @@ class NameRewriter(ast.NodeTransformer):
       return node
 
   def visit_ImportFrom(self, node):
-    assignments = []
-    for alias in node.names:
-      name = alias.asname or alias.name
-      if name == '*':
-        code = self.IMPORT_FROM_ALL_ASSIGN.format(module=node.module, data_var=self.data_var)
-        module = ast.parse(code)
-        assignments += module.body
-      else:
-        assignments.append(self.__get_subscript_assign(name))
-    return [node] + [ast.copy_location(x, node) for x in assignments]
+    if self.store:
+      assignments = []
+      for alias in node.names:
+        name = alias.asname or alias.name
+        if name == '*':
+          code = self.IMPORT_FROM_ALL_ASSIGN.format(module=node.module, data_var=self.data_var)
+          module = ast.parse(code)
+          assignments += module.body
+        else:
+          assignments.append(self.__get_subscript_assign(name))
+      return [node] + [ast.copy_location(x, node) for x in assignments]
+    else:
+      return node
 
   def visit_ExceptHandler(self, node):
     if node.name:

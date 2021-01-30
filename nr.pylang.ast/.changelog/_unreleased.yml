@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: fix ImportFrom to not generate assignments if NameRewriter.store is
+    not True
+  fixes: []
