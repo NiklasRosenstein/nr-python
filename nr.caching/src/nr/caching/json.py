@@ -121,7 +121,7 @@ class JsonCache(_JsonCacheBase):
     key: str,
     or_get: t.Callable[[], JsonObject],
     if_: bool = True,
-    expires_in: t.Optional[int] = None,
+    expires_in: t.Union[None, int, t.Any] = _NotSet,
   ) -> JsonObject:
     """
     Loads a value from the specified key, or falls back to calling the *or_get* function and
@@ -144,7 +144,7 @@ class JsonCache(_JsonCacheBase):
     update: t.Callable[[JsonObject], T],
     if_: bool = True,
     save_on_error: bool = True,
-    expires_in: t.Optional[int] = None,
+    expires_in: t.Union[None, int, t.Any] = _NotSet,
   ) -> T:
     """
     Retrieves a JSON object stored under the specified key and passes it into the *update*
