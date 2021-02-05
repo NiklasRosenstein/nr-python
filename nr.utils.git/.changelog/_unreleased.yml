@@ -1,0 +1,8 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: Add `Git.check_call()` and `Git.check_output()`, change `Git.clone()`
+    (removed `to_directory` argument and returns `None`), add `Git.init()` and `Git.rename_branch()`,
+    fix error with `Git.tag()` not passing the directory
+  fixes: []
