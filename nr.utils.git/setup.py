@@ -31,7 +31,7 @@ requirements = []
 
 setuptools.setup(
   name = 'nr.utils.git',
-  version = '0.2.0',
+  version = '0.3.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'A simple wrapper around the Git CLI.',
