@@ -1,36 +1,36 @@
 # nr.parsing.core
 
-A simple library for scanning and lexing text which makes it easy to implement new DSLs (domain
-specific languages).
+The `nr.parsing.core` package provides a simple API to scan and tokenize text for the purpose of
+structured langauge processing.
 
-## Example (Scanning)
-
-```py
-from nr.parsing.core import Scanner
-
-sc = Scanner('abc + 42.0')
-assert sc.getmatch(r'\w+') == 'abc'
-sc.match('\s*')
-assert sc.char == '+'; sc.next()
-sc.match('\s*')
-assert sc.getmatch(r'\d+(?:\.\d*)') == '42.0'
-assert sc.char == ''  # eof
-```
-
-## Example (Lexing)
+## Example
 
 ```py
-from nr.parsing.core import Scanner, Lexer, Regex, Charset
+from nr.parsing.core import Lexer, rules
 
-rules = [
-  Charset('ws', ' ', skip=True),
-  Charset('op', '+'),
-  Regex('num', r'\d+(?:\.\d*)', group=0),
-  Regex('id', r'\w+', group=0),
-]
+lexer = Lexer()
+lexer.rule('number', rules.regex_extract(r'\-?(0|[1-9]\d*)', 0))
+lexer.rule('operator', rules.regex_extract(r'[\-\+]', 0))
+lexer.rule('whitespace', rules.regex(r'\s+'), skip=True)
 
-for tok in Lexer(Scanner('abc + 42.0'), rules):
-  print(tok.type, tok.value)
+def calculate(expr):
+  tokenizer = lexer.create_tokenizer(expr)
+  result = 0
+  sign = 1
+  while tokenizer:
+    if tokenizer.current.type != 'number':
+      raise ValueError(f'unexpected token {tokenizer.current}')
+    result += sign * int(tokenizer.current.value)
+    tokenizer.next()
+    if tokenizer.current.type == 'operator':
+      sign = -1 if tokenizer.current.value == '-' else 1
+    else:
+      sign = None
+  if sign is not None:
+    raise ValueError(f'unexpected trailing operator') 
+  return result
+
+assert calculate('3 + 5 - 1') == 7
 ```
 
 ---

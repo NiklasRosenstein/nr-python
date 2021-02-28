@@ -5,48 +5,48 @@ from nr.parsing.core import Cursor, Scanner
 def test_seek():
   s = Scanner("foo\nbar")
   assert s.char == 'f'
-  assert s.cursor == Cursor(0, 1, 0)
+  assert s.pos == Cursor(0, 1, 0)
 
   s.next()
   assert s.char == 'o'
-  assert s.cursor == Cursor(1, 1, 1)
+  assert s.pos == Cursor(1, 1, 1)
 
   s.seek(5)
   assert s.char == 'a'
-  assert s.cursor == Cursor(5, 2, 1)
+  assert s.pos == Cursor(5, 2, 1)
 
   s.seek(-1, 'cur')
   assert s.char == 'b'
-  assert s.cursor == Cursor(4, 2, 0)
+  assert s.pos == Cursor(4, 2, 0)
 
   s.seek(-1, 'cur')
   assert s.char == '\n'
-  assert s.cursor == Cursor(3, 1, 3)
+  assert s.pos == Cursor(3, 1, 3)
 
   s.seek(-1, 'cur')
   assert s.char == 'o'
-  assert s.cursor == Cursor(2, 1, 2)
+  assert s.pos == Cursor(2, 1, 2)
 
   s.seek(-1, 'cur')
   assert s.char == 'o'
-  assert s.cursor == Cursor(1, 1, 1)
+  assert s.pos == Cursor(1, 1, 1)
 
   s.seek(-1, 'cur')
   assert s.char == 'f'
-  assert s.cursor == Cursor(0, 1, 0)
+  assert s.pos == Cursor(0, 1, 0)
 
   # At the start, seek ingored.
   s.seek(-1, 'cur')
   assert s.char == 'f'
-  assert s.cursor == Cursor(0, 1, 0)
+  assert s.pos == Cursor(0, 1, 0)
 
   s.seek(0, 'end')
   assert s.char == ''
-  assert s.cursor == Cursor(7, 2, 3)
+  assert s.pos == Cursor(7, 2, 3)
 
   s.seek(-20, 'cur')
   assert s.char == 'f'
-  assert s.cursor == Cursor(0, 1, 0)
+  assert s.pos == Cursor(0, 1, 0)
 
 
 def test_match():
