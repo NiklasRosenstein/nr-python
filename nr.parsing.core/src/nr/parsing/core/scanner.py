@@ -2,7 +2,6 @@
 import enum
 import re
 import typing as t
-from dataclasses import dataclass
 
 T = t.TypeVar('T')
 U = t.TypeVar('U')
@@ -60,7 +59,7 @@ class Scanner:
     else:
       return type(self.text)()
 
-  def seek(self, offset: int, mode: t.Union[str, Seek] = Seek.SET) -> None:
+  def seek(self, offset: int, mode: t.Union[str, Seek] = Seek.SET) -> None:  # NOSONAR
     """
     Moves the cursor of the Scanner to or by *offset* depending on the *mode*. The method is
     similar to a file's `seek()` method, but ensures that the line and column counts are tracked
