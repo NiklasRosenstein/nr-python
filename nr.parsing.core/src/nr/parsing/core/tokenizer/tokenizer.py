@@ -2,7 +2,7 @@
 import enum
 import logging
 import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .ruleset import Rule, RuleConfigSet, RuleSet
 from ..scanner import Cursor, Scanner
@@ -32,30 +32,20 @@ class Debug(enum.IntEnum):
 
 @dataclass
 class Token(t.Generic[T, U]):
-  type: t.Union[T, t.Type['EofToken']]
-  value: t.Optional[U]
+  """
+  Represents a token extracted by the tokenizer. When the end of the text is reached and no more
+  tokens can be extracted, the *type* and *value* will be set to what is defined in the #RuleSet
+  to be used as the sentinel.
+  """
+
+  type: T
+  value: U
   pos: 'Cursor'
+  eof: bool = field(repr=False)
 
   @property
-  def eof(self) -> bool:
-    return False
-
-  @property
-  def tv(self) -> t.Tuple[t.Union[T, t.Type['EofToken']], t.Optional[U]]:
+  def tv(self) -> t.Tuple[T, U]:
     return (self.type, self.value)
-
-
-class EofToken(Token[T, U]):
-
-  def __init__(self, pos: 'Cursor') -> None:
-    super().__init__(t.cast(T, EofToken), t.cast(U, None), pos)
-
-  def __bool__(self) -> bool:
-    return False
-
-  @property
-  def eof(self) -> bool:
-    return True
 
 
 @dataclass
@@ -131,7 +121,9 @@ class Tokenizer(t.Generic[T, U]):
     """
 
     if self._current is None:
-      raise RuntimeError('Tokenizer is not initialized (call .next() at least once to fix)')
+      self.next()
+      assert self._current is not None
+      #raise RuntimeError('Tokenizer is not initialized (call .next() at least once to fix)')
     return self._current
 
   token = current  #: Alias for convenience, use depending on what's easier to read in the context.
@@ -180,7 +172,11 @@ class Tokenizer(t.Generic[T, U]):
     """
 
     if not self.scanner:
-      self._current = EofToken(self.scanner.pos)
+      self._current = Token(
+        self.rules.sentinel.type,
+        self.rules.sentinel.value,
+        self.scanner.pos,
+        True)
       return self._current
 
     if select is not None and unselect is not None:
@@ -193,7 +189,7 @@ class Tokenizer(t.Generic[T, U]):
     if select is not None:
       select_set = set(select)
       self.rules.check_has_token_types(select_set)
-      expect = (set() if expect is None else set(expect)) | select_set
+      expect = (t.cast(t.Set[T], set()) if expect is None else set(expect)) | select_set
     if expect is not None:
       if not isinstance(expect, set):
         expect = set(expect)
@@ -205,7 +201,7 @@ class Tokenizer(t.Generic[T, U]):
     self._current = self._do_next(t.cast(t.Optional[t.Set[T]], select), expect)
     return self._current
 
-  def _do_next(self, select: t.Optional[t.Set[T]], expect: t.Optional[t.Set[T]]) -> Token[T, U]:
+  def _do_next(self, select: t.Optional[t.Set[T]], expect: t.Optional[t.Set[T]]) -> Token[T, U]:  # NOSONAR
     token, skippable = self._extract_token(lambda t: (select is None and not self.ignored.get(t, False)) or (select is not None and t in select))
     if token is None and select is not None:
       # Extract one of the unselected token types. If that token is skippable, we will accept
@@ -241,11 +237,11 @@ class Tokenizer(t.Generic[T, U]):
       if token_value is None:
         self.scanner.pos = token_pos
         continue
-      token: Token[T, U] = Token(rule.type, token_value, token_pos)
+      token: Token[T, U] = Token(rule.type, token_value, token_pos, False)
       skippable = self.skipped.get(rule.type, rule.skip)
       return token, skippable
     return None, False
 
-  Debug = Debug
+  Debug = Debug  # NOSONAR
   Error = TokenizationError
   Unexpected = UnexpectedTokenError

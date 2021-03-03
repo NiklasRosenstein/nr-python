@@ -27,7 +27,7 @@ def regex(pattern: str, *, at_line_start_only: bool = False) -> TokenExtractor[r
   return TokenExtractor.of(_impl)
 
 
-def regex_extract(pattern: str, group: t.Union[str, int], *,
+def regex_extract(pattern: str, group: t.Union[str, int] = 0, *,
     at_line_start_only: bool = False) -> TokenExtractor[str]:
   """
   Creates a tokenizer rule that matches a regular expression and extracts a group from the

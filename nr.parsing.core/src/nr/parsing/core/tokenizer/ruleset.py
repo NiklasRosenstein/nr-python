@@ -15,6 +15,12 @@ R = t.TypeVar('R')
 
 
 @dataclass
+class Sentinel(t.Generic[T, U]):
+  type: T
+  value: U
+
+
+@dataclass
 class Rule(t.Generic[T, U]):
   type: T
   extractor: 'TokenExtractor[U]'
@@ -26,9 +32,20 @@ class RuleSet(t.Generic[T, U]):
   A ordered list of parsing rules that is used a the #Tokenizer.
   """
 
-  def __init__(self) -> None:
+  @t.overload
+  def __init__(self: 'RuleSet[str, str]') -> None:
+    """ The default constructor for a #RuleSet uses string for both the token and value type. """
+
+  @t.overload
+  def __init__(self: 'RuleSet[T, U]', sentinel: t.Union[t.Tuple[T, U], Sentinel[T, U]]) -> None:
+    """ Initialize the #RuleSet with a sentinel configuration. """
+
+  def __init__(self, sentinel = ('eof', '')) -> None:
+    if isinstance(sentinel, tuple):
+      sentinel = Sentinel(*sentinel)
     self._rules: t.List[Rule[T, U]] = []
     self._token_types: t.Set[T] = set()
+    self.sentinel: Sentinel[T, U] = sentinel
 
   def __iter__(self) -> t.Iterator[Rule]:
     return iter(self._rules)
