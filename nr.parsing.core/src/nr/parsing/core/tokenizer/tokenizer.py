@@ -43,6 +43,9 @@ class Token(t.Generic[T, U]):
   pos: 'Cursor'
   eof: bool = field(repr=False)
 
+  def __bool__(self) -> bool:
+    return not self.eof
+
   @property
   def tv(self) -> t.Tuple[T, U]:
     return (self.type, self.value)
