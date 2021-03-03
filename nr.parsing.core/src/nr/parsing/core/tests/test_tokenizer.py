@@ -1,7 +1,7 @@
 
-import re
 import typing as t
-from nr.parsing.core import RuleSet, Tokenizer, rules
+import pytest
+from nr.parsing.core import RuleSet, Tokenizer, UnexpectedTokenError, rules
 
 
 ruleset = RuleSet()
@@ -32,3 +32,8 @@ def calculate(expr: str) -> int:
 
 def test_simple_tokenization():
   assert calculate('3 + 5 - 1') == 7
+
+  with pytest.raises(ValueError) as excinfo:
+    assert calculate('3 ++ 5 - 1') == 7
+  assert str(excinfo.value) == "unexpected token Token(type='operator', value='+', "\
+      "pos=Cursor(offset=3, line=1, column=3))"
