@@ -5,3 +5,6 @@ __version__ = '2.0.0'
 from .scanner import Cursor, Scanner
 from .tokenizer import RuleSet, Token, Tokenizer, TokenExtractor, TokenizationError, UnexpectedTokenError
 from . import rules
+
+__all__ = ['Cursor', 'Scanner', 'RuleSet', 'Token', 'Tokenizer', 'TokenExtractor',
+  'TokenizationError', 'UnexpectedTokenError', 'rules']
