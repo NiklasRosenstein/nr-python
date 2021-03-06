@@ -169,7 +169,7 @@ class Scanner:
     return result
 
   def match(self, regex: t.Union[str, re.Pattern], flags: int = 0, *,
-      _search: bool = False) -> t.Optional[re.Match]:
+      _search: bool = False) -> t.Optional[t.Match[str]]:
     """
     Matches the *regex* from the current character of the *scanner* and returns the result. The
     scanners column and line numbers are updated respectively.
@@ -203,7 +203,7 @@ class Scanner:
     return self.match(regex, flags, _search=True)
 
   def getmatch(self, regex: t.Union[str, re.Pattern], group: t.Union[int,str] = 0,
-      flags: int = 0) -> t.Optional[re.Match]:
+      flags: int = 0) -> t.Optional[str]:
     """
     The same as #Scanner.match(), but returns the captured group rather than
     the regex match object, or None if the pattern didn't match.
