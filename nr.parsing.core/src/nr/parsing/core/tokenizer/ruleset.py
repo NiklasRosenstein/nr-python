@@ -102,7 +102,7 @@ class RuleConfigSet(t.Generic[T, U, V]):
         raise ValueError(f'not a possible token type: {token_type!r}')
 
     for token_type in token_types_set:
-      self.set(token_type, value)
+      self._values[token_type] = value
 
     @contextlib.contextmanager
     def _revert() -> t.Iterator[None]:
@@ -113,9 +113,15 @@ class RuleConfigSet(t.Generic[T, U, V]):
             # NOTE(NiklasRosenstein): https://github.com/python/mypy/issues/10152
             self._values.pop(token_type, None)  # type: ignore
           else:
-            self.set(token_type, current_values[token_type])
+            self._values[token_type] = current_values[token_type]
 
     return _revert()
 
   def get(self, token_type: T, default: R) -> t.Union[V, R]:
     return self._values.get(token_type, default)
+
+  def copy(self) -> 'RuleConfigSet[T, U, V]':
+    new = type(self)(self._rules)
+    new._values.update(self._values)
+    return new
+

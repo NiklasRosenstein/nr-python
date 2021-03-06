@@ -51,13 +51,49 @@ class Token(t.Generic[T, U]):
     return (self.type, self.value)
 
 
+class ProxyToken(t.Generic[T, U]):
+  """ Always represents the current token of the tokenizer. """
+
+  def __init__(self, tokenizer: 'Tokenizer[T, U]') -> None:
+    self.tokenizer = tokenizer
+
+  def __repr__(self) -> str:
+    return f'TokenProxy({self.tokenizer.current!r})'
+
+  def __bool__(self) -> bool:
+    return bool(self.tokenizer.current)
+
+  def __call__(self) -> Token[T, U]:
+    return self.tokenizer.current
+
+  @property
+  def type(self) -> T:
+    return self.tokenizer.current.type
+
+  @property
+  def value(self) -> U:
+    return self.tokenizer.current.value
+
+  @property
+  def pos(self) -> Cursor:
+    return self.tokenizer.current.pos
+
+  @property
+  def eof(self) -> bool:
+    return self.tokenizer.current.eof
+
+  def next(self) -> None:
+    self.tokenizer.next()
+
+
 @dataclass
 class TokenizerPos(t.Generic[T, U]):
   """ A checkpoint that can be used to restore the tokenizer to a previous state. """
 
   cursor: 'Cursor'
   token: t.Optional[Token[T, U]]
-  skip_token_states: t.Dict[str, bool]
+  skipped: RuleConfigSet[T, U, bool]
+  ignored: RuleConfigSet[T, U, bool]
 
 
 class TokenizationError(Exception):
@@ -100,11 +136,17 @@ class Tokenizer(t.Generic[T, U]):
   def __bool__(self) -> bool:
     return bool(self.scanner) or bool(self._current)
 
+  def __iter__(self) -> t.Iterator[Token[T, U]]:
+    token = self.current
+    while token:
+      yield token
+      token = self.next()
+
   @property
   def pos(self) -> TokenizerPos[T, U]:
     """ The position of the tokenizer. Can be set to go back to a previously stored position. """
 
-    return TokenizerPos(self.scanner.pos, self._current, self._skip_token_states.copy())
+    return TokenizerPos(self.scanner.pos, self._current, self.skipped.copy(), self.ignored.copy())
 
   @pos.setter
   def pos(self, pos: TokenizerPos[T, U]) -> None:
@@ -112,7 +154,8 @@ class Tokenizer(t.Generic[T, U]):
       self.log.debug('Update Tokenizer.pos (pos=%r)', pos)
     self.scanner.pos = pos.cursor
     self._current = pos.token
-    self._skip_token_states = pos.skip_token_states
+    self.skipped = pos.skipped
+    self.ignored = pos.ignored
 
   @property
   def current(self) -> Token[T, U]:
@@ -126,10 +169,7 @@ class Tokenizer(t.Generic[T, U]):
     if self._current is None:
       self.next()
       assert self._current is not None
-      #raise RuntimeError('Tokenizer is not initialized (call .next() at least once to fix)')
     return self._current
-
-  token = current  #: Alias for convenience, use depending on what's easier to read in the context.
 
   def next(self,
     select: t.Optional[t.Collection[T]] = None,
