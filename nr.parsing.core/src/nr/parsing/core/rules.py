@@ -30,8 +30,37 @@ def regex(pattern: str, *, at_line_start_only: bool = False) -> TokenExtractor[r
 def regex_extract(pattern: str, group: t.Union[str, int] = 0, *,
     at_line_start_only: bool = False) -> TokenExtractor[str]:
   """
-  Creates a tokenizer rule that matches a regular expression and extracts a group from the
-  match as the token value.
+  Creates a token extractor that matches a regular expression and extracts a group from the match
+  as the token value.
   """
 
   return regex(pattern, at_line_start_only=at_line_start_only).map(lambda m: m.group(group))
+
+
+def string_literal(
+  accepted_prefixes: t.Optional[str] = 'bfru',
+  quote_sequences: t.Sequence[str] = ('"""', "'''", '"', "'"),
+) -> TokenExtractor[str]:
+  """
+  Matches a Python string literal.
+  """
+
+  def _impl(scanner: 'Scanner') -> t.Optional[str]:
+    prefix = (scanner.getmatch(r'[' + re.escape(accepted_prefixes) + r']+') or '') \
+        if accepted_prefixes else ''
+    quote_type = scanner.getmatch(r'(' + r'|'.join(re.escape(s) for s in quote_sequences) + r')')
+    if not quote_type:
+      return None
+    contents = ''
+    while scanner.char and scanner.char != '\n':
+      if scanner.match(re.escape(quote_type)):
+        break
+      contents += scanner.char
+      if scanner.char == '\\':
+        contents += scanner.next()
+      scanner.next()
+    else:
+      return None
+    return prefix + quote_type + contents + quote_type
+
+  return TokenExtractor.of(_impl)
