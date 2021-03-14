@@ -81,6 +81,9 @@ class RuleConfigSet(t.Generic[T, U, V]):
     self._rules = rules
     self._values: t.Dict[T, V] = {}
 
+  def __repr__(self) -> str:
+    return f'RuleConfigSet({self._values!r})'
+
   def set(self, token_types: t.Union[T, t.Collection[T]], value: V) -> t.ContextManager[None]:
     """
     Set the value of one or more token types. The returned context manager _may_ be used, but

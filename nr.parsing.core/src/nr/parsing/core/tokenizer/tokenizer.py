@@ -54,36 +54,67 @@ class Token(t.Generic[T, U]):
 class ProxyToken(t.Generic[T, U]):
   """ Always represents the current token of the tokenizer. """
 
-  def __init__(self, tokenizer: 'Tokenizer[T, U]') -> None:
+  def __init__(self,
+    tokenizer: 'Tokenizer[T, U]',
+    transformer: t.Optional[t.Callable[[Token[T, U]], Token[T, U]]] = None,
+  ) -> None:
     self.tokenizer = tokenizer
+    self.transformer = transformer
+    self._transformed_token: t.Optional[t.Tuple[Token[T, U], Token[T, U]]] = None
 
   def __repr__(self) -> str:
-    return f'TokenProxy({self.tokenizer.current!r})'
+    return f'TokenProxy({self._token!r})'
 
   def __bool__(self) -> bool:
-    return bool(self.tokenizer.current)
+    return bool(self._token)
 
   def __call__(self) -> Token[T, U]:
-    return self.tokenizer.current
+    return self._token
+
+  @property
+  def _token(self) -> Token[T, U]:
+    if self.transformer is None:
+      return self.tokenizer.current
+    if self._transformed_token is not None and \
+        self._transformed_token[0] is self.tokenizer.current:
+      return self._transformed_token[1]
+    self._transformed_token = (self.tokenizer.current, self.transformer(self.tokenizer.current))
+    return self._transformed_token[1]
 
   @property
   def type(self) -> T:
-    return self.tokenizer.current.type
+    return self._token.type
 
   @property
   def value(self) -> U:
-    return self.tokenizer.current.value
+    return self._token.value
 
   @property
   def pos(self) -> Cursor:
-    return self.tokenizer.current.pos
+    return self._token.pos
 
   @property
   def eof(self) -> bool:
-    return self.tokenizer.current.eof
+    return self._token.eof
+
+  @property
+  def tv(self) -> t.Tuple[T, U]:
+    return self._token.tv
 
   def next(self) -> None:
     self.tokenizer.next()
+
+  def save(self) -> 'TokenizerState':
+    return self.tokenizer.state
+
+  def load(self, pos: 'TokenizerState') -> None:
+    self.tokenizer.state = pos
+
+  def set_ignored(self, token_types: t.Union[T, t.Collection[T]], ignored: bool = True) -> t.ContextManager[None]:
+    return self.tokenizer.ignored.set(token_types, ignored)
+
+  def set_skipped(self, token_types: t.Union[T, t.Collection[T]], skipped: bool = True) -> t.ContextManager[None]:
+    return self.tokenizer.skipped.set(token_types, skipped)
 
 
 @dataclass
