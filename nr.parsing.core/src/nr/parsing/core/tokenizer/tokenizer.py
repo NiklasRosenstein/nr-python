@@ -118,13 +118,14 @@ class ProxyToken(t.Generic[T, U]):
 
 
 @dataclass
-class TokenizerPos(t.Generic[T, U]):
+class TokenizerState(t.Generic[T, U]):
   """ A checkpoint that can be used to restore the tokenizer to a previous state. """
 
   cursor: 'Cursor'
   token: t.Optional[Token[T, U]]
   skipped: RuleConfigSet[T, U, bool]
   ignored: RuleConfigSet[T, U, bool]
+  skip_rule_once: t.Optional[Rule[T, U]]
 
 
 class TokenizationError(Exception):
@@ -164,6 +165,10 @@ class Tokenizer(t.Generic[T, U]):
     self.ignored = RuleConfigSet(rules)
     self.debug = debug
 
+    # Keep track if a zero-length token was extracted via a rule. That rule cannot trigger again
+    # from the same position of the tokenizer.
+    self._skip_rule_once: t.Optional[Rule[T, U]] = None
+
   def __bool__(self) -> bool:
     return bool(self.scanner) or bool(self._current)
 
@@ -174,19 +179,21 @@ class Tokenizer(t.Generic[T, U]):
       token = self.next()
 
   @property
-  def pos(self) -> TokenizerPos[T, U]:
+  def state(self) -> TokenizerState[T, U]:
     """ The position of the tokenizer. Can be set to go back to a previously stored position. """
 
-    return TokenizerPos(self.scanner.pos, self._current, self.skipped.copy(), self.ignored.copy())
+    return TokenizerState(self.scanner.pos, self._current, self.skipped.copy(),
+      self.ignored.copy(), self._skip_rule_once)
 
-  @pos.setter
-  def pos(self, pos: TokenizerPos[T, U]) -> None:
+  @state.setter
+  def state(self, state: TokenizerState[T, U]) -> None:
     if self.debug & Debug.UPDATE_POS:
-      self.log.debug('Update Tokenizer.pos (pos=%r)', pos)
-    self.scanner.pos = pos.cursor
-    self._current = pos.token
-    self.skipped = pos.skipped
-    self.ignored = pos.ignored
+      self.log.debug('Update Tokenizer.pos (pos=%r)', state)
+    self.scanner.pos = state.cursor
+    self._current = state.token
+    self.skipped = state.skipped
+    self.ignored = state.ignored
+    self._skip_rule_once = state.skip_rule_once
 
   @property
   def current(self) -> Token[T, U]:
@@ -305,7 +312,7 @@ class Tokenizer(t.Generic[T, U]):
   def _extract_token(self, filter: t.Callable[[T], bool]) -> t.Tuple[t.Optional[Token[T, U]], bool]:
     token_pos = self.scanner.pos
     for rule in self.rules:
-      if not filter(rule.type):
+      if not filter(rule.type) or rule == self._skip_rule_once:
         continue
       token_value = rule.extractor.get_token(self.scanner)
       if token_value is None:
@@ -313,6 +320,12 @@ class Tokenizer(t.Generic[T, U]):
         continue
       token: Token[T, U] = Token(rule.type, token_value, token_pos, False)
       skippable = self.skipped.get(rule.type, rule.skip)
+      if not token.value:
+        # Zero-length token can only be produced once at a given location.
+        # TODO(NiklasRosenstein): This only really works with strings as the token value.
+        self._skip_rule_once = rule
+      else:
+        self._skip_rule_once = None
       return token, skippable
     return None, False
 

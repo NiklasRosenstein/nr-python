@@ -44,3 +44,14 @@ def test_tokenize():
       ['number', 'operator', 'number', 'operator', 'number']
   assert [t.value for t in Tokenizer(ruleset, '3   +5 - 1')] == \
       ['3', '+', '5', '-', '1']
+
+
+def test_zero_length_token():
+  ruleset = RuleSet()
+  ruleset.rule('indent', rules.regex_extract('[ ]*', at_line_start_only=True))
+  ruleset.rule('name', rules.regex_extract(r'\w+'))
+  ruleset.rule('ws', rules.regex_extract(' +'), skip=True)
+  ruleset.rule('newline', rules.regex_extract('\n'), skip=True)
+
+  assert [x.tv for x in list(Tokenizer(ruleset, 'foobar baz\n  spam'))] == [
+    ('indent', ''), ('name', 'foobar'), ('name', 'baz'), ('indent', '  '), ('name', 'spam')]
