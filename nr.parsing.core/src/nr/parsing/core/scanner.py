@@ -213,3 +213,10 @@ class Scanner:
     if match:
       return match.group(group)
     return None
+
+  def getline(self, cursor: Cursor) -> str:
+    """ Returns the contents of the current line marked by the specified cursor location. """
+
+    start = cursor.offset - cursor.column
+    end = self.text.find('\n', start)
+    return self.text[start:end]
