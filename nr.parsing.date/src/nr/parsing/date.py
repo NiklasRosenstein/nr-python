@@ -220,21 +220,27 @@ class DateFormat(object):
     pattern = io.StringIO()
     options = []
     join_sequence = []
-    def write(char):
-      pattern.write(re.escape(string[index]))
+
+    def write(char, escaped=False):
+      pattern.write(char if char in '()?%' else re.escape(char))
+      if char == '(':
+        pattern.write('?:')  # Make exernal group optional
+      if char in '()?%' and not escaped:
+        return
       if join_sequence and isinstance(join_sequence[-1], str):
-        join_sequence[-1] += string[index]
+        join_sequence[-1] += char
       else:
-        join_sequence.append(string[index])
+        join_sequence.append(char)
+
     while index < len(string):
       if string[index] == '%':
         char = string[index+1]
-        if char != '%' and char not in option_set:
+        if char in '()?%':
+          write(char)
+        elif char not in option_set:
           raise ValueError('Invalid date format "%{}"'.format(char))
-        fo = option_set[char]
-        if char == '%':
-          write('%')
         else:
+          fo = option_set[char]
           pattern.write('(' + fo.regex.pattern + ')')
           options.append(fo)
           join_sequence.append(fo)
@@ -262,7 +268,8 @@ class DateFormat(object):
         string, self.string))
     kwargs = {'year': 1900, 'month': 1, 'day': 1, 'hour': 0}
     for option, value in zip(self._options, match.groups()):
-      kwargs[option.dest] = option.parse(value)
+      if value is not None:
+        kwargs[option.dest] = option.parse(value)
     return datetime(**kwargs)
 
   def format(self, date):
@@ -483,10 +490,10 @@ def parse_iso8601_duration(d):  # type: (str) -> int
 class Iso8601(DatetimeFormat):
 
   _format_set = root_option_set.create_format_set('Iso8601', [
-    '%Y-%m-%dT%H:%M:%S.%f%z',  # RFC 3339
-    '%Y-%m-%dT%H:%M:%S.%f',    # ISO 8601 extended format
-    '%Y%m%dT%H%M%S.%f',        # ISO 8601 basic format
-    '%Y%m%d',                  # ISO 8601 basic format, date only
+    '%Y-%m-%dT%H:%M:%S(.%f)?%z',  # RFC 3339
+    '%Y-%m-%dT%H:%M:%S(.%f)?',    # ISO 8601 extended format
+    '%Y%m%dT%H%M%S(.%f)?',        # ISO 8601 basic format
+    '%Y%m%d',                     # ISO 8601 basic format, date only
   ])
 
   def parse(self, string):
@@ -499,8 +506,7 @@ class Iso8601(DatetimeFormat):
 class JavaOffsetDatetime(DatetimeFormat):
 
   _standard = root_option_set.create_format_set('JavaOffsetDatetime', [
-    '%Y-%m-%dT%H:%M:%S.%f%z',
-    '%Y-%m-%dT%H:%M:%S%z',
+    '%Y-%m-%dT%H:%M:%S(.%f)?%z',
     '%Y-%m-%dT%H:%M%z',
   ])
 

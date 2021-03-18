@@ -9,6 +9,7 @@ import pytest
 def test_java_offset_datetime_formatting():
   test_cases = [
     # sample,                     formatted
+    ('2021-03-17T00:00:00+0000',  '2021-03-17T00:00:00.0Z'),
     ('2019-03-12T10:22-0400',     '2019-03-12T10:22:00.0-04:00'),
     ('2019-03-12T10:22-04:00',    '2019-03-12T10:22:00.0-04:00'),
     ('2019-03-12T10:22:00Z',      '2019-03-12T10:22:00.0Z'),
@@ -49,14 +50,17 @@ def test_java_offset_datetime_timezone():
 
 def test_iso8601():
   test_cases = [
-    ('2020-06-29T07:41:59.000073', datetime.datetime(2020, 6, 29, 7, 41, 59, 73)),
-    ('2020-06-29T07:41:59.73', datetime.datetime(2020, 6, 29, 7, 41, 59, 730000)),
-    ('2020-06-29T07:41:59.73247Z', datetime.datetime(2020, 6, 29, 7, 41, 59, 732470, timezone.utc)),
+    ('2021-03-17T00:00:00+0000', datetime.datetime(2021, 3, 17, 0, 0, 0, 0, timezone.utc), '2021-03-17T00:00:00.0Z'),
+    ('2020-06-29T07:41:59.000073', datetime.datetime(2020, 6, 29, 7, 41, 59, 73), None),
+    ('2020-06-29T07:41:59.73', datetime.datetime(2020, 6, 29, 7, 41, 59, 730000), None),
+    ('2020-06-29T07:41:59.73247Z', datetime.datetime(2020, 6, 29, 7, 41, 59, 732470, timezone.utc), None),
   ]
-  for sample, result in test_cases:
+  for sample, result, formatted in test_cases:
+    if formatted is None:
+      formatted = sample
     assert Iso8601().parse(sample) == result
     assert dateutil_parse(sample) == result
-    assert Iso8601().format(result) == sample
+    assert Iso8601().format(result) == formatted
 
 
 def test_iso8601_duration():
