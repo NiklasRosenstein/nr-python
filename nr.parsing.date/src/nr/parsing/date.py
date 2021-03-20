@@ -25,14 +25,18 @@ A fast date parser library with timezone offset support.
 
 from datetime import datetime, timedelta, tzinfo
 from itertools import chain
-from nr.utils.re import match_all
+from nr.utils.re import match_all  # type: ignore
 import abc
 import importlib
 import io
 import os
-import warnings
+import re
+import typing as t
 
-re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))
+re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))  # type: ignore
+
+if t.TYPE_CHECKING:
+  import dateutil.relativedelta
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.5.0'
@@ -43,42 +47,45 @@ class timezone(tzinfo):
   A simple implementation of #datetime.tzinfo.
   """
 
+  utc: 'timezone'
+  local: 'timezone'
+
   _ZERO = timedelta(0)
 
-  def __init__(self, name, offset):  # type: (Optional[str], Union[timedelta, int]) -> None
-    offset = offset.total_seconds() if hasattr(offset, 'total_seconds') else int(offset)
-    self._offset = timedelta(seconds=offset)
+  def __init__(self, name: t.Optional[str], offset: t.Union[timedelta, float]) -> None:
+    seconds = offset.total_seconds() if isinstance(offset, timedelta) else float(offset)
+    self._offset = timedelta(seconds=seconds)
     self._name = name
     if offset == 0 and not self._name:
       self._name = 'UTC'
 
-  def dst(self, dt):
+  def dst(self, dt: t.Optional[datetime]) -> timedelta:
     return self._ZERO
 
-  def utcoffset(self, dt):
+  def utcoffset(self, dt: t.Optional[datetime]) -> timedelta:
     return self._offset
 
-  def tzname(self, dt):
+  def tzname(self, dt: t.Optional[datetime]) -> t.Optional[str]:
     return self._name
 
-  def fromutc(self, dt):
+  def fromutc(self, dt: datetime) -> datetime:
     return dt + self._offset
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     if self._name == 'UTC':
       return 'timezone.utc'
     else:
       return 'timezone({!r}, {!r})'.format(self._name, self._offset.total_seconds())
 
-  def __eq__(self, other):
+  def __eq__(self, other) -> bool:
     if not isinstance(other, timezone):
       return NotImplemented
     return self._offset == other._offset
 
-  def __ne__(self, other):
+  def __ne__(self, other) -> bool:
     return not (self == other)
 
-  def __hash__(self):
+  def __hash__(self) -> int:
     return hash((type(self), self._offset))
 
 
@@ -86,35 +93,34 @@ timezone.utc = timezone('UTC', 0)
 timezone.local = timezone('local', (datetime.now() - datetime.utcnow()).total_seconds())
 
 
-class BaseFormatOption(object):
+class BaseFormatOption:
 
-  def __init__(self, char, dest):
+  def __init__(self, char: str, dest: str, regex: 're.Pattern') -> None:
     self.char = char
     self.dest = dest
+    self.regex = regex
 
-  def parse(self, string):
+  def parse(self, string: str) -> t.Any:
     raise NotImplementedError
 
-  def render(self, date):
+  def render(self, date: datetime) -> t.Any:
     raise NotImplementedError
 
 
 class FormatOption(BaseFormatOption):
 
-  def __init__(self, char, dest, regex, parse, render):
-    super(FormatOption, self).__init__(char, dest)
-    self.regex = re.compile(regex)
-    self.parse = parse
-    self.render = render
+  def __init__(self, char: str, dest: str, regex: str, parse: t.Callable[[str], int], render: t.Callable[[datetime], str]) -> None:
+    super(FormatOption, self).__init__(char, dest, re.compile(regex))
+    self.parse = parse  # type: ignore
+    self.render = render  # type: ignore
 
 
 class TimezoneFormatOption(BaseFormatOption):
 
-  def __init__(self, char='z', dest='tzinfo'):
-    super(TimezoneFormatOption, self).__init__(char, dest)
-    self.regex = re.compile(r'(?:Z|[-+]\d{2}:?\d{2})')
+  def __init__(self, char: str = 'z', dest: str = 'tzinfo') -> None:
+    super(TimezoneFormatOption, self).__init__(char, dest, re.compile(r'(?:Z|[-+]\d{2}:?\d{2})'))
 
-  def parse(self, string):
+  def parse(self, string: str) -> tzinfo:
     match = self.regex.match(string)
     if not match:
       raise ValueError('not a timezone string: {!r}'.format(string))
@@ -128,22 +134,22 @@ class TimezoneFormatOption(BaseFormatOption):
       seconds = sign * (hours * 3600 + minutes * 60)
       return timezone(None, seconds)
 
-  def render(self, date):
+  def render(self, date: datetime) -> str:
     if date.tzinfo == None:
       raise ValueError('no tzinfo in date: {!r}'.format(date))
     elif date.tzinfo == timezone.utc:
       return 'Z'
     else:
-      off = date.utcoffset()
+      utcoffset = date.utcoffset()
       # NOTE Copied from CPython 3.7 datetime.py _format_offset()
       string = ''
-      if off is not None:
-        if off.days < 0:
+      if utcoffset is not None:
+        if utcoffset.days < 0:
           sign = "-"
-          off = -off
+          utcoffset = -utcoffset
         else:
           sign = "+"
-        off = off.total_seconds()
+        off = utcoffset.total_seconds()
         hh, mm = divmod(off, 60 * 60)
         mm, ss = divmod(mm, 60)
         ss, ms = divmod(ss, 1)
@@ -158,68 +164,68 @@ class TimezoneFormatOption(BaseFormatOption):
 class DatetimeFormat(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
-  def parse(self, string):  # type: (str) -> datetime
+  def parse(self, string: str) -> datetime:
     pass
 
   @abc.abstractmethod
-  def format(self, datetime):  # type: (datetime) -> str
+  def format(self, datetime: datetime) -> str:
     pass
 
 
-class FormatOptionSet(DatetimeFormat):
+class FormatOptionSet:
 
-  def __init__(self, options=()):
-    self._options = {}
-    self._cache = {}
+  def __init__(self, options: t.Collection[BaseFormatOption] = ()):
+    self._options: t.Dict[str, 'BaseFormatOption'] = {}
+    self._cache: t.Dict[str, 'DatetimeFormat'] = {}
     for option in options:
       self.add(option)
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return 'FormatOptionSet({})'.format(''.join(sorted(self._options)))
 
-  def __getitem__(self, char):
+  def __getitem__(self, char: str) -> 'BaseFormatOption':
     return self._options[char]
 
-  def __contains__(self, char):
+  def __contains__(self, char: str) -> bool:
     return char in self._options
 
-  def add(self, option):
+  def add(self, option: BaseFormatOption) -> None:
     if not isinstance(option, BaseFormatOption):
       raise TypeError('expected BaseFormatOption')
     if option.char in self._options:
       raise ValueError('format char {!r} already allocated'.format(option.char))
     self._options[option.char] = option
 
-  def create_date_format(self, fmt):
+  def create_date_format(self, fmt: str) -> 'DatetimeFormat':
     # TODO @NiklasRosenstein Work around cyclic reference, eg. with a weakref?
     try:
       return self._cache[fmt]
     except KeyError:
-      obj = self._cache[fmt] = DateFormat(fmt, self)
+      obj = self._cache[fmt] = CompiledDatetimeFormat(fmt, self)
       return obj
 
-  def create_format_set(self, name, formats):
-    formats = [self.create_date_format(x) if not isinstance(x, DateFormat) else x for x in formats]
-    return DateFormatSet(name, formats)
+  def create_format_set(self, name: str, formats: t.Iterable[t.Union[str, 'DatetimeFormat']]) -> 'DatetimeFormatSet':
+    return DatetimeFormatSet(name, [self.create_date_format(x)
+      if not isinstance(x, DatetimeFormat) else x for x in formats])
 
-  def parse(self, string, fmt):
+  def parse(self, string: str, fmt: str) -> datetime:
     return self.create_date_format(fmt).parse(string)
 
-  def format(self, date, fmt):
+  def format(self, date: datetime, fmt: str) -> str:
     return self.create_date_format(fmt).format(date)
 
 
-class DateFormat(object):
+class CompiledDatetimeFormat(DatetimeFormat):
   """
   Represents a fully compiled fixed date format ready to parse and
   format dates.
   """
 
-  def __init__(self, string, option_set):
+  def __init__(self, string: str, option_set: FormatOptionSet) -> None:
     index = 0
     pattern = io.StringIO()
     options = []
-    join_sequence = []
+    join_sequence: t.List[t.Union[str, BaseFormatOption]] = []
 
     def write(char, escaped=False):
       pattern.write(char if char in '()?%' else re.escape(char))
@@ -254,14 +260,14 @@ class DateFormat(object):
     self._join_sequence = join_sequence
     self._options = options
 
-  def __repr__(self):
-    return 'DateFormat(string={!r})'.format(self.string)
+  def __repr__(self) -> str:
+    return 'CompiledDatetimeFormat(string={!r})'.format(self.string)
 
   @property
-  def string(self):
+  def string(self) -> str:
     return self._string
 
-  def parse(self, string):
+  def parse(self, string: str) -> datetime:
     match = self._regex.match(string)
     if not match:
       raise ValueError('Date "{}" does not match format {!r}'.format(
@@ -270,9 +276,9 @@ class DateFormat(object):
     for option, value in zip(self._options, match.groups()):
       if value is not None:
         kwargs[option.dest] = option.parse(value)
-    return datetime(**kwargs)
+    return datetime(**kwargs)  # type: ignore
 
-  def format(self, date):
+  def format(self, date: datetime) -> str:
     result = io.StringIO()
     for item in self._join_sequence:
       if isinstance(item, str):
@@ -282,20 +288,20 @@ class DateFormat(object):
     return result.getvalue()
 
 
-class DateFormatSet(list, DatetimeFormat):
+class DatetimeFormatSet(list, DatetimeFormat):
   """
   Represents a set of date formats.
   """
 
-  def __init__(self, name, formats):
+  def __init__(self, name: str, formats: t.List[DatetimeFormat]) -> None:
+    super(DatetimeFormatSet, self).__init__(formats)
     self.name = name
-    super(DateFormatSet, self).__init__(formats)
 
-  def __repr__(self):
-    return 'DateFormatSet({!r}, {})'.format(
-      self.name, super(DateFormatSet, self).__repr__())
+  def __repr__(self) -> str:
+    return 'DatetimeFormatSet({!r}, {})'.format(
+      self.name, super(DatetimeFormatSet, self).__repr__())
 
-  def parse(self, string):
+  def parse(self, string: str) -> datetime:
     for fmt in self:
       try:
         return fmt.parse(string)
@@ -305,7 +311,7 @@ class DateFormatSet(list, DatetimeFormat):
     formats = '\n- '.join(x.string for x in self)
     raise ValueError(msg.format(string, self.name, formats))
 
-  def format(self, date):
+  def format(self, date: datetime) -> str:
     errors = []
     for fmt in self:
       try:
@@ -333,15 +339,15 @@ root_option_set = FormatOptionSet([
 ])
 
 
-def register_format_option(option):
+def register_format_option(option: BaseFormatOption) -> None:
   root_option_set.add(option)
 
 
-def parse_date(string, fmt):
+def parse_date(string: str, fmt: str) -> datetime:
   return root_option_set.parse(string, fmt)
 
 
-def format_date(date, fmt):
+def format_date(date: datetime, fmt: str) -> str:
   return root_option_set.format(date, fmt)
 
 
@@ -352,8 +358,8 @@ class Duration(object):
 
   _fields = ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds']
 
-  def __init__(self, years=0, months=0, weeks=0, days=0, hours=0, minutes=0, seconds=0):
-    # type: (int, int, int, int, int, int, int) -> None
+  def __init__(self, years: int = 0, months: int = 0, weeks: int = 0, days: int = 0,
+               hours: int = 0, minutes: int = 0, seconds: int = 0) -> None:
     self.years = years
     self.months = months
     self.weeks = weeks
@@ -365,7 +371,7 @@ class Duration(object):
       if getattr(self, k) < 0:
         raise ValueError('{} cannot be negative'.format(k))
 
-  def __str__(self):
+  def __str__(self) -> str:
     parts = ['P']
     for value, char in [(self.years, 'Y'), (self.months, 'M'), (self.weeks, 'W'), (self.days, 'D')]:
       if value != 0:
@@ -379,10 +385,10 @@ class Duration(object):
         parts.append('{}{}'.format(value, char))
     return ''.join(parts)
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return 'Duration({})'.format(', '.join('{}={}'.format(k, getattr(self, k)) for k in self._fields))
 
-  def __eq__(self, other):
+  def __eq__(self, other) -> bool:
     if type(other) != type(self):
       return False
     for k in self._fields:
@@ -390,7 +396,7 @@ class Duration(object):
         return False
     return True
 
-  def __ne__(self, other):
+  def __ne__(self, other) -> bool:
     if type(other) != type(self):
       return True
     for k in self._fields:
@@ -398,7 +404,7 @@ class Duration(object):
         return False
     return True
 
-  def total_seconds(self, days_per_month=31, days_per_year=365.25):  # type: (int, int) -> int
+  def total_seconds(self, days_per_month: int = 31, days_per_year: float = 365.25) -> int:
     """
     Computes the total number of seconds in this duration.
     """
@@ -413,7 +419,7 @@ class Duration(object):
       self.minutes * 60 +
       self.seconds)
 
-  def as_timedelta(self, *args, **kwargs):  # type: (...) -> timedelta
+  def as_timedelta(self, *args, **kwargs) -> timedelta:
     """
     Returns the seconds represented by this duration as a #timedelta object. The arguments
     and keyword arguments are forwarded to the #total_seconds() method.
@@ -421,7 +427,7 @@ class Duration(object):
 
     return timedelta(seconds=self.total_seconds(*args, **kwargs))
 
-  def as_relativedelta(self):  # type: () -> dateutil.relativedelta.relativedelta
+  def as_relativedelta(self) -> 'dateutil.relativedelta.relativedelta':
     """
     Converts the #Duration object to a #dateutil.relativedelta.relativedelta object. Requires
     the `python-dateutil` module.
@@ -432,7 +438,7 @@ class Duration(object):
                          hours=self.hours, minutes=self.minutes, seconds=self.seconds)
 
   @classmethod
-  def parse(cls, s):  # type: (str) -> Duration
+  def parse(cls, s: str) -> 'Duration':
     """
     Parses an ISO 8601 duration string into a #Duration object.
 
@@ -476,17 +482,6 @@ class Duration(object):
     return cls(**fields)
 
 
-#@deprecated
-def parse_iso8601_duration(d):  # type: (str) -> int
-  """
-  *Deprecated. Use #Duration.parse() instead.*
-
-  Parses an ISO8601 duration to seconds.
-  """
-
-  return Duration.parse(d).total_seconds()
-
-
 class Iso8601(DatetimeFormat):
 
   _format_set = root_option_set.create_format_set('Iso8601', [
@@ -496,10 +491,10 @@ class Iso8601(DatetimeFormat):
     '%Y%m%d',                     # ISO 8601 basic format, date only
   ])
 
-  def parse(self, string):
+  def parse(self, string: str) -> datetime:
     return self._format_set.parse(string)
 
-  def format(self, datetime):
+  def format(self, datetime: datetime) -> str:
     return self._format_set.format(datetime)
 
 
@@ -513,16 +508,16 @@ class JavaOffsetDatetime(DatetimeFormat):
   _optional_tz = root_option_set.create_format_set('JavaOffsetDatetime',
     chain(*zip(_standard, [x.string[:-2] for x in _standard])))
 
-  def __init__(self, require_timezone=True):
+  def __init__(self, require_timezone: bool = True) -> None:
     self.require_timezone = require_timezone
     self._format_set = self._standard if require_timezone else self._optional_tz
 
-  def parse(self, string):
+  def parse(self, string: str) -> datetime:
     return self._format_set.parse(string)
 
-  def format(self, datetime):
+  def format(self, datetime: datetime) -> str:
     return self._format_set.format(datetime)
 
 
-def create_datetime_format_set(name, formats):
+def create_datetime_format_set(name: str, formats: t.List[DatetimeFormat]) -> DatetimeFormatSet:
   return root_option_set.create_format_set(name, formats)
