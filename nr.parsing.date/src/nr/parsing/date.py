@@ -39,7 +39,7 @@ if t.TYPE_CHECKING:
   import dateutil.relativedelta
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 
 
 class timezone(tzinfo):
