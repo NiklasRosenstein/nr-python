@@ -4,3 +4,8 @@ changes:
   component: general
   description: fix `timezone.local` offset seconds
   fixes: []
+- type: fix
+  component: general
+  description: enable `typed` setting in `package.yml`, converted `nr.parsing.date`
+    from module to package
+  fixes: []

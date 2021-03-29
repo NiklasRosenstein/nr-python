@@ -11,3 +11,4 @@ test-requirements:
 - python-dateutil
 test-driver:
   type: pytest
+typed: true
