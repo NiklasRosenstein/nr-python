@@ -31,6 +31,7 @@ import importlib
 import io
 import os
 import re
+import time
 import typing as t
 
 re = importlib.import_module(os.getenv('PYTHON_NR_DATE_REGEX_BACKEND', 're'))  # type: ignore
@@ -90,7 +91,7 @@ class timezone(tzinfo):
 
 
 timezone.utc = timezone('UTC', 0)
-timezone.local = timezone('local', (datetime.now() - datetime.utcnow()).total_seconds())
+timezone.local = timezone('local', time.localtime().tm_gmtoff)
 
 
 class BaseFormatOption:
