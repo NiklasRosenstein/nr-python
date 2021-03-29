@@ -37,7 +37,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.parsing.date',
-  version = '0.6.0',
+  version = '0.6.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'A simple and fast date parsing library. Uses dateutil for timezone offset support.',
