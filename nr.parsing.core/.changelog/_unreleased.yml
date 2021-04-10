@@ -1,0 +1,12 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: fix detecting the end of the input before a set of skippable tokens
+    (which would previously result in a TokenizationError)
+  fixes: []
+- type: fix
+  component: general
+  description: fix detecting the end of the input before a set of skippable tokens
+    (which would previously result in a TokenizationError)
+  fixes: []

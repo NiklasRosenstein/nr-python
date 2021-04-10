@@ -252,14 +252,6 @@ class Tokenizer(t.Generic[T, U]):
       known token type.
     """
 
-    if not self.scanner:
-      self._current = Token(
-        self.rules.sentinel.type,
-        self.rules.sentinel.value,
-        self.scanner.pos,
-        True)
-      return self._current
-
     if select is not None and unselect is not None:
       raise ValueError('`select` and `unselect` arguments cannot be mixed')
 
@@ -310,6 +302,13 @@ class Tokenizer(t.Generic[T, U]):
     return token
 
   def _extract_token(self, filter: t.Callable[[T], bool]) -> t.Tuple[t.Optional[Token[T, U]], bool]:
+    if not self.scanner:
+      return Token(
+        self.rules.sentinel.type,
+        self.rules.sentinel.value,
+        self.scanner.pos,
+        True), False
+
     token_pos = self.scanner.pos
     for rule in self.rules:
       if not filter(rule.type) or rule == self._skip_rule_once:
