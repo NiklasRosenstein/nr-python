@@ -51,8 +51,9 @@ def string_literal(
     quote_type = scanner.getmatch(r'(' + r'|'.join(re.escape(s) for s in quote_sequences) + r')')
     if not quote_type:
       return None
+    is_multiline = len(quote_type) > 1
     contents = ''
-    while scanner.char and scanner.char != '\n':
+    while scanner.char and (is_multiline or scanner.char != '\n'):
       if scanner.match(re.escape(quote_type)):
         break
       contents += scanner.char

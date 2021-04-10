@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: fix `nr.parsing.core.rules.string_literal()` to properly parse multi-line
+    strings
+  fixes: []
