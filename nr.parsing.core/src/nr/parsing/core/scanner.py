@@ -219,4 +219,6 @@ class Scanner:
 
     start = cursor.offset - cursor.column
     end = self.text.find('\n', start)
+    if end < 0:
+      end = len(self.text)
     return self.text[start:end]
