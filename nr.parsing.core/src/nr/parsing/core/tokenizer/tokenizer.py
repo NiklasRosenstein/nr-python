@@ -294,7 +294,8 @@ class Tokenizer(t.Generic[T, U]):
     if token is None:
       raise TokenizationError(self.scanner.pos)
 
-    self.log.debug('Extracted token "%s"\n\t\ttoken: %r', token.type, token)
+    if self.debug & Debug.EXTRACT:
+      self.log.debug('Extracted token "%s"\n\t\ttoken: %r', token.type, token)
 
     if expect is not None and token.type not in expect:
       raise UnexpectedTokenError(token, expect)
