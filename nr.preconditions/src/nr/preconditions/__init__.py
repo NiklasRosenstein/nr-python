@@ -55,3 +55,17 @@ def check_instance_of(value: t.Any, types: _Types, message: _Message = None) -> 
       message = f'expected {_repr_types(types)}, got {type(value).__name__} instead'
     raise TypeError(_get_message(message))
   return value
+
+
+def check_subclass_of(cls: t.Type, types: _Types, message: _Message = None) -> t.Type:
+  """
+  Raises a #TypeError if *cls* is not a subclass of one of the specified *types*. If *cls* is not
+  a type, a different #TypeError is raised that does not include the specified *message*.
+  """
+
+  check_instance_of(cls, type)
+  if not issubclass(cls, types):
+    if message is None:
+      message = f'{cls.__name__} is not a subclass of {_repr_types(types)}'
+    raise TypeError(_get_message(message))
+  return cls
