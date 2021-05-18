@@ -39,7 +39,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.interface',
-  version = '0.0.4',
+  version = '0.0.5',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Interface definitions for Python.',
