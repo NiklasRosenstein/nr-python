@@ -2,6 +2,9 @@
 > Note: This package is in the dangerous land of `0.x.y` versions and may be subject to breaking
 > changes with minor version increments.
 
+> __Important__: Development of `nr.interface` is discontinued. We recommend to use the `abc`
+> module instead.
+
 # nr.interface
 
 Interface definitions for Python. Inspired by `zope.interface`.
