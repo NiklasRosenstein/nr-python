@@ -26,11 +26,11 @@ Provides tools for working with Python function objects, most prominently the
 [[copy_function()]] function.
 """
 
-from nr.collections import abc
 import functools
 import types
 import sys
 import traceback
+import typing as t
 
 __all__ = [
   'get_caller_name',
@@ -41,8 +41,11 @@ __all__ = [
   'copy_function'
 ]
 
+CellType = t.Any
+ClosureType = t.Tuple[CellType, ...]
 
-def get_caller_name(_stackdepth=0):
+
+def get_caller_name(_stackdepth: int = 0) -> str:
   """
   Gets the name of the calling function.
   """
@@ -50,7 +53,7 @@ def get_caller_name(_stackdepth=0):
   return sys._getframe(_stackdepth + 1).f_code.co_name
 
 
-def raise_kwargs(kwargs, name=None, _stackdepth=0):
+def raise_kwargs(kwargs: t.Dict[str, t.Any], name: t.Optional[str] = None, _stackdepth: int = 0) -> None:
   """
   Raises a [[TypeError]] indicating that the caller does not accept the
   specified keyword arguments. If *name* is `None`, it will be derived
@@ -66,7 +69,7 @@ def raise_kwargs(kwargs, name=None, _stackdepth=0):
                     .format(key, name))
 
 
-def except_format(func):
+def except_format(func: t.Callable[..., str]) -> t.Callable[..., str]:
   """ Decorator for Exception `__str__()` methods. If an exception occurrs
   within the decorated function, the formatted traceback will be returned
   instead. """
@@ -82,7 +85,7 @@ def except_format(func):
   return wrapper
 
 
-def make_closure_cell(x):
+def make_closure_cell(x: CellType) -> CellType:
   """
   Creates a new Python cell object that can usually be found in a functions
   `__closure__` tuple. The values in a `__closure__` must match the free
@@ -92,10 +95,10 @@ def make_closure_cell(x):
   return (cell): A function closure cell object containing *x*.
   """
 
-  return (lambda: x).__closure__[0]
+  return (lambda: x).__closure__[0]  # type: ignore
 
 
-def new_closure(cell_values):
+def new_closure(cell_values: t.Sequence[t.Any]) -> ClosureType:
   """
   Creates a function closure from the specified list/iterable of value. The
   returned object is a tuple of cell objects created with #make_closure_cell().
@@ -108,12 +111,13 @@ def new_closure(cell_values):
 
 
 def copy_function(
-    function,
-    code=None,
-    globals=None,
-    name=None,
-    argdefs=None,
-    closure=None):
+    function: types.FunctionType,
+    code: t.Optional[types.CodeType] = None,
+    globals: t.Optional[t.Dict[str, t.Any]] = None,
+    name: t.Optional[str] = None,
+    argdefs: t.Optional[t.Tuple[t.Any, ...]] = None,
+    closure: t.Optional[ClosureType] = None
+) -> types.FunctionType:
   """
   Creates a new function object from the reference *function* where its
   members can be replaced using the specified arguments.
@@ -155,10 +159,11 @@ def copy_function(
   if closure is None:
     closure = function.__closure__
   else:
-    if isinstance(closure, abc.Mapping):
-      closure = [
+    if isinstance(closure, t.Mapping):
+      assert function.__closure__ is not None, "function has no closure?"
+      closure = tuple(
         closure.get(x, function.__closure__[i].cell_contents)
-        for i, x in enumerate(function.__code__.co_freevars)]
+        for i, x in enumerate(function.__code__.co_freevars))
     closure = new_closure(closure)
     if len(closure) != len(function.__code__.co_freevars):
       raise ValueError('function requires {} free closure, only '

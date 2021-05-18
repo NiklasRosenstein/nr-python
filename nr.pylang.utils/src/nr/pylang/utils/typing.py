@@ -26,12 +26,12 @@ Utilities for working with the Python [[typing]] module.
 """
 
 from __future__ import absolute_import
-import typing
+import typing as t
 
 
 def is_generic(
-  x,                    # type: Any
-  generic_types=None    # type: Union[None, typing._GenericAlias, Tuple[typing._GenericAlias]]
+  x: t.Any,
+  generic_types: t.Union[None, t._GenericAlias, t.Tuple[t._GenericAlias]] = None,  # type: ignore
 ):
   # type: (...) -> bool
   """
@@ -50,8 +50,8 @@ def is_generic(
   ```
   """
 
-  has_special_form = hasattr(typing, '_SpecialForm')
-  is_special_form = has_special_form and isinstance(x, typing._SpecialForm)
+  has_special_form = hasattr(t, '_SpecialForm')
+  is_special_form = has_special_form and isinstance(x, t._SpecialForm)
 
   if (not hasattr(x, '__origin__') or not hasattr(x, '__args__')) and \
       not is_special_form:
@@ -65,9 +65,9 @@ def is_generic(
     # NOTE (@NiklasRosenstein): Due to a bug in Python 3.6, comparing
     #   typing.Union without args with another type causes a RecursionError.
     #   See https://bugs.python.org/issue29246
-    if a is typing.Union:
-      return b is typing.Union
-    elif b is typing.Union:
+    if a is t.Union:
+      return b is t.Union
+    elif b is t.Union:
       return False
     return a == b
 
@@ -76,7 +76,7 @@ def is_generic(
 
   for gtype in generic_types:
     # Special handling for Optional, subscripting it gives a Union.
-    if gtype == typing.Optional and extract_optional(x) is not None:
+    if gtype == t.Optional and extract_optional(x) is not None:  # type: ignore
       return True
     if eq(x, gtype) or eq(x.__origin__, gtype):
       return True
@@ -85,7 +85,7 @@ def is_generic(
   return False
 
 
-def get_generic_args(x):  # type: Any -> Tuple[Any]
+def get_generic_args(x: t.Any) -> t.Tuple[t.Any]:
   """
   Returns the arguments to a generic. If the generic is not specialized,
   the typevars are returned instead.
@@ -100,13 +100,13 @@ def get_generic_args(x):  # type: Any -> Tuple[Any]
   return x.__args__ or x.__parameters__
 
 
-def extract_optional(x):  # type: (Any, Any) -> Optional[Type]
+def extract_optional(x: t.Any) -> t.Optional[t.Type]:
   """
   Returns the type wrapped in [[Optional]] if *x* is an optional, otherwise
   returns `None`.
   """
 
-  if getattr(x, '__origin__', None) is typing.Union:
+  if getattr(x, '__origin__', None) is t.Union:
     if len(x.__args__) == 2 and x.__args__[1] is type(None):
       return x.__args__[0]
   return None

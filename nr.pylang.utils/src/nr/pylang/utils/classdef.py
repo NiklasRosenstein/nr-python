@@ -25,20 +25,25 @@
 Utils for class definition.
 """
 
-from .module import get_calling_module_name
 import sys
+import typing as t
+from .module import get_calling_module_name
 
 
-def _split_names(names):
+def _split_names(names: t.Union[t.Sequence[str], str]) -> t.List[str]:
   if isinstance(names, str):
     if ',' in names:
       names = [x.strip() for x in names.split(',')]
     else:
       names = names.split()
-  return names
+  return list(names)
 
 
-def comparable(properties, _stackdepth=0, decorate=None):
+def comparable(
+  properties: t.Union[t.Sequence[str], str],
+  _stackdepth: int = 0,
+  decorate: t.Optional[t.Callable[[t.Callable], t.Callable]] = None,
+) -> None:
   """
   Creates a `__hash__()`, `__eq__()` and `__ne__()` method in the callers
   frame. The functions will hash/compare based on the specified
@@ -55,6 +60,7 @@ def comparable(properties, _stackdepth=0, decorate=None):
   if decorate is None:
     def decorate(x):
       return x
+  assert decorate is not None
 
   @decorate
   def __hash__(self):
@@ -85,7 +91,11 @@ def comparable(properties, _stackdepth=0, decorate=None):
   frame.f_locals['__ne__'] = __ne__
 
 
-def repr(properties, _stackdepth=0, decorate=None):
+def repr(
+  properties: t.Union[t.Sequence[str], str],
+  _stackdepth: int = 0,
+  decorate: t.Optional[t.Callable[[t.Callable], t.Callable]] = None,
+) -> None:
   """
   Defines a `__repr__()` function in the callers frame that renders a
   string of the format `ClassName(attr1="value1", ...)`.
@@ -97,6 +107,7 @@ def repr(properties, _stackdepth=0, decorate=None):
   if decorate is None:
     def decorate(x):
       return x
+  assert decorate is not None
 
   @decorate
   def __repr__(self):
@@ -107,29 +118,3 @@ def repr(properties, _stackdepth=0, decorate=None):
   frame = sys._getframe(_stackdepth + 1)
   frame.f_locals['__repr__'] = __repr__
   frame.f_locals['__repr_properties__'] = properties
-
-
-def make_singleton(class_name, bool_value=True, module=None, base_class=object):
-  """ Creates a new singleton object. """
-
-  class SingletonType(object):
-    __INSTANCE = None
-
-    def __new__(cls):
-      if cls.__INSTANCE is None:
-        cls.__INSTANCE = object.__new__(cls)
-      return cls.__INSTANCE
-
-    def __repr__(self):
-      return class_name
-
-    def __bool__(self):
-      return bool_value
-
-    def __nonzero__(self):
-      return bool_value
-
-  SingletonType.__name__ = class_name
-  SingletonType.__module__ = module or get_calling_module_name(1)
-  SingletonType.__qualname__ = class_name
-  return SingletonType()

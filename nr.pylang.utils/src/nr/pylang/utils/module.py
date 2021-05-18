@@ -28,7 +28,7 @@ Provides some fancy tools to augment module objects.
 import sys
 
 
-def get_calling_module_name(depth=0):
+def get_calling_module_name(depth: int = 0) -> str:
   """ Returns the name of the calling module. """
 
   frame = sys._getframe(depth + 1)

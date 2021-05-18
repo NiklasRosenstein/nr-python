@@ -21,9 +21,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__all__ = ['NotSet']
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.0.4'
 
-from . import classdef
-NotSet = classdef.make_singleton('NotSet', bool_value=False)
+from .singletons import NotSet

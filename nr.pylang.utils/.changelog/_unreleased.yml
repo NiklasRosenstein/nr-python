@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: make nr.pylang.utils module typed, drop Python 2 compatibility, NotSet
+    is now an enum subclass to allow proper type hinting
+  fixes: []
