@@ -1,5 +1,0 @@
-- type: fix
-  component: linting
-  description: fix type hint comment on `Node.__init__()` which broke pylint on python
-    3.8
-  fixes: []

@@ -1,3 +1,0 @@
-- version: 0.0.17
-  date: 2020-06-26
-  reason: Bug in `UnionType.with_entrypoint_resolver()` and `UnionType.with_import_resolver()`

@@ -1,7 +1,0 @@
-- types:
-  - fix
-  issues: []
-  components:
-  - StructSerializer
-  description: '`SerializeAs` decorations on `Struct` types are now correctly taken
-    into account'

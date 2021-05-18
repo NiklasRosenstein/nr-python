@@ -1,5 +1,0 @@
-- type: fix
-  component: ClassDecoration
-  description: set `ClassDecoration.inheritable = False` on class-level, allowing
-    subclasses to skip calling the parent constructor
-  fixes: []
