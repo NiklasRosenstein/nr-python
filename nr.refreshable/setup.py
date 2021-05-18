@@ -31,7 +31,7 @@ requirements = []
 
 setuptools.setup(
   name = 'nr.refreshable',
-  version = '0.0.0',
+  version = '0.0.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'A refreshable is a simple container for a value changing over time.',
