@@ -10,3 +10,4 @@ test-requirements:
 - pytest
 test-driver:
   type: pytest
+typed: true

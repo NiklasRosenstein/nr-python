@@ -10,6 +10,9 @@ import sys
 def _tempcopy(src, dst):
   import atexit, shutil
   if not os.path.isfile(dst):
+    if not os.path.isfile(src):
+      print('warning: source file "{}" for destination "{}" does not exist'.format(src, dst))
+      return
     shutil.copyfile(src, dst)
     atexit.register(lambda: os.remove(dst))
 
@@ -43,7 +46,7 @@ setuptools.setup(
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
   license = 'MIT',
-  py_modules = ['nr.stream'],
+  packages = setuptools.find_packages('src', ['test', 'test.*', 'tests', 'tests.*', 'docs', 'docs.*']),
   package_dir = {'': 'src'},
   include_package_data = True,
   install_requires = requirements,
@@ -55,7 +58,7 @@ setuptools.setup(
   cmdclass = {},
   keywords = [],
   classifiers = [],
-  zip_safe = True,
+  zip_safe = False,
   options = {
     'bdist_wheel': {
       'universal': True,
