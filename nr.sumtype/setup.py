@@ -37,7 +37,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.sumtype',
-  version = '0.0.4',
+  version = '0.0.5',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Sumtypes in Python.',
