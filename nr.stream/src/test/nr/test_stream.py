@@ -191,3 +191,12 @@ def test_reduce():
   result = Stream(values).reduce(lambda a, b: (a.update(b), a)[1])
   assert result == {'foo': 'bar', 'spam': 'egg'}
   assert values[0] is result
+
+
+def test_dropnone():
+  assert Stream([None, 42, None, 99]).dropnone().collect() == [42, 99]
+
+
+def test_first():
+  assert Stream([42, 99]).first() == 42
+  assert Stream().first() is None

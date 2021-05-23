@@ -45,7 +45,9 @@ class Stream(t.Generic[T], t.Iterable[T]):
   A stream is an iterable with utility methods to transform it.
   """
 
-  def __init__(self, iterable: t.Iterable[T]) -> None:
+  def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
+    if iterable is None:
+      iterable = ()
     self._it = iter(iterable)
     self._original: t.Optional[t.Iterable[T]] = iterable
 
@@ -233,12 +235,21 @@ class Stream(t.Generic[T], t.Iterable[T]):
   def dropwhile(self, predicate: t.Callable[[T], bool]) -> 'Stream[T]':
     return Stream(itertools.dropwhile(predicate, self._it))
 
+  def dropnone(self: 'Stream[t.Optional[T]]') -> 'Stream[T]':
+    return Stream(x for x in self._it if x is not None)
+
   def filter(self, predicate: t.Callable[[T], bool]) -> 'Stream[T]':
     """
     Agnostic to Python's built-in `filter()` function.
     """
 
     return Stream(x for x in self._it if predicate(x))
+
+  def first(self) -> t.Optional[T]:
+    try:
+      return self.next()
+    except StopIteration:
+      return None
 
   def flatmap(self, func: t.Callable[[T], t.Iterable[R]]) -> 'Stream[R]':
     """
