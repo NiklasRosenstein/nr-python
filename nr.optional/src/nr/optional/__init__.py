@@ -6,7 +6,7 @@ if t.TYPE_CHECKING:
 
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.0'
+__version__ = '0.1.0'
 
 T = t.TypeVar('T')
 R = t.TypeVar('R')
