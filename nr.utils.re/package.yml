@@ -1,5 +1,5 @@
 name: nr.utils.re
-version: 0.1.1
+version: 0.2.0
 description: This module provides some utility functions for applying regular expressions.
 requirements:
 - python ^3.6
