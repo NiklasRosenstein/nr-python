@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: add type hints, change min requirements to Python 3.6
+  fixes: []

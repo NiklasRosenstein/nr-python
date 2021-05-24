@@ -25,6 +25,7 @@ Utility functions for regular expressions. Builds on top of the standard library
 
 from __future__ import absolute_import
 import re
+import typing as t
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.1.1'
@@ -35,8 +36,7 @@ class MatchAllError(ValueError):
   Raised when #match_all() cannot consume the full string.
   """
 
-  def __init__(self, regex, string, endpos):
-    # type: (re.Pattern, str, int)
+  def __init__(self, regex: re.Pattern, string: str, endpos: int) -> None:
     self.regex = regex
     self.string = string
     self.endpos = endpos
@@ -46,7 +46,7 @@ class MatchAllError(ValueError):
       self.regex, self.endpos)
 
 
-def match_all(expr, string):  # type: (Union[str, re.Pattern], str) -> Iterable[re.Match]:
+def match_all(expr: t.Union[str, re.Pattern], string: str) -> t.Iterable[re.Match]:
   """
   Matches *expr* from the start of *string* and expects that it can be matched throughout.
   If it fails to consume the full string, a #MatchAllError will be raised. (Note that this
@@ -65,4 +65,4 @@ def match_all(expr, string):  # type: (Union[str, re.Pattern], str) -> Iterable[
     yield match
 
 
-match_all.Error = MatchAllError
+match_all.Error = MatchAllError  # type: ignore
