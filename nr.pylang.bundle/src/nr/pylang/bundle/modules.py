@@ -205,8 +205,7 @@ class ModuleInfo:
   BUILTIN = 'builtin'
   NOTFOUND = 'notfound'
 
-  def __init__(self, *args, **kwargs):
-    super(ModuleInfo, self).__init__(*args, **kwargs)
+  def __post_init__(self):
     self.original_filename = self.original_filename or self.filename
 
   def is_pkg(self):

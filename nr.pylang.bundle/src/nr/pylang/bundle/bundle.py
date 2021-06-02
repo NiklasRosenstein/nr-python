@@ -404,7 +404,7 @@ class PythonAppBundle(object):
 
 
 @dataclass
-class _DistributionBuilderBase:
+class DistributionBuilder:
   """
   This object handles building a distribution and contains most of the
   functionality that is also provided via the pybundle command-line.
@@ -451,11 +451,7 @@ class _DistributionBuilderBase:
   logger: logging.Logger = logging.getLogger(__name__)
   fill_namespace_modules: bool = True
 
-
-class DistributionBuilder(_DistributionBuilderBase):
-
-  def __init__(self, *args, **kwargs):
-    super(DistributionBuilder, self).__init__(*args, **kwargs)
+  def __post_init__(self):
     self.python_bins = system.get_python_executables()
     self.python_bin = next(k for k in self.python_bins if 'w' not in k)
     self.includes = list(self.includes)
@@ -486,7 +482,7 @@ class DistributionBuilder(_DistributionBuilderBase):
       # TODO @nrosenstein Determine all the stdlib paths. This is just a
       #      method that seems to work on OSX.
       import os, contextlib
-      try: import _pickle
+      try: import pickle as _pickle
       except ImportError: import cPickle as _pickle
       target = self.force_exclude_in_path if self.exclude_stdlib else self.exclude_in_path
       target.append(nr.fs.norm(nr.fs.dir(os.__file__)))
