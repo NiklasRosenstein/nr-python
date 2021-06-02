@@ -21,16 +21,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-
 from dataclasses import dataclass, field
-from nr.sumtype import add_constructor_tests, Constructor, Sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
 from .utils import gitignore, system
 from .utils.fs import copy_files_checked
+from .utils.interpreterdata import get_interpreter_data
 from . import nativedeps
-from typing import Optional
+from typing import List, Optional, Type
 
+import abc
 import distlib.scripts
 import json
 import logging
@@ -120,8 +120,7 @@ class DirConfig:
                nr.fs.join(bundle_dir, 'res'))
 
 
-@add_constructor_tests
-class Entrypoint(Sumtype):
+class Entrypoint(metaclass=abc.ABCMeta):
   """
   Represents an entrypoint specification of the format
   `[@]name=<spec> [args...]` where `<spec>` can be of the format
@@ -131,14 +130,11 @@ class Entrypoint(Sumtype):
   be executed in GUI mode.
   """
 
-  File = Constructor('name filename args gui')
-  Module = Constructor('name module function args gui')
+  File: 'Type[_Entrypoint_File]'
+  Module: 'Type[_Entrypoint_Module]'
 
-  def distlib_spec(self):
-    if self.is_file():
-      return '{}={}'.format(self.name, self.filename)
-    else:
-      return '{}={}:{}'.format(self.name, self.module, self.function)
+  @abc.abstractmethod
+  def distlib_spec(self): ...
 
   @classmethod
   def parse(cls, spec):
@@ -159,6 +155,33 @@ class Entrypoint(Sumtype):
     else:
       return cls.File(name, remainder, args, gui)
     raise ValueError('invalid entrypoint spec: {!r}'.format(spec))
+
+
+@dataclass
+class _Entrypoint_File(Entrypoint):
+  name: str
+  filename: str
+  args: List[str]
+  gui: bool
+
+  def distlib_spec(self):
+    return '{}={}'.format(self.name, self.filename)
+
+
+@dataclass
+class _Entrypoint_Module(Entrypoint):
+  name: str
+  module: str
+  function: str
+  args: List[str]
+  gui: bool
+
+  def distlib_spec(self):
+    return '{}={}:{}'.format(self.name, self.module, self.function)
+
+
+Entrypoint.File = _Entrypoint_File
+Entrypoint.Module = _Entrypoint_Module
 
 
 class ScriptMaker(object):
@@ -444,6 +467,10 @@ class DistributionBuilder:
   srcs: bool = True
   copy_always: bool = False
   module_path: list = field(default_factory=list)
+  #: If specified, the source interpreter is executed to determine the module search path instead
+  #: of relying on the search path of the current interpreter that nr-pylang-bundle is run with.
+  #: Only used if #default_module_path is enabled.
+  source_interpreter: Optional[str] = None
   default_module_path: bool = True
   hooks_path: list = field(default_factory=list)
   default_hooks_path: bool = True
@@ -478,19 +505,14 @@ class DistributionBuilder:
 
     if self.default_excludes:
       self.filter.excludes += get_common_excludes()
+
+    interpreter_data = get_interpreter_data(self.source_interpreter)
+
     if self.narrow or self.exclude_stdlib:
-      # TODO @nrosenstein Determine all the stdlib paths. This is just a
-      #      method that seems to work on OSX.
-      import os, contextlib
-      try: import pickle as _pickle
-      except ImportError: import cPickle as _pickle
       target = self.force_exclude_in_path if self.exclude_stdlib else self.exclude_in_path
-      target.append(nr.fs.norm(nr.fs.dir(os.__file__)))
-      target.append(nr.fs.norm(nr.fs.dir(contextlib.__file__)))
-      target.append(nr.fs.norm(nr.fs.dir(_pickle.__file__)))
+      target.extend(interpreter_data.stdlib_path)
     if self.default_module_path:
-      self.finder.path.insert(0, nr.fs.cwd())
-      self.finder.path.extend(sys.path)
+      self.finder.path.extend(interpreter_data.sys_path)
     if not self.default_hooks_path:
       self.hook.search_path = []
     self.finder.path += self.module_path

@@ -486,7 +486,7 @@ class ModuleFinder(object):
   """
 
   def __init__(self, path=None, native_suffixes=None):
-    self.path = path or sys.path
+    self.path = sys.path if path is None else path
     self.native_suffixes = native_suffixes or get_native_suffixes()
 
   def _try_module_at_path(self, path, module_name):
