@@ -30,7 +30,7 @@ import typing as t
 from nr.pylang.utils import NotSet
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 T = t.TypeVar('T')
 U = t.TypeVar('U')
