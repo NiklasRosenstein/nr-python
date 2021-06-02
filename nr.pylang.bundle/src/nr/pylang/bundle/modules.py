@@ -18,8 +18,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from dataclasses import dataclass, field
 from .vendor import pip_pep425tags as tags
-from nr.databind.core import Struct
 from .utils import system
 from .hooks import Hook
 
@@ -95,13 +95,12 @@ def get_imports(filename, source=None):
   return result
 
 
-class ImportInfo(Struct):
-  __annotations__ = [
-    ('name', str),
-    ('filename', str),
-    ('lineno', int),
-    ('is_from_import', bool)
-  ]
+@dataclass
+class ImportInfo:
+  name: str
+  filename: str
+  lineno: int
+  is_from_import: bool
 
   @property
   def parent(self):
@@ -177,31 +176,29 @@ class ImportInfo(Struct):
     return ImportInfo(module_name, self.filename, self.lineno, self.is_from_import)
 
 
-class ModuleInfo(Struct):
+@dataclass
+class ModuleInfo:
   """
   Represents a Python module.
   """
 
-  __annotations__ = [
-    ('name', str),
-    ('filename', str, None),
-    ('type', str),
-    ('imported_from', set, lambda: set()),
-    ('imports', list, None),
-    ('_zippable', bool, None),
-    ('graph', object, None),  # type: ModuleGraph
-    ('handled', bool, False),
-    ('_sparse', bool, None),
-    ('package_data', list, lambda: []),
-    ('package_data_ignore', list, lambda: []),
-    ('native_deps', list, lambda: []),
-    ('skip_auto_native_deps', bool, False),
-    ('original_filename', str, None),
-    ('excludes', list, lambda: []),
-    ('entry_points', str, None),  #: Currently resolved in hooks/hook.py
-  ]
-
-  _is_namespace_pkg = None
+  name: str
+  filename: str
+  type: str
+  imported_from: set = field(default_factory=set)
+  imports: list = None
+  _zippable: bool = None
+  graph: 'ModuleGraph' = None
+  handled: bool = False
+  _sparse: bool = None
+  package_data: list = field(default_factory=list)
+  package_data_ignore: list = field(default_factory=list)
+  native_deps: list = field(default_factory=list)
+  skip_auto_native_deps: bool = False
+  original_filename: str = None
+  excludes: list = field(default_factory=list)
+  entry_points: str = None  #: Currently resolved in hooks/hook.py
+  _is_namespace_pkg: bool = None
 
   SRC = 'src'
   NATIVE = 'native'

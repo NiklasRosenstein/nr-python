@@ -9,18 +9,17 @@ Options:
 """
 
 import collections
+from dataclasses import dataclass, field
 import os
 
 from nr.pylang.bundle import nativedeps
-from nr.databind.core import Struct
 from nr.stream import Stream
 
 
-class Module(Struct):
-  __annotations__ = [
-    ('deps', list, Named.Initializer(list)),
-    ('files', list, Named.Initializer(list))
-  ]
+@dataclass
+class Module:
+  deps: list = field(default_factory=list)
+  files: list = field(default_factory=list)
 
 
 module_graph = collections.defaultdict(Module)
@@ -80,7 +79,7 @@ def _expand_modules(modules):
 
 def _get_exclude_module_files(modules):
   modules = _expand_modules(modules)
-  exclude = set(Stream.concat(x.files for x in module_graph.values()))
+  exclude = Stream(x.files for x in module_graph.values()).concat().collect(set)
   for name in module_graph:
     if name not in modules:
       exclude.add('Qt5{}{}'.format(name[2:], so_ext))

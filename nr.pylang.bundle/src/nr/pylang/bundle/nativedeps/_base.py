@@ -18,11 +18,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.databind.core import Struct
+from dataclasses import dataclass
 
 
-class Dependency(Struct):
-  __annotations__ = [
-    ('name', str),
-    ('filename', str, None)
-  ]
+@dataclass
+class Dependency:
+  name: str
+  filename: str = None

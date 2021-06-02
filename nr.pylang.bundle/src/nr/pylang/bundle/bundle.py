@@ -21,7 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from nr.databind.core import Struct
+
+from dataclasses import dataclass, field
 from nr.sumtype import add_constructor_tests, Constructor, Sumtype
 from .hooks import Hook, DelegateHook
 from .modules import ModuleInfo, ModuleGraph, ModuleFinder, ModuleImportFilter, get_core_modules, get_common_excludes
@@ -59,7 +60,8 @@ def ensure_module_in_list(modules, graph, module_name):
           ensure_module_in_list(modules, graph, import_)
 
 
-class AppResource(Struct):
+@dataclass
+class AppResource:
   """
   Represents a file or directory that that is an application resource file
   and will need to be copied to the application folder.
@@ -68,43 +70,39 @@ class AppResource(Struct):
   to ensure path comparisons work properly.
   """
 
-  __annotations__ = [
-    ('source', str),  #: The path to the source file or directory.
-    ('dest', str),  #: The relative destination path in the bundle directory.
-  ]
+  source: str  #: The path to the source file or directory.
+  dest: str  #: The relative destination path in the bundle directory.
 
   def __init__(self, *args, **kwargs):
     super(AppResource, self).__init__(*args, **kwargs)
     self.source = nr.fs.canonical(self.source)
 
 
-class SiteSnippet(Struct):
+@dataclass
+class SiteSnippet:
   """
   A code snippet that is inserted into the `site.py` module .
   """
 
-  __annotations__ = [
-    #: The name of the source that added the snippet. This can be the name
-    #: of a hook, for example.
-    ('source', str),
-    #: The code that will be added to the `site.py` module.
-    ('code', str),
-  ]
+  #: The name of the source that added the snippet. This can be the name
+  #: of a hook, for example.
+  source: str
+  #: The code that will be added to the `site.py` module.
+  code: str
 
 
-class DirConfig(Struct):
+@dataclass
+class DirConfig:
   """
   The configuration where the bundle files will be placed.
   """
 
-  __annotations__ = [
-    ('bundle', str, None),
-    ('lib', str),
-    ('lib_dynload', str, None),
-    ('runtime', str, None),
-    ('resource', str, None),
-    ('temp', str, '.bundler-temp')
-  ]
+  bundle: Optional[str]
+  lib: str
+  lib_dynload: str = None
+  runtime: str = None
+  resource: str = None
+  temp: str = '.bundler-temp'
 
   @classmethod
   def for_collect_to(cls, path):
@@ -405,54 +403,56 @@ class PythonAppBundle(object):
       self.scripts.make_script(ep)
 
 
-class DistributionBuilder(Struct):
+@dataclass
+class _DistributionBuilderBase:
   """
   This object handles building a distribution and contains most of the
   functionality that is also provided via the pybundle command-line.
   """
 
-  __annotations__ = [
-    ('collect', bool, False),
-    ('collect_to', str, None),
-    ('dist', bool, False),
-    ('pex_out', str, None),
-    #: The __main__.py for the generated PEX archive. This defaults to the
-    #: pex_main.py that comes with the nr.pylang.bundle module.
-    ('pex_main', str, nr.fs.join(nr.fs.dir(__file__), 'pex_main.py')),
-    #: An entrypoint for the script. This is parsed with the #Entrypoint
-    #: class but it does not require the alias part (`xyz =`), and thus it
-    #: can be just `module:member` or `filename`.
-    ('pex_entrypoint', str, None),
-    #: The name of the console script that should serve as the entrypoint.
-    #: This option cannot be used together with pex_entrypoint.
-    ('pex_console_script', str, None),
-    ('pex_root', str, None),
-    ('pex_shebang', Optional[str], '/usr/bin/env python' + sys.version[0]),
-    ('entries', list, ()),
-    ('resources', list, ()),
-    ('bundle_dir', str, 'bundle'),
-    ('excludes', list, ()),
-    ('default_excludes', bool, True),
-    ('narrow', bool, False),
-    ('exclude_stdlib', bool, False),
-    ('exclude_in_path', list, lambda: []),
-    ('force_exclude_in_path', list, lambda: []),
-    ('includes', list, ()),
-    ('whitelist', list, ()),
-    ('default_includes', bool, True),
-    ('compile_modules', bool, False),
-    ('zip_modules', bool, False),
-    ('zip_file', str, None),
-    ('srcs', bool, True),
-    ('copy_always', bool, False),
-    ('module_path', list, ()),
-    ('default_module_path', bool, True),
-    ('hooks_path', list, ()),
-    ('default_hooks_path', bool, True),
-    ('hook_options', dict, lambda: {}),
-    ('logger', logging.Logger, None),
-    ('fill_namespace_modules', bool, True),
-  ]
+  collect: bool = False
+  collect_to: str = None
+  dist: bool = False
+  pex_out: str = None
+  #: The __main__.py for the generated PEX archive. This defaults to the
+  #: pex_main.py that comes with the nr.pylang.bundle module.
+  pex_main: str = nr.fs.join(nr.fs.dir(__file__), 'pex_main.py')
+  #: An entrypoint for the script. This is parsed with the #Entrypoint
+  #: class but it does not require the alias part (`xyz =`), and thus it
+  #: can be just `module:member` or `filename`.
+  pex_entrypoint: str = None
+  #: The name of the console script that should serve as the entrypoint.
+  #: This option cannot be used together with pex_entrypoint.
+  pex_console_script: str = None
+  pex_root: str = None
+  pex_shebang: Optional[str] = '/usr/bin/env python' + sys.version[0]
+  entries: list = field(default_factory=list)
+  resources: list = field(default_factory=list)
+  bundle_dir: str = 'bundle'
+  excludes: list = field(default_factory=list)
+  default_excludes: bool = True
+  narrow: bool = False
+  exclude_stdlib: bool = False
+  exclude_in_path: list = field(default_factory=list)
+  force_exclude_in_path: list = field(default_factory=list)
+  includes: list = field(default_factory=list)
+  whitelist: list = field(default_factory=list)
+  default_includes: bool = True
+  compile_modules: bool = False
+  zip_modules: bool = False
+  zip_file: str = None
+  srcs: bool = True
+  copy_always: bool = False
+  module_path: list = field(default_factory=list)
+  default_module_path: bool = True
+  hooks_path: list = field(default_factory=list)
+  default_hooks_path: bool = True
+  hook_options: dict = field(default_factory=dict)
+  logger: logging.Logger = logging.getLogger(__name__)
+  fill_namespace_modules: bool = True
+
+
+class DistributionBuilder(_DistributionBuilderBase):
 
   def __init__(self, *args, **kwargs):
     super(DistributionBuilder, self).__init__(*args, **kwargs)
@@ -514,7 +514,7 @@ class DistributionBuilder(Struct):
           .format(self.pex_console_script))
       self.pex_entrypoint = Entrypoint.Module(ep.name, ep.module_name, ep.attrs[0], [], False)
     if not self.pex_shebang:
-      self.pex_shebang = self.__fields__['pex_shebang'].default
+      self.pex_shebang = type(self).pex_shebang
 
     if not self.logger:
       self.logger = logging.getLogger(__name__)

@@ -10,6 +10,9 @@ import sys
 def _tempcopy(src, dst):
   import atexit, shutil
   if not os.path.isfile(dst):
+    if not os.path.isfile(src):
+      print('warning: source file "{}" for destination "{}" does not exist'.format(src, dst))
+      return
     shutil.copyfile(src, dst)
     atexit.register(lambda: os.remove(dst))
 
@@ -25,11 +28,11 @@ else:
   long_description = None
 
 requirements = [
+  'dataclasses',
   'distlib >=0.2.7,<1.0.0',
-  'nr.databind.core >=0.0.1,<0.1.0',
   'nr.fs >=1.3.1,<2.0.0',
-  'nr.sumtype >=0.0.1,<1.0.0',
-  'nr.stream >=0.0.1,<1.0.0',
+  'nr.stream >=0.1.1,<1.0.0',
+  'nr.pylang.utils >=0.1.0,<1.0.0',
   'tqdm >=4.42.1,<5.0.0',
 ]
 
@@ -49,7 +52,7 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = [],
-  python_requires = None,  # '>=2.7,<3.0.0|>=3.4,<4.0.0',
+  python_requires = '>=3.6.0,<4.0.0',
   data_files = [],
   entry_points = {
     'console_scripts': [
@@ -60,9 +63,4 @@ setuptools.setup(
   keywords = [],
   classifiers = [],
   zip_safe = True,
-  options = {
-    'bdist_wheel': {
-      'universal': True,
-    },
-  },
 )

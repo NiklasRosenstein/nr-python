@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: migrate to dataclasses and modern versions of nr.stream and nr.pylang.utils
+  fixes: []
