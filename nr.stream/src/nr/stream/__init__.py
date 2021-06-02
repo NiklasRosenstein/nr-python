@@ -26,7 +26,6 @@ from __future__ import absolute_import
 import collections
 import functools
 import itertools
-import six
 import typing as t
 from nr.pylang.utils import NotSet
 
@@ -67,7 +66,7 @@ class Stream(t.Generic[T], t.Iterable[T]):
   def __getitem__(self, val):
     if isinstance(val, slice):
       return self.slice(val.start, val.stop, val.step)
-    elif isinstance(val, six.integer_types):
+    elif isinstance(val, int):
       if val >= 0:
         for index, value in enumerate(self):
           if index == val:

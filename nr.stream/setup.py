@@ -28,9 +28,7 @@ else:
   long_description = None
 
 requirements = [
-  'nr.collections >=0.0.1,<1.0.0',
-  'nr.pylang.utils >=0.0.1,<1.0.0',
-  'six >=1.11.0,<2.0.0',
+  'nr.pylang.utils >=0.1.0,<1.0.0',
 ]
 test_requirements = [
   'pytest',
@@ -52,16 +50,11 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = test_requirements,
-  python_requires = None,  # '>=2.6,<3.0.0|>=3.4,<4.0.0',
+  python_requires = '>=3.5.0,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},
   keywords = [],
   classifiers = [],
   zip_safe = False,
-  options = {
-    'bdist_wheel': {
-      'universal': True,
-    },
-  },
 )

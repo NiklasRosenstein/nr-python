@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: remove six and nr.collections dependency, correct nr.pylang.utils dependency
+  fixes: []
