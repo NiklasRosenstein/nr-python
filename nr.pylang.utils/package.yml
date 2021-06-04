@@ -2,8 +2,7 @@ name: nr.pylang.utils
 version: 0.1.0
 description: Package description here.
 requirements:
-- python ^3.4
-- nr.collections ^0.0.1
+- python ^3.6
 test-requirements:
 - pytest
 test-driver:

@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: remove unused nr.collections dependency, bump Python min version to
+    3.6
+  fixes: []
