@@ -31,7 +31,7 @@ requirements = []
 
 setuptools.setup(
   name = 'nr.preconditions',
-  version = '0.0.2',
+  version = '0.0.3',
   author = 'Niklas Rosenstein',
   author_email = 'nrosenstein@palantir.com',
   description = 'Provides simple functions to assert the state of your program.',

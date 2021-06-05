@@ -1,6 +1,6 @@
 
 __author__ = 'Niklas Rosenstein <nrosenstein@palantir.com>'
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 import typing as t
 
