@@ -5,8 +5,8 @@ __version__ = '0.0.3'
 import typing as t
 
 _T = t.TypeVar('_T')
-_Types = t.Type[t.Union[_T, t.Tuple[_T, ...]]]
 _Message = t.Union[str, t.Callable[[], str]]
+_Types = t.Union[type, t.Tuple[type, ...]]
 
 
 def _get_message(message: _Message) -> str:
@@ -44,7 +44,15 @@ def check_not_none(value: t.Optional[_T], message: _Message = None) -> _T:
   return value
 
 
-def check_instance_of(value: t.Any, types: _Types[_T], message: _Message = None) -> _T:
+@t.overload
+def check_instance_of(value: t.Any, type_: t.Type[_T], message: _Message = None) -> _T: ...
+
+
+@t.overload
+def check_instance_of(value: t.Any, types: t.Tuple[t.Type, ...], message: _Message = None) -> t.Any: ...
+
+
+def check_instance_of(value, types, message = None):
   """
   Raises a #TypeError if *value* is not an instance of the specified *types*. If no message is
   provided, it will be auto-generated for the given *types*.
