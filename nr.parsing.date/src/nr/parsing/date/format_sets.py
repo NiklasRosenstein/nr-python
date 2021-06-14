@@ -64,7 +64,7 @@ class format_set:
   def format_time(self, t: datetime.time) -> str:
     if not self.time_formats:
       raise ValueError(f'{self.name} has no time formats')
-    fmt = next(x for x in self.time_formats if bool(x.has_component(Component.Timezone)) == bool(dt.tzinfo))
+    fmt = next(x for x in self.time_formats if bool(x.has_component(Component.Timezone)) == bool(t.tzinfo))
     return fmt.format_time(t)
 
 

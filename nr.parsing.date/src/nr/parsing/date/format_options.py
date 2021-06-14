@@ -105,11 +105,12 @@ class TimezoneFormatOption(IFormatOption):
 
   def format_value(self, dt: datetime.datetime, v: t.Any) -> str:
     assert v is None or isinstance(v, datetime.tzinfo), f'expected datetime.tzinfo, got {v!r}'
-    if v == None:
+    if v is None:
       raise ValueError('no tzinfo in date: {!r}'.format(v))
     elif v == datetime.timezone.utc:
       return 'Z'
     else:
+      assert isinstance(v, datetime.tzinfo)
       utcoffset = v.utcoffset(dt)
       # NOTE Copied from CPython 3.7 datetime.py _format_offset()
       string = ''
