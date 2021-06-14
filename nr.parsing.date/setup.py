@@ -28,7 +28,7 @@ else:
   long_description = None
 
 requirements = [
-  'nr.utils.re >=0.1.0,<0.2.0',
+  'nr.utils.re >=0.2.0,<0.3.0',
 ]
 test_requirements = [
   'pytest',

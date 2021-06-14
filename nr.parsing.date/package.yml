@@ -4,8 +4,8 @@ description: A simple and fast date parsing library. Uses dateutil for timezone 
   support.
 license: MIT
 requirements:
-- python ^3.5
-- nr.utils.re ~0.1.0
+- python ^3.6
+- nr.utils.re ^0.2.0
 test-requirements:
 - pytest
 - python-dateutil
