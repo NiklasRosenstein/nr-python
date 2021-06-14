@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: remove `match_all.Error`
+  fixes: []

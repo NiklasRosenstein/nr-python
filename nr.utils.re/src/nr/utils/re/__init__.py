@@ -63,6 +63,3 @@ def match_all(expr: t.Union[str, re.Pattern], string: str) -> t.Iterable[re.Matc
       raise MatchAllError(expr, string, offset)
     offset = match.end()
     yield match
-
-
-match_all.Error = MatchAllError  # type: ignore
