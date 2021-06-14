@@ -47,14 +47,14 @@ class duration:
         parts.append('{}{}'.format(value, char))
     return ''.join(parts)
 
-  def total_seconds(self) -> int:
+  def total_seconds(self) -> float:
     """
     Computes the total number of seconds in this duration.
     """
 
     return (
-      int(self.years * DAYS_PER_YEAR * SECONDS_PER_DAY) +
-      int(self.months * DAYS_PER_MONTH * SECONDS_PER_DAY) +
+      self.years * DAYS_PER_YEAR * SECONDS_PER_DAY +
+      self.months * DAYS_PER_MONTH * SECONDS_PER_DAY +
       self.weeks * 7 * SECONDS_PER_DAY +
       self.days * SECONDS_PER_DAY +
       self.hours * 3600 +

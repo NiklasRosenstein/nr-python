@@ -4,7 +4,7 @@ import io
 import re
 import typing as t
 from dataclasses import dataclass
-from .format_options import ComponentType, IFormatOption, FormatOptions
+from .format_options import Component, ComponentType, IFormatOption, FormatOptions
 
 _T_datetime_format = t.TypeVar('_T_datetime_format', bound='_datetime_format')
 
@@ -49,6 +49,9 @@ class _datetime_format:
 
   def __repr__(self) -> str:
     return f'{type(self).__name__}({self.format_str!r})'
+
+  def has_component(self, component: Component) -> bool:
+    return any(x.component == component for x in self.seq if isinstance(x, IFormatOption))
 
 
 @dataclass

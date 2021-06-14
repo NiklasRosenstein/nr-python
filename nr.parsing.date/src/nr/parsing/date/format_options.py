@@ -72,11 +72,11 @@ class NumericFormatOption(IFormatOption):
   """
 
   format: t.Callable[[int], str]
-  post_parse: t.Optional[t.Callable[[int], int]] = None
+  post_parse: t.Optional[t.Callable[[str], int]] = None
 
   def parse_string(self, s: str) -> t.Any:
     if self.post_parse is not None:
-      return self.post_parse(int(s))
+      return self.post_parse(s)
     return int(s)
 
   def format_value(self, dt: datetime.datetime, v: t.Any) -> str:
@@ -104,7 +104,7 @@ class TimezoneFormatOption(IFormatOption):
       return datetime.timezone(datetime.timedelta(seconds=seconds))
 
   def format_value(self, dt: datetime.datetime, v: t.Any) -> str:
-    assert isinstance(v, datetime.tzinfo), f'expected datetime.tzinfo'
+    assert v is None or isinstance(v, datetime.tzinfo), f'expected datetime.tzinfo, got {v!r}'
     if v == None:
       raise ValueError('no tzinfo in date: {!r}'.format(v))
     elif v == datetime.timezone.utc:
@@ -144,7 +144,7 @@ class FormatOptions(enum.Enum):
   Second = NumericFormatOption('S', Component.Second, r'\d{2}', lambda v: str(v).rjust(2, '0'))
   Microsecond = NumericFormatOption('f', Component.Microsecond, r'\d+',
       format=lambda v: str(v).rjust(6, '0').rstrip('0') or '0',
-      post_parse=lambda v: int(str(v * (10 ** max(6-len(str(v)), 0)))[:6]))
+      post_parse=lambda v: int(str(int(v) * (10 ** max(6-len(v), 0)))[:6]))
   Timezone = TimezoneFormatOption('z', Component.Timezone)
 
   @classmethod

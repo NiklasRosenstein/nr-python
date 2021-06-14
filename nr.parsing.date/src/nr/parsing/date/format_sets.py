@@ -2,6 +2,8 @@
 import datetime
 import typing as t
 from dataclasses import dataclass, field
+
+from nr.parsing.date.format_options import Component
 from .format import _datetime_format, date_format, datetime_format, time_format
 
 
@@ -46,7 +48,8 @@ class format_set:
   def format_datetime(self, dt: datetime.datetime) -> str:
     if not self.datetime_formats:
       raise ValueError(f'{self.name} has no datetime formats')
-    return self.datetime_formats[0].format_datetime(dt)
+    fmt = next(x for x in self.datetime_formats if bool(x.has_component(Component.Timezone)) == bool(dt.tzinfo))
+    return fmt.format_datetime(dt)
 
   def parse_time(self, s: str) -> datetime.time:
     if not self.time_formats:
@@ -61,16 +64,20 @@ class format_set:
   def format_time(self, t: datetime.time) -> str:
     if not self.time_formats:
       raise ValueError(f'{self.name} has no time formats')
-    return self.time_formats[0].format_time(t)
+    fmt = next(x for x in self.time_formats if bool(x.has_component(Component.Timezone)) == bool(dt.tzinfo))
+    return fmt.format_time(t)
 
 
 JAVA_OFFSET_DATETIME = format_set(
   name='Java OffsetDateTime',
   reference_url='https://docs.oracle.com/javase/8/docs/api/java/time/OffsetDateTime.html#toString--',
   datetime_formats=[
-    datetime_format.compile('%Y-%m-%dT%H:%M%z'),
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S%z'),
     datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f%z'),
+    datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f'),
+    datetime_format.compile('%Y-%m-%dT%H:%M:%S%z'),
+    datetime_format.compile('%Y-%m-%dT%H:%M:%S'),
+    datetime_format.compile('%Y-%m-%dT%H:%M%z'),
+    datetime_format.compile('%Y-%m-%dT%H:%M'),
   ]
 )
 
@@ -82,15 +89,15 @@ ISO_8601 = format_set(
   ],
   datetime_formats=[
     # RFC 3339
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S%z'),
     datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f%z'),
+    datetime_format.compile('%Y-%m-%dT%H:%M:%S%z'),
     # ISO 8601 extended format
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S'),
     datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f'),
+    datetime_format.compile('%Y-%m-%dT%H:%M:%S'),
     # ISO 8601 basic format
-    datetime_format.compile('%Y%m%dT%H%M%S'),
     datetime_format.compile('%Y%m%dT%H%M%S.%f'),
-    datetime_format.compile('%Y%m%dT%H%M%S%z'),
+    datetime_format.compile('%Y%m%dT%H%M%S'),
     datetime_format.compile('%Y%m%dT%H%M%S.%f%z'),
+    datetime_format.compile('%Y%m%dT%H%M%S%z'),
   ]
 )
