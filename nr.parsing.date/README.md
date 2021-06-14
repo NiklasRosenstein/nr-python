@@ -4,7 +4,7 @@
 
 # nr.parsing.date
 
-A fast, regular-expression based library for parsing dates and durations.
+A fast, regular-expression based library for parsing dates, plus support for ISO 8601 durations.
 
 __Requirements__
 
