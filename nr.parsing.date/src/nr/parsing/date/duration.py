@@ -18,17 +18,17 @@ class duration:
   Represents an ISO 8601 duration.
   """
 
+  years: int = 0
+  months: int = 0
+  weeks: int = 0
+  days: int = 0
+  hours: int = 0
+  minutes: int = 0
+  seconds: int = 0
+
   _fields = ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds']
 
-  def __init__(self, years: int = 0, months: int = 0, weeks: int = 0, days: int = 0,
-               hours: int = 0, minutes: int = 0, seconds: int = 0) -> None:
-    self.years = years
-    self.months = months
-    self.weeks = weeks
-    self.days = days
-    self.hours = hours
-    self.minutes = minutes
-    self.seconds = seconds
+  def __post_init__(self) -> None:
     for k in self._fields:
       if getattr(self, k) < 0:
         raise ValueError('{} cannot be negative'.format(k))
@@ -47,25 +47,6 @@ class duration:
         parts.append('{}{}'.format(value, char))
     return ''.join(parts)
 
-  def __repr__(self) -> str:
-    return 'duration({})'.format(', '.join('{}={}'.format(k, getattr(self, k)) for k in self._fields))
-
-  def __eq__(self, other) -> bool:
-    if type(other) != type(self):
-      return False
-    for k in self._fields:
-      if getattr(self, k) != getattr(other, k):
-        return False
-    return True
-
-  def __ne__(self, other) -> bool:
-    if type(other) != type(self):
-      return True
-    for k in self._fields:
-      if getattr(self, k) == getattr(other, k):
-        return False
-    return True
-
   def total_seconds(self) -> int:
     """
     Computes the total number of seconds in this duration.
@@ -80,13 +61,13 @@ class duration:
       self.minutes * 60 +
       self.seconds)
 
-  def as_timedelta(self, *args, **kwargs) -> datetime.timedelta:
+  def as_timedelta(self) -> datetime.timedelta:
     """
     Returns the seconds represented by this duration as a #datetime.timedelta object. The arguments
     and keyword arguments are forwarded to the #total_seconds() method.
     """
 
-    return datetime.timedelta(seconds=self.total_seconds(*args, **kwargs))
+    return datetime.timedelta(seconds=self.total_seconds())
 
   def as_relativedelta(self) -> 'dateutil.relativedelta.relativedelta':
     """
