@@ -14,11 +14,20 @@ def _formulate_parse_error(name: str, formats: t.Sequence[_datetime_format], s: 
 
 @dataclass
 class format_set:
+  """
+  Format sets represent a group of date, time and dateime formats. When formatting a value, it will
+  use the first format defined in the group. When parsing, it will attempt to parse the value using
+  all of the provided formats (stopping on the first successful parse).
+
+  #format_datetime() can take into account the #date_formats and #time_formats as well if the
+  *partial* parameter is set to #True.
+  """
+
   name: str
   reference_url: str
   date_formats: t.List[date_format] = field(default_factory=list)
-  datetime_formats: t.List[datetime_format] = field(default_factory=list)
   time_formats: t.List[time_format] = field(default_factory=list)
+  datetime_formats: t.List[datetime_format] = field(default_factory=list)
 
   def parse_date(self, s: str) -> datetime.date:
     if not self.date_formats:
@@ -114,13 +123,13 @@ JAVA_OFFSET_DATETIME = format_set(
 ISO_8601 = format_set(
   name='ISO 8061',
   reference_url='https://en.wikipedia.org/wiki/ISO_8601',
-  time_formats=[
-    time_format.compile(r'%H(:%M(:%S(\.%f)?)?)?%z?', regex_mode=True),
-    time_format.compile(r'%H(%M%S??)?%z?', regex_mode=True),
-  ],
   date_formats=[
     date_format.compile(r'%Y(-%m(-%d)?)?', regex_mode=True),
     date_format.compile(r'%Y(%m%d?)?', regex_mode=True),
+  ],
+  time_formats=[
+    time_format.compile(r'%H(:%M(:%S(\.%f)?)?)?%z?', regex_mode=True),
+    time_format.compile(r'%H(%M%S??)?%z?', regex_mode=True),
   ],
   datetime_formats=[]
 )

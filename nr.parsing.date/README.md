@@ -26,6 +26,13 @@ __Built-in format collections__
 * `ISO_8601` (see [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) on Wikipedia)
 * `JAVA_OFFSET_DATETIME` (see [OffsetDateTime](https://docs.oracle.com/javase/8/docs/api/java/time/OffsetDateTime.html) class on the Java 8 API documentation)
 
+__Features__
+
+* Easily extensible to support more date/time format options
+* Date/time formats can use an extended regex-style mode to mark format options as optional (e.g.
+  the two formats `%Y` and `%Y-%m` can be expressed in a single regex-style format string as
+  `%Y(-%m)?`)
+
 ## Quickstart
 
 ```python
