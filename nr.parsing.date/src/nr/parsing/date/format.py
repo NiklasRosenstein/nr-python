@@ -4,7 +4,7 @@ import io
 import re
 import typing as t
 from dataclasses import dataclass
-from .format_options import Component, ComponentType, IFormatOption, FormatOptions
+from .options import DatetimeComponent, DatetimeComponentType, IFormatOption, FormatOptions
 
 _T_datetime_format = t.TypeVar('_T_datetime_format', bound='_datetime_format')
 
@@ -16,17 +16,35 @@ class _datetime_format:
   seq: t.List[t.Union[str, IFormatOption]]
 
   @classmethod
-  def compile(cls: t.Type[_T_datetime_format], format_str) -> '_T_datetime_format':
+  def compile(cls: t.Type[_T_datetime_format], format_str: str, regex_mode: bool = False) -> '_T_datetime_format':
     """
     Compiles a format string to a static regex representation for fast parsing.
     """
 
     combo_regex = io.StringIO()
+    combo_regex.write('^')
     combo_sequence: t.List[t.Union[str, IFormatOption]] = []
+
+    def append_seq(char: str) -> None:
+      if combo_sequence and isinstance(combo_sequence[-1], str):
+        combo_sequence[-1] += char
+      else:
+        combo_sequence.append(char)
 
     idx = 0
     while idx < len(format_str):
-      if format_str[idx] == '%' and len(format_str) > idx + 1:
+      if regex_mode and format_str[idx] in '().?':
+        if format_str[idx] == '(':
+          combo_regex.write('(?:')
+        else:
+          combo_regex.write(format_str[idx])
+      elif regex_mode and format_str[idx] == '\\':
+        # TODO(NiklasRosenstein): oob check
+        idx += 1
+        char = format_str[idx]
+        combo_regex.write(re.escape(char))
+        append_seq(char)
+      elif format_str[idx] == '%' and len(format_str) > idx + 1:
         # TODO(NiklasRosenstein): Interpret %% as single %
         idx += 1
         char = format_str[idx]
@@ -38,10 +56,7 @@ class _datetime_format:
       else:
         char = format_str[idx]
         combo_regex.write(re.escape(char))
-        if combo_sequence and isinstance(combo_sequence[-1], str):
-          combo_sequence[-1] += char
-        else:
-          combo_sequence.append(char)
+        append_seq(char)
       idx += 1
 
     combo_regex.write('$')
@@ -49,9 +64,6 @@ class _datetime_format:
 
   def __repr__(self) -> str:
     return f'{type(self).__name__}({self.format_str!r})'
-
-  def has_component(self, component: Component) -> bool:
-    return any(x.component == component for x in self.seq if isinstance(x, IFormatOption))
 
 
 @dataclass
@@ -61,7 +73,7 @@ class date_format(_datetime_format):
 
   def __post_init__(self) -> None:
     for item in self.seq:
-      if isinstance(item, IFormatOption) and item.component.type != ComponentType.Date:
+      if isinstance(item, IFormatOption) and item.component.type != DatetimeComponentType.Date:
         raise ValueError(f'%{item.char} is an invalid format option for date_format')
 
   def parse_date(self, s: str) -> datetime.date:
@@ -74,6 +86,9 @@ class date_format(_datetime_format):
     dt = datetime.datetime(d.year, d.month, d.day)
     return datetime_format(self.format_str, self.regex, self.seq).format_datetime(dt)
 
+  def to_datetime_format(self) -> 'datetime_format':
+    return datetime_format(self.format_str, self.regex, self.seq)
+
 
 @dataclass
 class time_format(_datetime_format):
@@ -82,7 +97,7 @@ class time_format(_datetime_format):
 
   def __post_init__(self) -> None:
     for item in self.seq:
-      if isinstance(item, IFormatOption) and item.component.type != ComponentType.Time:
+      if isinstance(item, IFormatOption) and item.component.type != DatetimeComponentType.Time:
         raise ValueError(f'%{item.char} is an invalid format option for time_format')
 
   def parse_time(self, s: str) -> datetime.time:
@@ -95,6 +110,9 @@ class time_format(_datetime_format):
     dt = datetime.datetime(1970, 1, 1, t.hour, t.minute, t.second, t.microsecond, t.tzinfo)
     return datetime_format(self.format_str, self.regex, self.seq).format_datetime(dt)
 
+  def to_datetime_format(self) -> 'datetime_format':
+    return datetime_format(self.format_str, self.regex, self.seq)
+
 
 class datetime_format(_datetime_format):
 
@@ -106,7 +124,9 @@ class datetime_format(_datetime_format):
     groups = iter(match.groups())
     for item in self.seq:
       if isinstance(item, IFormatOption):
-        kwargs[item.component.value] = item.parse_string(next(groups))
+        matched_string = next(groups)
+        if matched_string is not None:
+          kwargs[item.component.value] = item.parse_string(matched_string)
     return datetime.datetime(**kwargs)  # type: ignore
 
   def format_datetime(self, dt: datetime.datetime) -> str:

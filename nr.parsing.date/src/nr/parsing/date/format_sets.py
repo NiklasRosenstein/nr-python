@@ -3,7 +3,7 @@ import datetime
 import typing as t
 from dataclasses import dataclass, field
 
-from nr.parsing.date.format_options import Component
+from nr.parsing.date.options import DatetimeComponent
 from .format import _datetime_format, date_format, datetime_format, time_format
 
 
@@ -35,7 +35,7 @@ class format_set:
       raise ValueError(f'{self.name} has no date formats')
     return self.date_formats[0].format_date(d)
 
-  def parse_datetime(self, s: str) -> datetime.datetime:
+  def parse_datetime(self, s: str, partial: bool = False) -> datetime.datetime:
     if not self.datetime_formats:
       raise ValueError(f'{self.name} has no datetime formats')
     for fmt in self.datetime_formats:
@@ -43,13 +43,21 @@ class format_set:
         return fmt.parse_datetime(s)
       except ValueError:
         pass
+    if partial:
+      try:
+        return datetime.datetime.combine(self.parse_date(s), datetime.time.min)
+      except ValueError:
+        pass
+      try:
+        return datetime.datetime.combine(datetime.date.min, self.parse_time(s))
+      except ValueError:
+        pass
     raise _formulate_parse_error(self.name, self.datetime_formats, s)
 
   def format_datetime(self, dt: datetime.datetime) -> str:
     if not self.datetime_formats:
       raise ValueError(f'{self.name} has no datetime formats')
-    fmt = next(x for x in self.datetime_formats if bool(x.has_component(Component.Timezone)) == bool(dt.tzinfo))
-    return fmt.format_datetime(dt)
+    return self.datetime_formats[0].format_datetime(dt)
 
   def parse_time(self, s: str) -> datetime.time:
     if not self.time_formats:
@@ -64,40 +72,63 @@ class format_set:
   def format_time(self, t: datetime.time) -> str:
     if not self.time_formats:
       raise ValueError(f'{self.name} has no time formats')
-    fmt = next(x for x in self.time_formats if bool(x.has_component(Component.Timezone)) == bool(t.tzinfo))
-    return fmt.format_time(t)
+    return self.time_formats[0].format_time(t)
 
 
+#: Datetime format for parsing the format produced by `java.time.OffsetDateTime.toString()`.
 JAVA_OFFSET_DATETIME = format_set(
   name='Java OffsetDateTime',
   reference_url='https://docs.oracle.com/javase/8/docs/api/java/time/OffsetDateTime.html#toString--',
   datetime_formats=[
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f%z'),
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f'),
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S%z'),
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S'),
-    datetime_format.compile('%Y-%m-%dT%H:%M%z'),
-    datetime_format.compile('%Y-%m-%dT%H:%M'),
+    datetime_format.compile(r'%Y-%m-%dT%H:%M(:%S(\.%f)?)?%z?', regex_mode=True),
   ]
 )
 
+
+#: Date/time formats for parsing ISO 8601 dates and times.
+#:
+#: Supported ISO 8601 date formats are (implemented using the `%Y%m%d` format options):
+#:
+#: * `YYYY`
+#: * `YYYY-MM` or `YYYYMM`
+#: * `YYYY-MM-DD` or `YYYYMMDD`
+#:
+#: Note: ISO Week / ISO Week and day are not currently supported.
+#:
+#: Supported time formats are (implemented using the `%H%M%S%f` format options)
+#:
+#: * `hh`
+#: * `hh:mm` or `hhmm`
+#: * `hh:mm:ss` or `hhmmss`
+#: * `hh:mm:ss.SSSSSS` (up to 6 sub-second digits)
+#:
+#: Supported timezone offset formats are (implemented using the `%z` format option):
+#:
+#: * `Z` (UTC)
+#: * `+HH:MM` or `-HH:MM`
+#: * `+HHMM` or `-HHMM`
+#: * `+HH` or `-HH`
+#:
+#: Datetimes are simply concatenations of the possible date, time and offset formats, where
+#: the date and time are separated by a `T`.
 ISO_8601 = format_set(
   name='ISO 8061',
   reference_url='https://en.wikipedia.org/wiki/ISO_8601',
-  date_formats=[
-    date_format.compile('%Y%m%d')
+  time_formats=[
+    time_format.compile(r'%H(:%M(:%S(\.%f)?)?)?%z?', regex_mode=True),
+    time_format.compile(r'%H(%M%S??)?%z?', regex_mode=True),
   ],
-  datetime_formats=[
-    # RFC 3339
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f%z'),
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S%z'),
-    # ISO 8601 extended format
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S.%f'),
-    datetime_format.compile('%Y-%m-%dT%H:%M:%S'),
-    # ISO 8601 basic format
-    datetime_format.compile('%Y%m%dT%H%M%S.%f'),
-    datetime_format.compile('%Y%m%dT%H%M%S'),
-    datetime_format.compile('%Y%m%dT%H%M%S.%f%z'),
-    datetime_format.compile('%Y%m%dT%H%M%S%z'),
-  ]
+  date_formats=[
+    date_format.compile(r'%Y(-%m(-%d)?)?', regex_mode=True),
+    date_format.compile(r'%Y(%m%d?)?', regex_mode=True),
+  ],
+  datetime_formats=[]
 )
+
+# Construct the datetime_formats, combining each element from the time and date formats.
+for _i in range(2):
+  ISO_8601.datetime_formats.append(datetime_format.compile(
+    ISO_8601.date_formats[_i].format_str + 'T' + ISO_8601.time_formats[_i].format_str,
+    regex_mode=True,
+  ))
+del _i

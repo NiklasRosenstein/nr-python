@@ -7,12 +7,12 @@ import typing as t
 from dataclasses import dataclass
 
 
-class ComponentType(enum.Enum):
+class DatetimeComponentType(enum.Enum):
   Date = enum.auto()
   Time = enum.auto()
 
 
-class Component(enum.Enum):
+class DatetimeComponent(enum.Enum):
   Year = 'year'
   Month = 'month'
   Day = 'day'
@@ -23,11 +23,11 @@ class Component(enum.Enum):
   Timezone = 'tzinfo'
 
   @property
-  def type(self) -> ComponentType:
-    if self in (Component.Year, Component.Month, Component.Day):
-      return ComponentType.Date
-    if self in (Component.Hour, Component.Minute, Component.Second, Component.Microsecond, Component.Timezone):
-      return ComponentType.Time
+  def type(self) -> DatetimeComponentType:
+    if self in (DatetimeComponent.Year, DatetimeComponent.Month, DatetimeComponent.Day):
+      return DatetimeComponentType.Date
+    if self in (DatetimeComponent.Hour, DatetimeComponent.Minute, DatetimeComponent.Second, DatetimeComponent.Microsecond, DatetimeComponent.Timezone):
+      return DatetimeComponentType.Time
     raise RuntimeError(f'unexpected Component enumeration value: {self!r}')
 
 
@@ -43,10 +43,10 @@ class _FormatOption:
   char: str
 
   #: The component of a datetime construct that the format option represents.
-  component: Component
+  component: DatetimeComponent
 
   #: The regular expression that is used to capture the value represented by the format option
-  #: when parsing a date/time string.
+  #: when parsing a date/time string. This expression must not contain any capturing groups.
   regex: str
 
 
@@ -87,7 +87,7 @@ class NumericFormatOption(IFormatOption):
 @dataclass
 class TimezoneFormatOption(IFormatOption):
 
-  regex: str = r'(?:Z|[-+]\d{2}:?\d{2})'
+  regex: str = r'(?:Z|[-+]\d{2}(?::?\d{2})?)'
 
   def parse_string(self, s: str) -> datetime.tzinfo:
     match = re.match(self.regex, s)
@@ -99,14 +99,14 @@ class TimezoneFormatOption(IFormatOption):
       s = s.replace(':', '')
       sign = -1 if s[0] == '-' else 1
       hours = int(s[1:3])
-      minutes = int(s[3:5])
+      minutes = int(s[3:5] or '00')
       seconds = sign * (hours * 3600 + minutes * 60)
       return datetime.timezone(datetime.timedelta(seconds=seconds))
 
   def format_value(self, dt: datetime.datetime, v: t.Any) -> str:
     assert v is None or isinstance(v, datetime.tzinfo), f'expected datetime.tzinfo, got {v!r}'
     if v is None:
-      raise ValueError('no tzinfo in date: {!r}'.format(v))
+      return ''
     elif v == datetime.timezone.utc:
       return 'Z'
     else:
@@ -137,16 +137,16 @@ class FormatOptions(enum.Enum):
   Enumeration of all the available format options.
   """
 
-  Year = NumericFormatOption('Y', Component.Year, r'\d{4}', lambda v: str(v).rjust(4, '0'))
-  Month = NumericFormatOption('m', Component.Month, r'\d{2}', lambda v: str(v).rjust(2, '0'))
-  Day = NumericFormatOption('d', Component.Day, r'\d{2}', lambda v: str(v).rjust(2, '0'))
-  Hour = NumericFormatOption('H', Component.Hour, r'\d{2}', lambda v: str(v).rjust(2, '0'))
-  Minute = NumericFormatOption('M', Component.Minute, r'\d{2}', lambda v: str(v).rjust(2, '0'))
-  Second = NumericFormatOption('S', Component.Second, r'\d{2}', lambda v: str(v).rjust(2, '0'))
-  Microsecond = NumericFormatOption('f', Component.Microsecond, r'\d+',
+  Year = NumericFormatOption('Y', DatetimeComponent.Year, r'\d{4}', lambda v: str(v).rjust(4, '0'))
+  Month = NumericFormatOption('m', DatetimeComponent.Month, r'\d{2}', lambda v: str(v).rjust(2, '0'))
+  Day = NumericFormatOption('d', DatetimeComponent.Day, r'\d{2}', lambda v: str(v).rjust(2, '0'))
+  Hour = NumericFormatOption('H', DatetimeComponent.Hour, r'\d{2}', lambda v: str(v).rjust(2, '0'))
+  Minute = NumericFormatOption('M', DatetimeComponent.Minute, r'\d{2}', lambda v: str(v).rjust(2, '0'))
+  Second = NumericFormatOption('S', DatetimeComponent.Second, r'\d{2}', lambda v: str(v).rjust(2, '0'))
+  Microsecond = NumericFormatOption('f', DatetimeComponent.Microsecond, r'\d+',
       format=lambda v: str(v).rjust(6, '0').rstrip('0') or '0',
       post_parse=lambda v: int(str(int(v) * (10 ** max(6-len(v), 0)))[:6]))
-  Timezone = TimezoneFormatOption('z', Component.Timezone)
+  Timezone = TimezoneFormatOption('z', DatetimeComponent.Timezone)
 
   @classmethod
   def get(cls, char: str) -> t.Optional[IFormatOption]:
