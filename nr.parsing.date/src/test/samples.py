@@ -1,8 +1,7 @@
 
 import datetime
-from nr.parsing.date.duration import duration
 import pandas as pd
-from dateutil.parser import isoparse
+from nr.parsing.date.duration import duration
 
 
 SAMPLES = pd.DataFrame([
@@ -82,4 +81,6 @@ SAMPLES = pd.DataFrame([
     'tags': ['iso8601']
   },
 
-]).explode('formatted')
+])
+
+SAMPLES: pd.DataFrame = SAMPLES.explode('formatted')  # type: ignore

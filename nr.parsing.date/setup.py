@@ -28,11 +28,11 @@ else:
   long_description = None
 
 requirements = [
-  'nr.utils.re >=0.2.0,<0.3.0',
+  'nr.utils.re >=0.2.0,<1.0.0',
 ]
 test_requirements = [
+  'pandas',
   'pytest',
-  'python-dateutil',
 ]
 
 setuptools.setup(
@@ -40,7 +40,7 @@ setuptools.setup(
   version = '0.6.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'A simple and fast date parsing library. Uses dateutil for timezone offset support.',
+  description = 'A fast, regular-expression based library for parsing dates, plus support for ISO 8601 durations.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
@@ -51,7 +51,7 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = test_requirements,
-  python_requires = '>=3.5.0,<4.0.0',
+  python_requires = '>=3.6.0,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},
