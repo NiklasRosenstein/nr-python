@@ -3,6 +3,9 @@ import datetime
 import pandas as pd
 from nr.parsing.date.duration import duration
 
+# NOTE(NiklasRosenstein): Some formats below are commented out because they are not supported
+#   by the stdlib strptime() (specifically the `+hh` and `-hh` timezone format), and that breaks
+#   our benchmarks.
 
 SAMPLES = pd.DataFrame([
 
@@ -11,10 +14,10 @@ SAMPLES = pd.DataFrame([
     'formatted': [
       '20210317T000000Z',
       '2021-03-17T00:00:00Z',
-      '2021-03-17T00:00:00+00',
+      #'2021-03-17T00:00:00+00',
       '2021-03-17T00:00:00+0000',
       '2021-03-17T00:00:00.000Z',
-      '2021-03-17T00:00:00.000+00',
+      #'2021-03-17T00:00:00.000+00',
       '2021-03-17T00:00:00.000+0000',
     ],
     'fullformat': '2021-03-17T00:00:00.0Z',
@@ -36,10 +39,10 @@ SAMPLES = pd.DataFrame([
   {
     'description': 'ISO-8601 with timezone (+0100)',
     'formatted': [
-      '2021-04-23T10:24:10+01',
+      #'2021-04-23T10:24:10+01',
       '2021-04-23T10:24:10+0100',
       '2021-04-23T10:24:10+01:00',
-      '20210423T102410+01',
+      #'20210423T102410+01',
       '20210423T102410+0100',
       '20210423T102410+01:00',
     ],

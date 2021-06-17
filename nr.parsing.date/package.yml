@@ -2,6 +2,7 @@ name: nr.parsing.date
 version: 1.0.0
 description: A fast, regular-expression based library for parsing dates, plus support for ISO 8601 durations.
 license: MIT
+exclude: [ benchmark, test ]
 requirements:
 - python ^3.6
 - nr.utils.re ^0.2.0

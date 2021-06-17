@@ -1,4 +1,5 @@
 *.egg-info
+.asv
 .eggs
 .pytest_cache
 .venv*
