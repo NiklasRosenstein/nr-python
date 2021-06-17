@@ -45,7 +45,7 @@ setuptools.setup(
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
   license = 'MIT',
-  packages = setuptools.find_packages('src', ['test', 'test.*', 'tests', 'tests.*', 'docs', 'docs.*']),
+  packages = setuptools.find_packages('src', ['benchmark', 'benchmark.*', 'test', 'test.*']),
   package_dir = {'': 'src'},
   include_package_data = True,
   install_requires = requirements,
