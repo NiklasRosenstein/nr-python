@@ -24,7 +24,7 @@ class format_set:
   """
 
   name: str
-  reference_url: str
+  reference_url: t.Optional[str] = None
   date_formats: t.List[date_format] = field(default_factory=list)
   time_formats: t.List[time_format] = field(default_factory=list)
   datetime_formats: t.List[datetime_format] = field(default_factory=list)
