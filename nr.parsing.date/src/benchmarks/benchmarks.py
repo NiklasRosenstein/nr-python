@@ -54,22 +54,22 @@ def parse_dateutil_isoparse(s: str, expected: datetime.datetime) -> None:
 
 
 class DatetimeParsingSuite:
-    """
-    An example benchmark that times the performance of various kinds
-    of iterating over dictionaries in Python.
-    """
+  """
+  An example benchmark that times the performance of various kinds
+  of iterating over dictionaries in Python.
+  """
 
-    def time_datetime_datetime_strptime(self):
-        vectorize(parse_datetime_stdlib, STDLIB_ISO_8601_DATETIME_FORMATS)
+  def time_datetime_datetime_strptime(self):
+    vectorize(parse_datetime_stdlib, STDLIB_ISO_8601_DATETIME_FORMATS)
 
-    def time_datetime_datetime_strptime_reversed(self):
-        vectorize(parse_datetime_stdlib, STDLIB_ISO_8601_DATETIME_FORMATS)
+  def time_datetime_datetime_strptime_reversed(self):
+    vectorize(parse_datetime_stdlib, STDLIB_ISO_8601_DATETIME_FORMATS)
 
-    def time_nr_parsing_date_ISO_8601_parse_datetime(self):
-        vectorize(parse_datetime_nr, ISO_8601)
+  def time_nr_parsing_date_ISO_8601_parse_datetime(self):
+    vectorize(parse_datetime_nr, ISO_8601)
 
-    def time_dateutil_parser_parse(self):
-        vectorize(parse_dateutil_parse)
+  def time_dateutil_parser_parse(self):
+    vectorize(parse_dateutil_parse)
 
-    def time_dateutil_parser_isoparse(self):
-        vectorize(parse_dateutil_isoparse)
+  def time_dateutil_parser_isoparse(self):
+    vectorize(parse_dateutil_isoparse)
