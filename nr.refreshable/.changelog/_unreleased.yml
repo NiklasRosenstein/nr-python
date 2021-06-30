@@ -1,0 +1,10 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: mark package as typed
+  fixes: []
+- type: fix
+  component: general
+  description: mark package as typed
+  fixes: []
