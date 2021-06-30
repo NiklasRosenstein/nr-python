@@ -4,7 +4,7 @@ import typing as t
 import threading
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 T = t.TypeVar('T')
 R = t.TypeVar('R')

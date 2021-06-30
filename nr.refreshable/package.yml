@@ -1,5 +1,5 @@
 name: nr.refreshable
-version: 0.0.1
+version: 0.0.2
 author: Niklas Rosenstein <rosensteinniklas@gmail.com>
 description: A refreshable is a simple container for a value changing over time.
 requirements:
