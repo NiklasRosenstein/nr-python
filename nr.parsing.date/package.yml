@@ -5,6 +5,7 @@ license: MIT
 exclude: [ benchmark, test ]
 requirements:
 - python ^3.6
+- dataclasses ^0.6
 - nr.utils.re ^0.2.0
 test-requirements:
 - pandas

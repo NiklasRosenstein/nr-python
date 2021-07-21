@@ -3,6 +3,7 @@ version: 2.0.4
 description: A simple API to scan and tokenize text for the purpose of structured language processing.
 requirements:
 - python ^3.6
+- dataclasses ^0.6
 test-requirements:
 - pytest
 test-driver:

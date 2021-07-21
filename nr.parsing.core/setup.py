@@ -27,7 +27,9 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = []
+requirements = [
+  'dataclasses >=0.6.0,<1.0.0',
+]
 test_requirements = [
   'pytest',
 ]

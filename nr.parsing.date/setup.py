@@ -28,6 +28,7 @@ else:
   long_description = None
 
 requirements = [
+  'dataclasses >=0.6.0,<1.0.0',
   'nr.utils.re >=0.2.0,<1.0.0',
 ]
 test_requirements = [
