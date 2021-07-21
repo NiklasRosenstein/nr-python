@@ -1,5 +1,5 @@
 name: nr.config
-version: 0.1.1
+version: 0.2.0
 description: Utility library to implement composable YAML configuration files.
 typed: true
 requirements:

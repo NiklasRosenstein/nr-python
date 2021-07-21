@@ -43,7 +43,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.config',
-  version = '0.1.1',
+  version = '0.2.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Utility library to implement composable YAML configuration files.',
