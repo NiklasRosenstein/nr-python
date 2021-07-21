@@ -31,7 +31,7 @@ import typing as t
 
 def is_generic(
   x: t.Any,
-  generic_types: t.Union[None, t._GenericAlias, t.Tuple[t._GenericAlias]] = None,  # type: ignore
+  generic_types: t.Union[None, 't._GenericAlias', t.Tuple['t._GenericAlias']] = None,  # type: ignore
 ):
   # type: (...) -> bool
   """
