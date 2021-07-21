@@ -1,6 +1,6 @@
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '2.0.3'
+__version__ = '2.0.4'
 
 from .scanner import Cursor, Scanner
 from .tokenizer import RuleSet, Token, Tokenizer, TokenExtractor, TokenizationError, UnexpectedTokenError

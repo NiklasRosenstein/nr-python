@@ -34,7 +34,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.parsing.core',
-  version = '2.0.3',
+  version = '2.0.4',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'A simple API to scan and tokenize text for the purpose of structured language processing.',
