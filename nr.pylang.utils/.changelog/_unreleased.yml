@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: breaking_change
+  component: general
+  description: Remove nr.pylang.utils.typing, but I do not think it is used anywhere
+  fixes: []
