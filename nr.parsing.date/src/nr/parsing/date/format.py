@@ -4,7 +4,7 @@ import io
 import re
 import typing as t
 from dataclasses import dataclass
-from .options import DatetimeComponent, DatetimeComponentType, IFormatOption, FormatOptions
+from .options import DatetimeComponentType, IFormatOption, FormatOptions
 
 _T_datetime_format = t.TypeVar('_T_datetime_format', bound='_datetime_format')
 
@@ -12,7 +12,7 @@ _T_datetime_format = t.TypeVar('_T_datetime_format', bound='_datetime_format')
 @dataclass
 class _datetime_format:
   format_str: str
-  regex: re.Pattern
+  regex: 're.Pattern'
   seq: t.List[t.Union[str, IFormatOption]]
 
   @classmethod
