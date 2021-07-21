@@ -34,7 +34,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.pylang.utils',
-  version = '0.1.1',
+  version = '0.1.2',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Package description here.',
