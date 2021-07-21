@@ -22,6 +22,7 @@
 from .util import AccessorList
 from collections import abc
 from typing import Any, Callable, List, Optional, Union
+import dataclasses
 import re
 import six
 
@@ -29,15 +30,15 @@ Key = Union[int, str]
 ValueTransformFunc = Callable[[Any], Any]
 
 
+@dataclasses.dataclass
 class BoxedValue:
   """
   Represents a value with context.
   """
 
-  def __init__(self, parent: Optional['BoxedValue'], key: Optional[Key], value: Any):
-    self.parent = parent
-    self.key = key
-    self.value = value
+  parent: Optional['BoxedValue']
+  key: Optional[Key]
+  value: Any
 
   @property
   def path(self) -> str:
@@ -162,10 +163,13 @@ class Substitution(ValueTransformer):
     if not isinstance(value, str):
       return value
 
+    # Find at least one match in the string.
     match = self.regex.search(value)
     if not match:
       return value
 
+    # If the string contains more than exactly the expression, we assume all variables must
+    # be strings and can use re.sub() to replace all occurrences of the regex.
     if match.group(0) != value:
       return self.regex.sub(lambda m: self._transform_string(m.group(1), context), value)
 

@@ -26,6 +26,8 @@ import time
 import threading
 import sys
 
+from watchdog.events import LoggingEventHandler
+
 try:
   import watchdog
 except ImportError:
@@ -41,7 +43,7 @@ LoadConfigFunc = Callable[[str], Any]
 class BaseObserver:
 
   def __init__(self, filename: str, callback: Callable[[], Any]) -> None:
-    self.filename = os.path.normpath(os.path.abspath(filename))
+    self.filename = os.path.realpath(os.path.normpath(os.path.abspath(filename)))
     self.callback = callback
 
   def start(self):
@@ -60,7 +62,9 @@ class WatchdogFileObserver(BaseObserver, MaybeFileSystemEventHandler):
     if watchdog is None:
       raise RuntimeError('watchdog module is not available')
     MaybeFileSystemEventHandler.__init__(self)
-    BaseObserver.__init__(self, os.path.normpath(os.path.abspath(filename)), callback)
+    BaseObserver.__init__(self, filename, callback)
+    # NOTE (@NiklasRosenstein): Using os.path.realpath() (which is used in BaseObserver()) is important
+    #   because of https://github.com/gorakhargosh/watchdog/issues/821.
     self._observer = Observer()
     self._observer.schedule(self, path=os.path.dirname(self.filename), recursive=False)
 

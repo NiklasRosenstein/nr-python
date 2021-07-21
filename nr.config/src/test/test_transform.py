@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 from nr.config.transform import Transformer, Substitution, ValueTransformer
+from nr.config.util import AccessorList
 from pytest import raises
 
 

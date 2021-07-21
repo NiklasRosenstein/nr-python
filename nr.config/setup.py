@@ -28,8 +28,9 @@ else:
   long_description = None
 
 requirements = [
-  'nr.collections >=0.1.1,<1.0.0',
-  'nr.pylang.utils >=0.0.4,<1.0.0',
+  'dataclasses >=0.6.0,<1.0.0',
+  'nr.collections >=0.1.1,<0.2.0',
+  'nr.pylang.utils >=0.1.1,<0.2.0',
   'six >=1.14.0,<2.0.0',
   'Jinja2 >=2.11.2,<3.0.0',
 ]
@@ -37,11 +38,7 @@ test_requirements = [
   'pytest',
   'PyYAML',
   'nr.fs >=1.6.0,<2.0.0',
-  'watchdog',
-]
-extras_require = {}
-extras_require['reloader'] = [
-  'watchdog >=0.10.2,<0.11.0',
+  'watchdog <=3.0.0',
 ]
 
 setuptools.setup(
@@ -58,7 +55,7 @@ setuptools.setup(
   package_dir = {'': 'src'},
   include_package_data = True,
   install_requires = requirements,
-  extras_require = extras_require,
+  extras_require = {},
   tests_require = test_requirements,
   python_requires = '>=3.4.0,<4.0.0',
   data_files = [],

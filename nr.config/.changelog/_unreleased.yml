@@ -4,3 +4,8 @@ changes:
   component: general
   description: add `nr.config.jinja` module
   fixes: []
+- type: fix
+  component: general
+  description: update dependencies, update watchdog usage in light of https://github.com/gorakhargosh/watchdog/issues/821,
+    update unit tests
+  fixes: []

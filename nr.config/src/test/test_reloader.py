@@ -27,20 +27,27 @@ import threading
 
 
 def _test_reload_task(observer_class):
+  import logging
+  logging.info('_test_reload_task START')
   event = threading.Event()
-  with nr.fs.tempfile() as fp:
+  with nr.fs.tempfile(suffix='_test_reload_task') as fp:
+    logging.info('Tempfile created: %s', fp.name)
     fp.close()
+    logging.info('Tempfile closed: %s', fp.name)
+    import time; time.sleep(0.4)
     try:
       task = ReloadTask(fp.name, lambda fn: event.set(), observer_class=observer_class)
       task.start()
       time.sleep(0.1)
       assert not event.is_set()
       mtime = os.path.getmtime(fp.name)
+      logging.info('Reopening file')
       temp_fp = open(fp.name, 'w')
       temp_fp.write('test')
       temp_fp.close()
+      logging.info('Closing file')
       assert os.path.getmtime(fp.name) != mtime
-      event.wait(5)
+      event.wait(2)
       assert event.is_set(), 'file change not detected'
     finally:
       task.stop()

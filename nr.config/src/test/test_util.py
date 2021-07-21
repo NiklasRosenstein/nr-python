@@ -23,7 +23,10 @@ from nr.config.util import AccessorList, merge_dicts
 
 
 def test_accessor_list():
+  assert AccessorList('items[1].value')._items == ['items', 1, 'value']
+  assert str(AccessorList('items[1].value')) == '$.items[1].value'
   assert AccessorList('a.b[*].c[1]')._items == ['a', 'b', AccessorList.WILDCARD, 'c', 1]
+  assert str(AccessorList('a.b[*].c[1]')) == '$.a.b[*].c[1]'
 
   data = {
     'books': [

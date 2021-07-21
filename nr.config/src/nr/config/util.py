@@ -20,18 +20,22 @@
 # IN THE SOFTWARE.
 
 from collections import abc
-from nr.pylang.utils.classdef import make_singleton
 from typing import Any, List, Union
+import enum
 import copy
 import re
+
+
+class Wildcard(enum.Enum):
+  Value = 1
 
 
 class AccessorList:
 
   #: This is a special singleton return by #parse_accessor_string() to represent
   #: a wildcard index.
-  WILDCARD = make_singleton('WILDCARD')
-  Key = Union[str, int, type(WILDCARD)]
+  WILDCARD = Wildcard.Value
+  Key = Union[str, int, Wildcard]
 
   def __init__(self, access_list: Union[str, List[Key]]) -> None:
     if isinstance(access_list, str):
@@ -42,7 +46,7 @@ class AccessorList:
   def __repr__(self):
     def _format(x):
       if x is AccessorList.WILDCARD:
-        return '*'
+        return '[*]'
       elif isinstance(x, int):
         return '[{}]'.format(x)
       else:

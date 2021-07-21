@@ -4,17 +4,15 @@ description: Utility library to implement composable YAML configuration files.
 typed: true
 requirements:
 - python ^3.4
-- nr.collections ^0.1.1
-- nr.pylang.utils ^0.0.4
+- dataclasses ^0.6
+- nr.collections ~0.1.1
+- nr.pylang.utils ~0.1.1
 - six ^1.14.0
 - Jinja2 ^2.11.2
 test-requirements:
 - pytest
 - PyYAML
 - nr.fs ^1.6.0
-- watchdog
-extra-requirements:
-  reloader:
-  - watchdog ~0.10.2
+- watchdog <=3.0.0
 test-driver:
   type: pytest

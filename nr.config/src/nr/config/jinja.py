@@ -30,14 +30,13 @@ print(config['users'][0]['group'])  # Administrators
 ```
 """
 
+import enum
 import copy
 import functools
-import json
 import typing as t
 import yaml
 
 import jinja2
-from nr.pylang.utils.classdef import make_singleton
 from nr.collections.chaindict import ChainDict
 
 _JsonType = t.Dict[str, t.Any]
@@ -45,7 +44,11 @@ _JinjaFilter = t.Callable[..., t.Any]
 T = t.TypeVar('T')
 T_StructuredType = t.TypeVar('T_StructuredType', bound=t.Union[t.Dict, t.List])
 
-Exclude = make_singleton('Exclude')
+
+class ExcludeType(enum.Enum):
+  Value = 1
+
+Exclude = ExcludeType.Value
 
 
 def _filter_flatten(seq: t.Sequence[t.Union[T, t.Sequence[T]]], max_depth: int = None) -> t.List[T]:
