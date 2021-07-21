@@ -36,7 +36,7 @@ class MatchAllError(ValueError):
   Raised when #match_all() cannot consume the full string.
   """
 
-  def __init__(self, regex: re.Pattern, string: str, endpos: int) -> None:
+  def __init__(self, regex: 're.Pattern', string: str, endpos: int) -> None:
     self.regex = regex
     self.string = string
     self.endpos = endpos
@@ -46,7 +46,7 @@ class MatchAllError(ValueError):
       self.regex, self.endpos)
 
 
-def match_all(expr: t.Union[str, re.Pattern], string: str) -> t.Iterable[re.Match]:
+def match_all(expr: t.Union[str, 're.Pattern'], string: str) -> t.Iterable['re.Match']:
   """
   Matches *expr* from the start of *string* and expects that it can be matched throughout.
   If it fails to consume the full string, a #MatchAllError will be raised. (Note that this

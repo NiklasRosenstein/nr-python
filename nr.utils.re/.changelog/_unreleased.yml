@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: fix Python 3.6 compatibility by specifying re.Pattern and re.Match
+    type hints as strings
+  fixes: []
