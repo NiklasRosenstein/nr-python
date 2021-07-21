@@ -34,7 +34,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.utils.re',
-  version = '0.3.0',
+  version = '0.3.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'This module provides some utility functions for applying regular expressions.',
