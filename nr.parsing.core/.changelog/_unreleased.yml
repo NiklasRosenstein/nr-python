@@ -4,3 +4,8 @@ changes:
   component: general
   description: fix debug log to be wrapped in the correct check
   fixes: []
+- type: fix
+  component: general
+  description: fix Python 3.6 compatibility by referencing re.Pattern and re.Match
+    type hint as a string
+  fixes: []

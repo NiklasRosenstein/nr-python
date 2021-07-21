@@ -168,7 +168,7 @@ class Scanner:
       self.colno += end - start
     return result
 
-  def match(self, regex: t.Union[str, re.Pattern], flags: int = 0, *,
+  def match(self, regex: t.Union[str, 're.Pattern'], flags: int = 0, *,
       _search: bool = False) -> t.Optional[t.Match[str]]:
     """
     Matches the *regex* from the current character of the *scanner* and returns the result. The
@@ -194,7 +194,7 @@ class Scanner:
       self.colno += end - start
     return match
 
-  def search(self, regex: t.Union[str, re.Pattern], flags: int = 0) -> t.Optional[re.Match]:
+  def search(self, regex: t.Union[str, 're.Pattern'], flags: int = 0) -> t.Optional['re.Match']:
     """
     Performs a regex search from the current position of the scanner. Note that searching in the
     scanner will potentially have you skip characters without consuming them.
@@ -202,7 +202,7 @@ class Scanner:
 
     return self.match(regex, flags, _search=True)
 
-  def getmatch(self, regex: t.Union[str, re.Pattern], group: t.Union[int,str] = 0,
+  def getmatch(self, regex: t.Union[str, 're.Pattern'], group: t.Union[int,str] = 0,
       flags: int = 0) -> t.Optional[str]:
     """
     The same as #Scanner.match(), but returns the captured group rather than
