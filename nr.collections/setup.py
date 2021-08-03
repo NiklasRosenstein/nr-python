@@ -27,10 +27,7 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = [
-  'nr.metaclass >=0.0.1,<0.1.0',
-  'six >=1.11.0,<2.0.0',
-]
+requirements = []
 test_requirements = [
   'nr.fs >=1.5.0,<2.0.0',
   'pytest',
@@ -52,16 +49,11 @@ setuptools.setup(
   install_requires = requirements,
   extras_require = {},
   tests_require = test_requirements,
-  python_requires = None,
+  python_requires = '>=3.6.0,<4.0.0',
   data_files = [],
   entry_points = {},
   cmdclass = {},
   keywords = [],
   classifiers = [],
   zip_safe = True,
-  options = {
-    'bdist_wheel': {
-      'universal': True,
-    },
-  },
 )

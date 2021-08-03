@@ -21,82 +21,73 @@
 
 """ An implementation of an ordered set. """
 
-from . import abc
+import typing as t
 import collections
+import functools
 
 __all__ = ['OrderedSet']
 
+T = t.TypeVar('T')
+T_OrderedSet = t.TypeVar('T_OrderedSet', bound='OrderedSet')
 
-class OrderedSet(abc.MutableSet):
 
-  def __init__(self, iterable=None):
-    self._index_map = {}
-    self._content = collections.deque()
+@functools.total_ordering
+class OrderedSet(t.MutableSet[T]):
+
+  def __init__(self, iterable: t.Optional[t.Iterable[T]] = None) -> None:
+    self._index_map: t.Dict[T, int] = {}
+    self._content: t.Deque[T] = collections.deque()
     if iterable is not None:
-      self |= iterable
+      self.update(iterable)
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     if not self._content:
       return '%s()' % (type(self).__name__,)
     return '%s(%r)' % (type(self).__name__, list(self))
 
-  def __iter__(self):
+  def __iter__(self) -> t.Iterator[T]:
     return iter(self._content)
 
-  def __reversed__(self):
-    return reversed(self._content)
+  def __reversed__(self) -> 'OrderedSet[T]':
+    return OrderedSet(reversed(self._content))
 
-  def __eq__(self, other):
+  def __eq__(self, other: t.Any) -> bool:
     if type(other) is OrderedSet:
       return len(self) == len(other) and list(self) == list(other)
     return False
 
-  def __ne__(self, other):
-    if type(other) is OrderedSet:
-      return len(self) != len(other) or list(self) != list(other)
-    return False
-
-  def __len__(self):
-    return len(self._content)
-
-  def __contains__(self, key):
-    return key in self._index_map
-
-  def __getitem__(self, index):
-    return self._content[index]
-
-  def __le__(self, other):
+  def __le__(self, other: t.Any) -> bool:
       return all(e in other for e in self)
 
-  def __lt__(self, other):
-      return self <= other and self != other
+  def __len__(self) -> int:
+    return len(self._content)
 
-  def __ge__(self, other):
-      return all(e in self for e in other)
+  def __contains__(self, key: t.Any) -> bool:
+    return key in self._index_map
 
-  def __gt__(self, other):
-      return self >= other and self != other
+  def __getitem__(self, index: int) -> T:
+    return self._content[index]
 
-  def add(self, key):
+  def add(self, key: T) -> None:
     if key not in self._index_map:
       self._index_map[key] = len(self._content)
       self._content.append(key)
 
-  def copy(self):
+  def copy(self: T_OrderedSet) -> 'T_OrderedSet':
     return type(self)(self)
 
-  def discard(self, key):
+  def discard(self, key: T) -> None:
     if key in self._index_map:
       index = self._index_map.pop(key)
       del self._content[index]
 
-  def pop(self, last=True):
+  def pop(self, last: bool = True) -> T:
     if not self._content:
       raise KeyError('set is empty')
     key = self._content.pop() if last else self._content.popleft()
     self._index_map.pop(key)
     return key
 
-  def update(self, iterable):
+  def update(self, iterable: t.Iterable[T]) -> None:
     for x in iterable:
       self.add(x)

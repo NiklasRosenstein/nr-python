@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: breaking_change
+  component: general
+  description: Remove `HashDict`, `Generic`, `LambdaDict` and `Persistable`, add type
+    hints and require Python 3.6 minimum
+  fixes: []

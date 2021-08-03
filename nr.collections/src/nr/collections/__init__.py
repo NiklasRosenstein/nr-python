@@ -22,9 +22,5 @@
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.1.1'
 
-from . import abc
 from .chaindict import ChainDict
-from .hashdict import HashDict
-from .lambdadict import LambdaDict
-from .ordereddict import OrderedDict
 from .orderedset import OrderedSet
