@@ -1,0 +1,25 @@
+release_date: null
+changes:
+- type: change
+  component: general
+  description: Rename `Git.cwd` to `Git.path` (and keep `Git.cwd` as a property for
+    backwards compatibility)
+  fixes: []
+- type: improvement
+  component: general
+  description: '`Branch`, `FileStatus` and `RefWithSha` types are now `typing.NamedTuple`s'
+  fixes: []
+- type: feature
+  component: general
+  description: 'Add `Git.fetch()`
+
+    '
+  fixes: []
+- type: feature
+  component: general
+  description: Add `Git.remotes()` and `Git.add_remote()`
+  fixes: []
+- type: feature
+  component: general
+  description: Add more parameters to `Git.create_branch()`
+  fixes: []

@@ -27,7 +27,9 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = []
+requirements = [
+  'deprecated >=1.2.0,<2.0.0',
+]
 
 setuptools.setup(
   name = 'nr.utils.git',

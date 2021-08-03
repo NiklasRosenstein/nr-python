@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 import collections
+import deprecated
 import os
 import subprocess as sp
 import typing as t
@@ -27,21 +28,43 @@ import typing as t
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.3.0'
 
-Branch = collections.namedtuple('Branch', 'name,current')
-FileStatus = collections.namedtuple('FileStatus', 'mode,filename')
-RefWithSha = collections.namedtuple('RefWithSha', 'ref,sha')
+
+class Branch(t.NamedTuple):
+  name: str
+  current: bool
+
+
+class FileStatus(t.NamedTuple):
+  mode: str
+  filename: str
+
+
+class RefWithSha(t.NamedTuple):
+  ref: str
+  sha: str
+
+
+class Remote(t.NamedTuple):
+  name: str
+  fetch: str
+  push: str
 
 
 class Git:
 
   def __init__(self, cwd: str = None):
-    self.cwd = cwd or os.getcwd()
+    self.path = cwd or os.getcwd()
+
+  @property
+  @deprecated.deprecated('use Git.path instead', version='0.4.0')
+  def cwd(self) -> str:
+    return self.path
 
   def check_call(self, command: t.List[str], stdout: t.Optional[int] = None) -> None:
-    sp.check_call(command, cwd=self.cwd, stdout=stdout)
+    sp.check_call(command, cwd=self.path, stdout=stdout)
 
   def check_output(self, command: t.List[str], stderr: t.Optional[int] = None) -> bytes:
-    return sp.check_output(command, cwd=self.cwd, stderr=stderr)
+    return sp.check_output(command, cwd=self.path, stderr=stderr)
 
   def init(self) -> None:
     self.check_call(['git', 'init', '.'])
@@ -68,7 +91,7 @@ class Git:
       auth = ':'.join(t.cast(t.List[str], filter(bool, [username, password])))
       clone_url = schema + '://' + auth + '@' + remainder
 
-    command = ['git', 'clone', clone_url, self.cwd]
+    command = ['git', 'clone', clone_url, self.path]
     if branch:
       command += ['-b', branch]
     if depth:
@@ -78,6 +101,8 @@ class Git:
     if quiet:
       command += ['-q']
 
+    # NOTE (NiklasRosenstein): We don't use #Git.check_call() as that would try to
+    # change directory to the clone target directory, which might not yet exist.
     sp.check_call(command)
 
   def add(self, files: t.List[str]) -> None:
@@ -85,6 +110,7 @@ class Git:
     Add files to the index.
     """
 
+    assert isinstance(files, list), f'expected list, got {type(files).__name__}'
     command = ['git', 'add', '--'] + files
     self.check_call(command)
 
@@ -162,6 +188,54 @@ class Git:
 
     self.check_call(command)
 
+  def fetch(
+    self,
+    remote: str = None,
+    all: bool = False,
+    tags: bool = False,
+    prune: bool = False,
+    prune_tags: bool = False,
+    argv: t.Optional[t.List[str]] = None
+  ) -> None:
+    """
+    Fetch a remote repository (or multiple).
+    """
+
+    command = ['git', 'fetch']
+    if remote:
+      command += [remote]
+    if all:
+      command += ['--all']
+    if tags:
+      command += ['--tags']
+    if prune:
+      command += ['--prune']
+    if prune_tags:
+      command += ['--prune-tags']
+    command += argv or []
+
+    self.check_call(command)
+
+  def remotes(self) -> t.List[Remote]:
+    """
+    List up all the remotes of the repository.
+    """
+
+    remotes: t.Dict[str, t.Dict[str, str]] = {}
+    for line in self.check_output(['git', 'remote', '-v']).decode().splitlines():
+      remote, url, kind = line.split()
+      remotes.setdefault(remote, {})[kind] = url
+
+    return [Remote(remote, urls['(fetch)'], urls['(push)']) for remote, urls in remotes.items()]
+
+  def add_remote(self, remote: str, url: str, argv: t.Optional[t.List[str]] = None) -> None:
+    """
+    Add a remote with the specified name.
+    """
+
+    command = ['git', 'remote', 'add', remote, url] + (argv or [])
+    self.check_call(command)
+
   def porcelain(self) -> t.Iterable[FileStatus]:
     """
     Returns the file status for the working tree.
@@ -229,14 +303,21 @@ class Git:
         return True
       raise
 
-  def create_branch(self, name: str, orphan: bool = False) -> None:
+  def create_branch(self, name: str, orphan: bool = False, reset: bool = False, ref: t.Optional[str] = None) -> None:
     """
     Creates a branch.
     """
 
-    command = ['git', 'checkout', '-b', name]
+    command = ['git', 'checkout']
     if orphan:
-      command += ['--orphan']
+      if ref:
+        raise ValueError('cannot checkout orphan branch with ref')
+      command += ['--orphan', name]
+    else:
+      command += ['-B' if reset else '-b', name]
+      if ref:
+        command += [ref]
+
     self.check_call(command)
 
   def checkout(self, ref: str = None, files: t.List[str] = None, quiet: bool = False):
