@@ -181,10 +181,10 @@ class Git:
     command = ['git', 'pull']
     if remote and branch:
       command += [remote, branch]
-    if quiet:
-      command += ['-q']
     elif remote or branch:
       raise ValueError('remote and branch arguments can only be specified together')
+    if quiet:
+      command += ['-q']
 
     self.check_call(command)
 

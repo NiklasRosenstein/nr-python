@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: '`pull()` caused `ValueError` when remote and branch are both specified
+    but it should only error if either of them are specified'
+  fixes: []
