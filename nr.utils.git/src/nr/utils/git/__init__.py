@@ -26,7 +26,7 @@ import subprocess as sp
 import typing as t
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 
 class Branch(t.NamedTuple):
