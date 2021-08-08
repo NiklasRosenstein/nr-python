@@ -1,0 +1,7 @@
+release_date: null
+changes:
+- type: fix
+  component: general
+  description: '`Tokenizer.next(select)` argument does not accept the sentinel token
+    type'
+  fixes: []

@@ -59,10 +59,12 @@ class RuleSet(t.Generic[T, U]):
     return self._token_types
 
   def has_token_type(self, token_type: T) -> bool:
-    return token_type in self._token_types
+    return token_type in self._token_types or (self.sentinel and token_type == self.sentinel.type)
 
   def check_has_token_types(self, token_types: t.Set[T]) -> None:
     delta = token_types - self._token_types
+    if self.sentinel:
+      delta.discard(self.sentinel.type)
     if delta:
       raise ValueError(f'unknown token types: {", ".join(map(str, delta))}')
 

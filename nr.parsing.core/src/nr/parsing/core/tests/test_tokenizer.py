@@ -1,5 +1,7 @@
 
 import typing as t
+from nr.parsing.core.scanner import Cursor
+from nr.parsing.core.tokenizer.tokenizer import Token
 import pytest
 from nr.parsing.core import RuleSet, Tokenizer, rules
 
@@ -55,3 +57,12 @@ def test_zero_length_token():
 
   assert [x.tv for x in list(Tokenizer(ruleset, 'foobar baz\n  spam'))] == [
     ('indent', ''), ('name', 'foobar'), ('name', 'baz'), ('indent', '  '), ('name', 'spam')]
+
+
+def test_next_sentinel():
+  ruleset = RuleSet(('eof', ''))
+  ruleset.rule('a', rules.regex_extract('a+'))
+
+  tok = Tokenizer(ruleset, 'aaaa')
+  assert tok.next({'a', 'eof'}) == Token('a', 'aaaa', Cursor(0, 1, 0), False)
+  assert tok.next({'a', 'eof'}) == Token('eof', '', Cursor(4, 1, 4), True)
