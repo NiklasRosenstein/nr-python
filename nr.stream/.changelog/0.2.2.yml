@@ -4,3 +4,4 @@ changes:
   description: fix type hints for `Stream.groupby()` and implementation for mypy in
     `Stream.islice()`
   fixes: []
+release_date: '2021-08-10'
