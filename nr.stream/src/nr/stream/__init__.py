@@ -29,6 +29,9 @@ import itertools
 import typing as t
 from nr.pylang.utils import NotSet
 
+if t.TYPE_CHECKING:
+  from nr.optional import Optional
+
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '0.1.2'
 
@@ -245,10 +248,22 @@ class Stream(t.Generic[T], t.Iterable[T]):
     return Stream(x for x in self._it if predicate(x))
 
   def first(self) -> t.Optional[T]:
+    """
+    Returns the first element of the stream, or `None`.
+    """
+
     try:
       return self.next()
     except StopIteration:
       return None
+
+  def firstopt(self) -> 'Optional[T]':
+    """
+    Returns the first element of the stream as an `Optional`.
+    """
+
+    from nr.optional import Optional
+    return Optional(self.first())
 
   def flatmap(self, func: t.Callable[[T], t.Iterable[R]]) -> 'Stream[R]':
     """
