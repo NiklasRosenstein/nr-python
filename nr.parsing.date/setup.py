@@ -40,7 +40,7 @@ extras_require['test'] = test_requirements
 
 setuptools.setup(
   name = 'nr.parsing.date',
-  version = '1.0.2',
+  version = '1.0.3',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'A fast, regular-expression based library for parsing dates, plus support for ISO 8601 durations.',
