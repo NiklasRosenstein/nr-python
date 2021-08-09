@@ -334,7 +334,7 @@ class Stream(t.Generic[T_co]):
   @t.overload
   def slice(self, start: int, stop: int, step: int = 1) -> 'Stream[T_co]': ...
 
-  def slice(self, start, stop, step):
+  def slice(self, start, stop=None, step=None):
     return Stream(itertools.islice(self._it, start, stop, step))
 
   def sortby(self, by: t.Union[str, t.Callable[[T_co], t.Any]], reverse: bool = False) -> 'Stream[T_co]':
