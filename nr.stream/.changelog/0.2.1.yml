@@ -4,3 +4,4 @@ changes:
   description: '`Stream.groupby()` could under certain conditions result in a basecase-less
     recursion'
   fixes: []
+release_date: '2021-08-09'
