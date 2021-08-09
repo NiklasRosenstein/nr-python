@@ -31,7 +31,7 @@ requirements = []
 
 setuptools.setup(
   name = 'nr.optional',
-  version = '0.1.1',
+  version = '0.2.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Optional type in Python, allow mapping and flat-mapping if you also have nr.stream installed.',
