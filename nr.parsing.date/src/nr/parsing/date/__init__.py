@@ -3,6 +3,7 @@ __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '1.0.2'
 
 __all__ = [
+  'tzlocal',
   'duration',
   'date_format',
   'datetime_format',
@@ -19,10 +20,16 @@ __all__ = [
 ]
 
 import datetime
+import time
 import typing as t
 from .duration import duration
 from .format import date_format, datetime_format, time_format
 from .format_sets import format_set, JAVA_OFFSET_DATETIME, ISO_8601
+
+
+def tzlocal() -> datetime.tzinfo:
+  offset = time.altzone if time.daylight else time.timezone
+  return datetime.timezone(datetime.timedelta(seconds=-offset))
 
 
 def parse_date(fmt: t.Union[format_set, date_format, str], s: str) -> datetime.date:
