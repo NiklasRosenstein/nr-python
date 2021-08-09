@@ -1,5 +1,5 @@
 name: nr.stream
-version: 0.2.2
+version: 0.2.3
 description: Use iterators like Java streams.
 requirements:
 - python ^3.5

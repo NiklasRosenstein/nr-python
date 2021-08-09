@@ -33,7 +33,7 @@ if t.TYPE_CHECKING:
   from nr.optional import Optional
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 T = t.TypeVar('T')
 T_co = t.TypeVar('T_co', covariant=True)

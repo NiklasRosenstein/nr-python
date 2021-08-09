@@ -3,3 +3,4 @@ changes:
   component: general
   description: more type hint fixing for `Stream.concat()`
   fixes: []
+release_date: '2021-08-10'
