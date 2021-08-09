@@ -98,14 +98,16 @@ def test_groupby():
     ('USA', ['Apple', 'Facebook'])]
 
 
-def test_groupby_2():
+def test_groupby_2_with_types() -> None:
   entries = [
     ('fix', 'general', 'Fixed this'),
     ('fix', 'packaging', 'Fixed packaging'),
     ('change', 'general', 'Changed that'),
   ]
 
-  result = Stream(entries).sortby(lambda x: x[1]).groupby(lambda x: x[1], list).collect()
+  result: Stream[t.Tuple[str, t.List[t.Tuple[str, str, str]]]] = (Stream(entries)
+      .sortby(lambda x: x[1])
+      .groupby(lambda x: x[1], lambda it: list(it)))
   assert result == [
     ('general', [entries[0], entries[2]]),
     ('packaging', [entries[1]])

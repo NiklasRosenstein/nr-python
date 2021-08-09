@@ -280,9 +280,9 @@ class Stream(t.Generic[T], t.Iterable[T]):
   def groupby(self, key: t.Callable[[T], R]) -> 'Stream[t.Tuple[R, t.Iterable[T]]]': ...
 
   @t.overload
-  def groupby(self, key: t.Callable[[T], R], collector: Collector[T, R]) -> 'Stream[t.Tuple[R, U]]': ...
+  def groupby(self, key: t.Callable[[T], R], collector: t.Callable[[t.Iterable[T]], U]) -> 'Stream[t.Tuple[R, U]]': ...
 
-  def groupby(self, key: t.Callable[[T], R], collector: t.Optional[Collector[T, R]] = None):
+  def groupby(self, key: t.Callable[[T], U], collector: t.Optional[Collector[T, R]] = None):
     if collector is None:
       return Stream(itertools.groupby(self._it, key))
     else:
@@ -325,8 +325,8 @@ class Stream(t.Generic[T], t.Iterable[T]):
   @t.overload
   def slice(self, start: int, stop: int, step: int = 1) -> 'Stream[T]': ...
 
-  def slice(self, *a, **kw):
-    return Stream(itertools.islice(self._it, *a, **kw))
+  def slice(self, start, stop, step):
+    return Stream(itertools.islice(self._it, start, stop, step))
 
   def sortby(self, by: t.Union[str, t.Callable[[T], t.Any]], reverse: bool = False) -> 'Stream[T]':
     """
