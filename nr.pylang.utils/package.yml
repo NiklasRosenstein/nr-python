@@ -1,6 +1,6 @@
 name: nr.pylang.utils
 version: 0.1.3
-description: Package description here.
+description: A small collection of utiltiies for Python programming.
 requirements:
 - python ^3.6
 test-requirements:

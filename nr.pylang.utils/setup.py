@@ -37,7 +37,7 @@ setuptools.setup(
   version = '0.1.3',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Package description here.',
+  description = 'A small collection of utiltiies for Python programming.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
