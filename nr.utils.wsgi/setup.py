@@ -42,7 +42,7 @@ setuptools.setup(
   description = 'Package description here.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
+  url = 'https://github.com/NiklasRosenstein/nr-python',
   license = 'MIT',
   packages = setuptools.find_packages('src', ['test', 'test.*', 'tests', 'tests.*', 'docs', 'docs.*']),
   package_dir = {'': 'src'},

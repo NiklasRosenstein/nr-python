@@ -39,7 +39,7 @@ setuptools.setup(
   description = 'Extends the misaka Markdown parser and renderer for some nifty features.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
+  url = 'https://github.com/NiklasRosenstein/nr-python',
   license = 'MIT',
   py_modules = ['nr.markdown'],
   package_dir = {'': 'src'},

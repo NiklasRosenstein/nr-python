@@ -2,7 +2,6 @@ name: nr.caching
 version: 0.3.2
 author: Niklas Rosenstein <rosensteinniklas@gmail.com>
 license: MIT
-url: https://git.niklasrosenstein.com/NiklasRosenstein/nr
 description: A simple key-value caching API with default implementations for an SQLite3
   storage backend and a JSON convenience layer.
 requirements:

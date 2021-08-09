@@ -44,7 +44,7 @@ setuptools.setup(
   description = 'A fast, regular-expression based library for parsing dates, plus support for ISO 8601 durations.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
-  url = 'https://git.niklasrosenstein.com/NiklasRosenstein/nr',
+  url = 'https://github.com/NiklasRosenstein/nr-python',
   license = 'MIT',
   packages = setuptools.find_packages('src', ['benchmark', 'benchmark.*', 'test', 'test.*']),
   package_dir = {'': 'src'},
