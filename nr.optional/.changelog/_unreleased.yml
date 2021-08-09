@@ -1,0 +1,6 @@
+release_date: null
+changes:
+- type: feature
+  component: general
+  description: add `Optional.__bool__()` and `Optioanl.flatmap()`
+  fixes: []

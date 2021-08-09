@@ -17,6 +17,9 @@ class Optional(t.Generic[T]):
   def __init__(self, value: t.Optional[T]) -> None:
     self._value = value
 
+  def __bool__(self) -> bool:
+    return self._value is not None
+
   def get(self) -> T:
     if self._value is None:
       raise ValueError('Optional value is None')
@@ -44,6 +47,9 @@ class Optional(t.Generic[T]):
     if self._value is None:
       return Optional(None)
     return Optional(f(self._value))
+
+  def flatmap(self, f: t.Callable[[T], t.Iterable[R]]) -> 'Stream[R]':
+    return self.stream().flatmap(f)
 
   def stream(self) -> 'Stream[T]':
     from nr.stream import Stream
