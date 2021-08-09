@@ -39,9 +39,13 @@ def test_distinct():
   assert list(Stream(values).distinct(skip=set([5, 3, 9]))) == [1, 6, 8, 0]
 
 
-def test_concat():
+def test_concat() -> None:
   values = ['abc', 'def']
-  assert ''.join(Stream(values).concat()) == 'abcdef'
+  s1: Stream[str] = Stream(values).concat()
+  assert ''.join(s1) == 'abcdef'
+
+  s2: Stream[str] = Stream([values, values]).concat()
+  assert s2.collect() == (values + values)
 
 
 def test_of_type():
@@ -108,7 +112,7 @@ def test_groupby_2_with_types() -> None:
   result: Stream[t.Tuple[str, t.List[t.Tuple[str, str, str]]]] = (Stream(entries)
       .sortby(lambda x: x[1])
       .groupby(lambda x: x[1], lambda it: list(it)))
-  assert result == [
+  assert list(result) == [
     ('general', [entries[0], entries[2]]),
     ('packaging', [entries[1]])
   ]

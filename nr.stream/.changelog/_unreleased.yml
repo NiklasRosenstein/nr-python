@@ -1,0 +1,5 @@
+changes:
+- type: fix
+  component: general
+  description: more type hint fixing for `Stream.concat()`
+  fixes: []
