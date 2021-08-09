@@ -1,0 +1,6 @@
+changes:
+- type: fix
+  component: general
+  description: '`Stream.groupby()` could under certain conditions result in a basecase-less
+    recursion'
+  fixes: []

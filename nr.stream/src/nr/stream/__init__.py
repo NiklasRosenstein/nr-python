@@ -289,7 +289,7 @@ class Stream(t.Generic[T], t.Iterable[T]):
       def generator():
         assert collector is not None
         g: t.Iterable[T]
-        for k, g in self.groupby(key, lambda x: x):
+        for k, g in itertools.groupby(self._it, key):
           yield k, collector(g)
       return Stream(generator())
 

@@ -98,6 +98,20 @@ def test_groupby():
     ('USA', ['Apple', 'Facebook'])]
 
 
+def test_groupby_2():
+  entries = [
+    ('fix', 'general', 'Fixed this'),
+    ('fix', 'packaging', 'Fixed packaging'),
+    ('change', 'general', 'Changed that'),
+  ]
+
+  result = Stream(entries).sortby(lambda x: x[1]).groupby(lambda x: x[1], list).collect()
+  assert result == [
+    ('general', [entries[0], entries[2]]),
+    ('packaging', [entries[1]])
+  ]
+
+
 def test_slice():
   assert list(Stream(range(10)).slice(3, 8)) == [3, 4, 5, 6, 7]
   assert list(Stream(range(10))[3:8]) == [3, 4, 5, 6, 7]
