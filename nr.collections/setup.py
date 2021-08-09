@@ -38,7 +38,7 @@ setuptools.setup(
   version = '1.0.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Useful container datatypes for Python 2 and 3.',
+  description = 'Useful container datatypes (ChainDict and OrderedSet).',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/nr-python',

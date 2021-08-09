@@ -1,6 +1,6 @@
 name: nr.databind.rest
 version: 0.0.3
-description: Package description here.
+description: Define Type-safe REST API definition and implementation.
 requirements:
 - python ^3.4
 - nr.collections ^0.1.0

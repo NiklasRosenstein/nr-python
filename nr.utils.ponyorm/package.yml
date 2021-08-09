@@ -1,6 +1,6 @@
 name: nr.utils.ponyorm
 version: 0.0.2
-description: Package description here.
+description: Utilities for working with the Pony ORM framework.
 requirements:
 - python ^3.4
 - nr.pylang.utils ^0.0.1

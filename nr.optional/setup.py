@@ -34,7 +34,7 @@ setuptools.setup(
   version = '0.1.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Package description here.',
+  description = 'Optional type in Python, allow mapping and flat-mapping if you also have nr.stream installed.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/nr-python',

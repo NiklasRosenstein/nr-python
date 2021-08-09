@@ -1,6 +1,6 @@
 name: nr.collections
 version: 1.0.0
-description: Useful container datatypes for Python 2 and 3.
+description: Useful container datatypes (ChainDict and OrderedSet).
 requirements:
 - python ^3.6
 test-requirements:

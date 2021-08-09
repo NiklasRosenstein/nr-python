@@ -1,6 +1,6 @@
 name: nr.ansiterm
 version: 0.0.2
-description: Package description here.
+description: ANSI terminal colors.
 requirements:
 - python ^3.5
 - nr.pylang.utils ~0.0.2

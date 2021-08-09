@@ -39,7 +39,7 @@ setuptools.setup(
   version = '0.0.2',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Package description here.',
+  description = 'ANSI terminal colors.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/nr-python',

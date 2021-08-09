@@ -37,7 +37,7 @@ setuptools.setup(
   version = '0.0.2',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
-  description = 'Package description here.',
+  description = 'Utilities for working with the Pony ORM framework.',
   long_description = long_description,
   long_description_content_type = 'text/markdown',
   url = 'https://github.com/NiklasRosenstein/nr-python',
