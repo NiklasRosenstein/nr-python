@@ -36,7 +36,7 @@ test_requirements = [
 
 setuptools.setup(
   name = 'nr.stream',
-  version = '0.1.2',
+  version = '0.2.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Use iterators like Java streams.',
