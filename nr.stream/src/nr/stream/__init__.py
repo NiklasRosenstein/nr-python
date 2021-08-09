@@ -43,7 +43,7 @@ Aggregator = t.Callable[[T, U], T]
 Collector = t.Callable[[t.Iterable[T]], R]
 
 
-class Stream(t.Generic[T_co]):
+class Stream(t.Generic[T_co], t.Iterable[T_co]):
   """
   A stream is an iterable with utility methods to transform it.
   """
