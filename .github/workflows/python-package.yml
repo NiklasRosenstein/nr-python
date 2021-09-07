@@ -30,5 +30,6 @@ jobs:
         python -m pip install flake8 pytest shut==0.14.3
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Test
-      run: |
-        shut mono test --isolate
+      run: shut mono test --isolate
+    - name: Verify package files
+      run: shut mono update --verify
