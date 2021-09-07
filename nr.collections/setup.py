@@ -11,7 +11,13 @@ def _tempcopy(src, dst):
   import atexit, shutil
   if not os.path.isfile(dst):
     if not os.path.isfile(src):
-      print('warning: source file "{}" for destination "{}" does not exist'.format(src, dst))
+      command = sys.argv[1] if len(sys.argv) >= 2 else None
+      msg = '"{}" does not exist, and cannot copy it from "{}" either'.format(dst, src)
+      # NOTE: In dist/build commands that are not invoked by Pip, we enforce that the license file
+      #       must be present. See https://github.com/NiklasRosenstein/shut/issues/22
+      if command and 'PIP_REQ_TRACKER' not in os.environ and ('build' in command or 'dist' in command):
+        raise RuntimeError(msg)
+      print('warning:', msg, file=sys.stderr)
       return
     shutil.copyfile(src, dst)
     atexit.register(lambda: os.remove(dst))
@@ -32,6 +38,8 @@ test_requirements = [
   'nr.fs >=1.5.0,<2.0.0',
   'pytest',
 ]
+extras_require = {}
+extras_require['test'] = test_requirements
 
 setuptools.setup(
   name = 'nr.collections',
@@ -47,7 +55,7 @@ setuptools.setup(
   package_dir = {'': 'src'},
   include_package_data = True,
   install_requires = requirements,
-  extras_require = {},
+  extras_require = extras_require,
   tests_require = test_requirements,
   python_requires = '>=3.6.0,<4.0.0',
   data_files = [],
