@@ -11,5 +11,5 @@ requirements:
 - python ^3.6
 test-requirements:
 - pytest
-test-driver:
-  type: pytest
+test-drivers:
+- type: pytest

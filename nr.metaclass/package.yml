@@ -3,5 +3,5 @@ version: 0.0.6
 description: Metaclass utilities.
 test-requirements:
 - pytest
-test-driver:
-  type: pytest
+test-drivers:
+- type: pytest

@@ -1,10 +1,10 @@
 name: nr.utils.re
 version: 0.3.1
 description: This module provides some utility functions for applying regular expressions.
+typed: true
 requirements:
 - python ^3.6
 test-requirements:
 - pytest
-test-driver:
-  type: pytest
-typed: true
+test-drivers:
+- type: pytest

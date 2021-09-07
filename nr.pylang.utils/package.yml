@@ -1,10 +1,10 @@
 name: nr.pylang.utils
 version: 0.1.3
 description: A small collection of utiltiies for Python programming.
+typed: true
 requirements:
 - python ^3.6
 test-requirements:
 - pytest
-test-driver:
-  type: pytest
-typed: true
+test-drivers:
+- type: pytest

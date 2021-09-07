@@ -14,5 +14,5 @@ test-requirements:
 - pytest
 - flask
 - PyYAML
-test-driver:
-  type: pytest
+test-drivers:
+- type: pytest

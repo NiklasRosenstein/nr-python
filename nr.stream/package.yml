@@ -1,11 +1,11 @@
 name: nr.stream
 version: 0.2.3
 description: Use iterators like Java streams.
+typed: true
 requirements:
 - python ^3.5
 - nr.pylang.utils ^0.1.0
 test-requirements:
 - pytest
-test-driver:
-  type: pytest
-typed: true
+test-drivers:
+- type: pytest

@@ -14,5 +14,5 @@ test-requirements:
 - PyYAML
 - nr.fs ^1.6.0
 - watchdog <=3.0.0
-test-driver:
-  type: pytest
+test-drivers:
+- type: pytest
