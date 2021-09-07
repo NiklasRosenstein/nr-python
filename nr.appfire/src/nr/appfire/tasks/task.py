@@ -142,7 +142,7 @@ class TaskCallbacks:
 
   def on(
     self,
-    state: t.Union[TaskStatus, t.Sequence[TaskStatus], t.Literal['start'], t.Literal['end']],
+    state: t.Union[TaskStatus, t.Sequence[TaskStatus], "t.Literal['start']", "t.Literal['end']"],
     callback: TaskCallback,
     once: bool = True,
     group: t.Optional[str] = None,
