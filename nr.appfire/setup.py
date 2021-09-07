@@ -33,7 +33,9 @@ else:
   print("warning: file \"{}\" does not exist.".format(readme_file), file=sys.stderr)
   long_description = None
 
-requirements = []
+requirements = [
+  'typing-extensions >=3.10.0.0,<4.0.0',
+]
 
 setuptools.setup(
   name = 'nr.appfire',

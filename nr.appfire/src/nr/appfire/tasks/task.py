@@ -5,6 +5,7 @@ import logging
 import threading
 import types
 import typing as t
+import typing_extensions as te
 import uuid
 import weakref
 
@@ -142,7 +143,7 @@ class TaskCallbacks:
 
   def on(
     self,
-    state: t.Union[TaskStatus, t.Sequence[TaskStatus], "t.Literal['start']", "t.Literal['end']"],
+    state: t.Union[TaskStatus, t.Sequence[TaskStatus], te.Literal['start'], te.Literal['end']],
     callback: TaskCallback,
     once: bool = True,
     group: t.Optional[str] = None,
