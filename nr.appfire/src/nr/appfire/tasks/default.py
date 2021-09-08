@@ -377,7 +377,7 @@ class Worker:
 
 
 @dataclasses.dataclass  # type: ignore
-class DefaultTaskManager(api.TaskManager):
+class DefaultExecutor(api.Executor):
 
   _CALLBACK_GROUP = '_TaskManager'
 
@@ -403,7 +403,12 @@ class DefaultTaskManager(api.TaskManager):
     self._lock = threading.Lock()
     self._shutdown = False
 
-  def queue_task(self, runnable: Runnable, name: t.Optional[str] = None, at: t.Optional[float] = None) -> Task:
+  def execute(
+    self,
+    runnable: Runnable,
+    name: t.Optional[str] = None,
+    at: t.Optional[float] = None,
+  ) -> Task:
     """
     Queue a task for execution in the worker pool. If there is a free slot in the pool and all
     existing workers are busy, a new worker will be spawned immediately.

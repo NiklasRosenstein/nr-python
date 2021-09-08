@@ -4,3 +4,7 @@ changes:
   description: Provide a full abstraction for the task API to make other implementations
     (for example distributed task managers) more feasible
   fixes: []
+- type: feature
+  component: nr.appfire.tasks
+  description: add `Task.Status`, `Task.Callback` and `Task.Runnable`
+  fixes: []

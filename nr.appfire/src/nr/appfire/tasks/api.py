@@ -11,6 +11,16 @@ TaskCallback = t.Callable[['Task'], None]
 TaskCallbackCondition = t.Callable[['Task'], bool]
 
 
+class Runnable(abc.ABC):
+  """
+  Abstract representation of something that can be run, for example in a task. Depending on the
+  use case, runnables may need to be serializable.
+  """
+
+  @abc.abstractmethod
+  def run(self, task: 'Task') -> None: ...
+
+
 class TaskStatus(enum.Enum):
   """
   Represents the statuses that a task can be in.
@@ -143,6 +153,10 @@ class Task(abc.ABC):
   Abstract representation of a task.
   """
 
+  Status = TaskStatus
+  Callback = TaskCallback
+  Runnable = Runnable
+
   @abc.abstractproperty
   def id(self) -> str: ...
 
@@ -189,17 +203,7 @@ class Task(abc.ABC):
     """
 
 
-class Runnable(abc.ABC):
-  """
-  Abstract representation of something that can be run, for example in a task. Depending on the
-  use case, runnables may need to be serializable.
-  """
-
-  @abc.abstractmethod
-  def run(self, task: Task) -> None: ...
-
-
-class TaskManager(abc.ABC):
+class Executor(abc.ABC):
   """
   Interface for task managers that can dispatch tasks for execution.
   """
@@ -211,7 +215,12 @@ class TaskManager(abc.ABC):
   def get_idle_worker_count(self) -> int: ...
 
   @abc.abstractmethod
-  def queue_task(self, runnable: Runnable, name: t.Optional[str] = None, at: t.Optional[float] = None) -> Task:
+  def execute(
+    self,
+    runnable: Runnable,
+    name: t.Optional[str] = None,
+    at: t.Optional[float] = None,
+  ) -> Task:
     """
     Execute the given *runnable* object in the task manager.
 

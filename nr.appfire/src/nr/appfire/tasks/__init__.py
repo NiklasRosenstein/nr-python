@@ -4,5 +4,14 @@ The `nr.appfire.tasks` package provides an easy-to-use framework for managing ba
 Python application.
 """
 
-from .api import TaskStatus, TaskCallback, Task, TaskManager, Runnable
-from .default import DefaultTaskManager
+from .api import Executor, Runnable, TaskStatus, TaskCallback, Task
+from .default import DefaultExecutor
+
+__all__ = [
+  'Executor',
+  'Runnable',
+  'TaskStatus',
+  'TaskCallback',
+  'Task',
+  'DefaultExecutor',
+]
