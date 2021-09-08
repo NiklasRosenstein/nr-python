@@ -124,12 +124,13 @@ class Task(api.Task[T]):
     self._status = TaskStatus.PENDING
     self._error: t.Optional[ExcInfoType] = None
     self._error_consumed: bool = False
+    self._result: t.Optional[T] = None
 
   def _create_logger(self) -> logging.Logger:
     fqn = type(self).__module__ + '.' + type(self).__name__
     return logging.getLogger(f'{fqn}[{self.name}]')
 
-  def _update(self, status: TaskStatus, error: t.Optional[ExcInfoType] = None) -> None:
+  def _update(self, status: TaskStatus, result: t.Optional[T] = None, error: t.Optional[ExcInfoType] = None) -> None:
     """
     Update the status of the task. This should be used only by the executor engine where the task
     is queued. A status change will immediately invoke the registered #callbacks. Some status
@@ -141,12 +142,16 @@ class Task(api.Task[T]):
     if status == TaskStatus.FAILED and error is None:
       raise RuntimeError(f'missing error information for setting task status to FAILED')
 
+    if result is not None and status != TaskStatus.SUCCEEDED:
+      raise RuntimeError(f'cannot set result with status {status.name}')
+
     with self._lock:
       if (self._status.immutable and self._status != status) or (self._status == TaskStatus.RUNNING and status.idle):
         raise RuntimeError(f'changing the task status from {self._status.name} to {status.name} is not allowed')
       invoke_callbacks = status != self._status
       self._status = status
       self._error = error
+      self._result = result
 
     if invoke_callbacks:
       self.callbacks._invoke()
@@ -196,6 +201,19 @@ class Task(api.Task[T]):
 
     with self._lock:
       return self._error_consumed
+
+  @property
+  def result(self) -> t.Optional[T]:
+    with self._lock:
+      if self._status == TaskStatus.IGNORED:
+        return None
+      elif self._status == TaskStatus.FAILED:
+        assert self._error is not None, 'Task status is FAILED but no error is set'
+        raise self._error
+      elif self._status == TaskStatus.SUCCEEDED:
+        return self._result
+      else:
+        raise RuntimeError(f'Task has status {self._status.name}')
 
   def consume_error(self, origin: t.Optional[str] = None) -> None:
     """
@@ -359,13 +377,13 @@ class Worker:
     try:
       task._worker_id = self.name
       task._update(TaskStatus.RUNNING)
-      task.runnable.run(task)
+      result = task.runnable.run(task)
     except:
       task._update(TaskStatus.FAILED, t.cast(ExcInfoType, sys.exc_info()))
       if not task._error_consumed:
         log.exception('Unhandled exception in task "%s"', task.name)
     else:
-      task._update(TaskStatus.SUCCEEDED)
+      task._update(TaskStatus.SUCCEEDED, result)
     finally:
       log.info('Finished task "%s"', task.name)
 

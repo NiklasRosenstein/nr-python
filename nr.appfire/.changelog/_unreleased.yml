@@ -16,3 +16,7 @@ changes:
   component: nr.appfire.tasks
   description: '`Runnable` and `Task` are now generics'
   fixes: []
+- type: change
+  component: nr.appfire.tasks
+  description: Add `Task.result`
+  fixes: []
