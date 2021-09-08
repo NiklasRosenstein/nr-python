@@ -1,0 +1,6 @@
+changes:
+- type: change
+  component: nr.appfire.tasks
+  description: Provide a full abstraction for the task API to make other implementations
+    (for example distributed task managers) more feasible
+  fixes: []
