@@ -12,3 +12,7 @@ changes:
   component: nr.appfire.tasks
   description: add `Task.Executor`
   fixes: []
+- type: change
+  component: nr.appfire.tasks
+  description: '`Runnable` and `Task` are now generics'
+  fixes: []

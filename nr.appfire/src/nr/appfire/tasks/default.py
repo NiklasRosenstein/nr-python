@@ -17,6 +17,7 @@ from . import api
 from .api import ExcInfoType, Runnable, TaskStatus
 from .util import AtomicCounter
 
+T = t.TypeVar('T')
 log = logging.getLogger(__name__)
 
 
@@ -109,9 +110,9 @@ class TaskCallbacks(api.TaskCallbacks):
       self._callbacks = {k: e for k, e in self._callbacks.items() if k not in remove}
 
 
-class Task(api.Task):
+class Task(api.Task[T]):
 
-  def __init__(self, runnable: Runnable, name: str) -> None:
+  def __init__(self, runnable: Runnable[T], name: str) -> None:
     self._lock = threading.RLock()
     self._runnable = runnable
     self._id = type(self).__module__ + '.' + type(self).__name__ + '.' + str(uuid.uuid4())
@@ -405,10 +406,10 @@ class DefaultExecutor(api.Executor):
 
   def execute(
     self,
-    runnable: Runnable,
+    runnable: Runnable[T],
     name: t.Optional[str] = None,
     at: t.Optional[float] = None,
-  ) -> Task:
+  ) -> Task[T]:
     """
     Queue a task for execution in the worker pool. If there is a free slot in the pool and all
     existing workers are busy, a new worker will be spawned immediately.

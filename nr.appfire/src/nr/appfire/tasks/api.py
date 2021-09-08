@@ -6,19 +6,20 @@ import types
 import typing as t
 import typing_extensions as te
 
+T = t.TypeVar('T')
 ExcInfoType = t.Tuple[t.Type[BaseException], BaseException, t.Optional[types.TracebackType]]
 TaskCallback = t.Callable[['Task'], None]
 TaskCallbackCondition = t.Callable[['Task'], bool]
 
 
-class Runnable(abc.ABC):
+class Runnable(abc.ABC, t.Generic[T]):
   """
   Abstract representation of something that can be run, for example in a task. Depending on the
   use case, runnables may need to be serializable.
   """
 
   @abc.abstractmethod
-  def run(self, task: 'Task') -> None: ...
+  def run(self, task: 'Task') -> T: ...
 
 
 class TaskStatus(enum.Enum):
@@ -208,15 +209,15 @@ class Executor(abc.ABC):
       self.shutdown()
 
 
-class Task(abc.ABC):
+class Task(abc.ABC, t.Generic[T]):
   """
   Abstract representation of a task.
   """
 
-  Status = TaskStatus
-  Callback = TaskCallback
-  Runnable = Runnable
-  Executor = Executor
+  Status: t.ClassVar = TaskStatus
+  Callback: t.ClassVar = TaskCallback
+  Runnable: t.ClassVar = Runnable
+  Executor: t.ClassVar = Executor
 
   @abc.abstractproperty
   def id(self) -> str: ...
@@ -233,14 +234,21 @@ class Task(abc.ABC):
   @abc.abstractproperty
   def callbacks(self) -> TaskCallbacks: ...
 
-  @property
+  @abc.abstractproperty
   def status(self) -> TaskStatus: ...
 
-  @property
+  @abc.abstractproperty
   def error(self) -> t.Optional[ExcInfoType]: ...
 
-  @property
+  @abc.abstractproperty
   def error_consumed(self) -> bool: ...
+
+  @abc.abstractproperty
+  def result(self) -> t.Optional[T]:
+    """
+    Return the result value of the task. Raises a `RuntimeError` while the task is still running.
+    Re-raises the #error if it is set. Returns `None` if the task has been ignored.
+    """
 
   @abc.abstractmethod
   def consume_error(self, origin: t.Optional[str] = None) -> None: ...
