@@ -8,3 +8,7 @@ changes:
   component: nr.appfire.tasks
   description: add `Task.Status`, `Task.Callback` and `Task.Runnable`
   fixes: []
+- type: feature
+  component: nr.appfire.tasks
+  description: add `Task.Executor`
+  fixes: []

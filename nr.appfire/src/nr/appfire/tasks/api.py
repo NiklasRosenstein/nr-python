@@ -148,6 +148,66 @@ class TaskCallbacks(abc.ABC):
     self.add(condition, callback, once, group)
 
 
+class Executor(abc.ABC):
+  """
+  Interface for task managers that can dispatch tasks for execution.
+  """
+
+  @abc.abstractmethod
+  def get_worker_count(self) -> int: ...
+
+  @abc.abstractmethod
+  def get_idle_worker_count(self) -> int: ...
+
+  @abc.abstractmethod
+  def execute(
+    self,
+    runnable: Runnable,
+    name: t.Optional[str] = None,
+    at: t.Optional[float] = None,
+  ) -> 'Task':
+    """
+    Execute the given *runnable* object in the task manager.
+
+    # Arguments
+    runnable: The runnable to invoke. Depending on the implementation of the task manager, this object
+      may need to be serializable with whatever serializer the implementation is using (in case of a
+      distributed task manager).
+    name: An optional name for the runnable. If not specified, the #repr() of the object will be used.
+    at: The timestamp at which the runnable is supposed to be executed. If the timestamp is smaller than
+      the current time or if the parameter is not set, it will be executed immediately.
+
+    # Returns
+    The #Task object for this runnable.
+    """
+
+  @abc.abstractmethod
+  def shutdown(self, cancel_running_taks: bool = True, block: bool = True) -> None:
+    """
+    Shut down the task manager, preventing new tasks from being exexuted. if *cancel_running_tasks*
+    is enabled, all currently running tasks will be cancelled. By default, the method blocks until
+    all running tasks have exited.
+
+    This method may raise a #RuntimeError if it was called before.
+    """
+
+  @abc.abstractmethod
+  def join(self) -> None:
+    """
+    Block until all pending and currently running tasks have been processed.
+    """
+
+  def idlejoin(self) -> None:
+    """
+    Like #join(), but garuantee a call to #shutdown() in the end.
+    """
+
+    try:
+      self.join()
+    finally:
+      self.shutdown()
+
+
 class Task(abc.ABC):
   """
   Abstract representation of a task.
@@ -156,6 +216,7 @@ class Task(abc.ABC):
   Status = TaskStatus
   Callback = TaskCallback
   Runnable = Runnable
+  Executor = Executor
 
   @abc.abstractproperty
   def id(self) -> str: ...
@@ -201,63 +262,3 @@ class Task(abc.ABC):
     Returns `True` if the sleep completed, `False` is the timeout triggered which means
     that the task has been cancelled.
     """
-
-
-class Executor(abc.ABC):
-  """
-  Interface for task managers that can dispatch tasks for execution.
-  """
-
-  @abc.abstractmethod
-  def get_worker_count(self) -> int: ...
-
-  @abc.abstractmethod
-  def get_idle_worker_count(self) -> int: ...
-
-  @abc.abstractmethod
-  def execute(
-    self,
-    runnable: Runnable,
-    name: t.Optional[str] = None,
-    at: t.Optional[float] = None,
-  ) -> Task:
-    """
-    Execute the given *runnable* object in the task manager.
-
-    # Arguments
-    runnable: The runnable to invoke. Depending on the implementation of the task manager, this object
-      may need to be serializable with whatever serializer the implementation is using (in case of a
-      distributed task manager).
-    name: An optional name for the runnable. If not specified, the #repr() of the object will be used.
-    at: The timestamp at which the runnable is supposed to be executed. If the timestamp is smaller than
-      the current time or if the parameter is not set, it will be executed immediately.
-
-    # Returns
-    The #Task object for this runnable.
-    """
-
-  @abc.abstractmethod
-  def shutdown(self, cancel_running_taks: bool = True, block: bool = True) -> None:
-    """
-    Shut down the task manager, preventing new tasks from being exexuted. if *cancel_running_tasks*
-    is enabled, all currently running tasks will be cancelled. By default, the method blocks until
-    all running tasks have exited.
-
-    This method may raise a #RuntimeError if it was called before.
-    """
-
-  @abc.abstractmethod
-  def join(self) -> None:
-    """
-    Block until all pending and currently running tasks have been processed.
-    """
-
-  def idlejoin(self) -> None:
-    """
-    Like #join(), but garuantee a call to #shutdown() in the end.
-    """
-
-    try:
-      self.join()
-    finally:
-      self.shutdown()
