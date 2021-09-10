@@ -21,10 +21,14 @@ changes:
   description: Add `Task.result`
   fixes: []
 - type: change
-  component: general
+  component: nr.appfire.tasks
   description: rename `TaskStatus.immutable` property to `TaskStatus.completed`
   fixes: []
 - type: feature
-  component: general
+  component: nr.appfire.tasks
   description: add `Task.join()` method
+  fixes: []
+- type: change
+  component: nr.appfire.tasks
+  description: add `TaskStatus.CANCELLED`
   fixes: []

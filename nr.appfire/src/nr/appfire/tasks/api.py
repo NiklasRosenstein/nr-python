@@ -42,8 +42,13 @@ class TaskStatus(enum.Enum):
   #: The task has failed (#Task.error will be set with the Python exception).
   FAILED = 4
 
+  #: The task started but was cancelled while it was running. A task will only receive this
+  #: status after it actually finished (i.e., #TaskStatus.cancelled() may return `True` while
+  #: the #Task.status is still #RUNNING). A cancelled task may still have a #TaskStatus.result.
+  CANCELLED = 5
+
   #: The task was queued but then ignored because the queue it was connected to was shut down.
-  IGNORED = 5
+  IGNORED = 6
 
   @property
   def idle(self) -> bool:
@@ -67,7 +72,7 @@ class TaskStatus(enum.Enum):
     True if the status is either #SUCCEEDED, #FAILED or #IGNORED.
     """
 
-    return self in (TaskStatus.SUCCEEDED, TaskStatus.FAILED)
+    return self in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELLED)
 
   @property
   def ignored(self) -> bool:
@@ -82,10 +87,10 @@ class TaskStatus(enum.Enum):
     """
     Returns `True` if the status represents a "completed" stated, i.e. the task will not change
     going forward (except maybe for it's #Task.error_consumed property). The set of completed statuses
-    is #SUCCEEDED, #FAILED and #IGNORED.
+    is #SUCCEEDED, #FAILED, #CANCELLED and #IGNORED.
     """
 
-    return self in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.IGNORED)
+    return self in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELLED, TaskStatus.IGNORED)
 
 
 class TaskCallbacks(abc.ABC):

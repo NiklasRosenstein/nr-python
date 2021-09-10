@@ -212,7 +212,7 @@ class Task(api.Task[T]):
       elif self._status == TaskStatus.FAILED:
         assert self._error is not None, 'Task status is FAILED but no error is set'
         raise self._error[1]
-      elif self._status == TaskStatus.SUCCEEDED:
+      elif self._status in (TaskStatus.SUCCEEDED, TaskStatus.CANCELLED):
         return self._result
       else:
         raise RuntimeError(f'Task has status {self._status.name}')
@@ -386,7 +386,7 @@ class Worker:
       if not task._error_consumed:
         log.exception('Unhandled exception in task "%s"', task.name)
     else:
-      task._update(TaskStatus.SUCCEEDED, result)
+      task._update(TaskStatus.CANCELLED if task.cancelled() else TaskStatus.SUCCEEDED, result)
     finally:
       log.info('Finished task "%s"', task.name)
 
