@@ -306,7 +306,6 @@ class TaskPriorityQueue:
   def get(self) -> t.Optional[Task]:
     while True:
       at, task = self._q.get()
-      print('@@', at, task)
       if task is None:
         self._q.task_done()
         return None
@@ -319,9 +318,7 @@ class TaskPriorityQueue:
       with self._cond:
         self._q.task_done()
         self._q.put((at, task))
-        print('w for', at - t)
         self._cond.wait(timeout=at - t)
-        print('w done')
 
   def join_total(self) -> None:
     self._total.join()
@@ -478,7 +475,6 @@ class DefaultExecutor(api.Executor):
       self._queue.put_stop(time.time())
 
     if block:
-      print('blocking', self._queue.total(), self._queue.current(), self._queue.pending())
       self._queue.join_current()
 
   def join(self) -> None:
