@@ -32,3 +32,4 @@ changes:
   component: nr.appfire.tasks
   description: add `TaskStatus.CANCELLED`
   fixes: []
+release_date: '2021-09-11'
