@@ -472,7 +472,7 @@ class DefaultExecutor(api.Executor):
         if task is not None:
           task.cancel()
       # Use the current time to jump in front of pending tasks.
-      self._queue.put_stop(time.time())
+      self._queue.put_stop(0)
 
     if block:
       self._queue.join_current()
