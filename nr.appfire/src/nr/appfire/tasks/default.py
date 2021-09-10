@@ -211,7 +211,7 @@ class Task(api.Task[T]):
         return None
       elif self._status == TaskStatus.FAILED:
         assert self._error is not None, 'Task status is FAILED but no error is set'
-        raise self._error
+        raise self._error[1]
       elif self._status == TaskStatus.SUCCEEDED:
         return self._result
       else:
@@ -262,7 +262,7 @@ class Task(api.Task[T]):
 
   def join(self, timeout: t.Optional[float] = None) -> bool:
     with self._cond:
-      self._cond.wait_for(lambda: self._status.completed, timeout)
+      return self._cond.wait_for(lambda: self._status.completed, timeout)
 
 
 class TaskPriorityQueue:
