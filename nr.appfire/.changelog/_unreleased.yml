@@ -1,0 +1,5 @@
+changes:
+- type: fix
+  component: nr.appfire.tasks
+  description: fix `readme.md` example
+  fixes: []

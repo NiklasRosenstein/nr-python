@@ -11,26 +11,23 @@ This package provides an easy-to-use framework for managing background tasks in 
 __Example__
 
 ```py
-from dataclasses import dataclass
-from nr.appfire.tasks import Task, TaskManager
+import dataclasses
+from nr.appfire.tasks import Runnable, Task, DefaultExecutor
 
-@dataclass
-class MyTask(Task):
+@dataclasses.dataclass
+class Looper(Runnable[None]):
   loops: int
 
-  def __post_init__(self) -> None:
-    super().__init__(f'MyTask[loops={self.loops}]')
-
-  def run(self) -> None:
+  def run(self, task: Task[None]) -> None:
     for i in range(self.loops):
-      if self.cancelled():
-        return
       print(i)
-      self.sleep(1)
+      if not task.sleep(1):
+        print('Bye, bye')
+        break
 
-manager = TaskManager('MyApp')
-manager.queue(MyTask(10))
-manager.idlejoin()
+executor = DefaultExecutor('MyApp')
+executor.execute(Looper(10))
+executor.idlejoin()
 ```
 
 ---
