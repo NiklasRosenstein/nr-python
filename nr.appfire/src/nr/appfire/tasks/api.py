@@ -78,12 +78,14 @@ class TaskStatus(enum.Enum):
     return self == TaskStatus.IGNORED
 
   @property
-  def immutable(self) -> bool:
+  def completed(self) -> bool:
     """
-    Returns `True` if the status represents an immutable task state (same as #done or #ignored).
+    Returns `True` if the status represents a "completed" stated, i.e. the task will not change
+    going forward (except maybe for it's #Task.error_consumed property). The set of completed statuses
+    is #SUCCEEDED, #FAILED and #IGNORED.
     """
 
-    return self.done or self.ignored
+    return self in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.IGNORED)
 
 
 class TaskCallbacks(abc.ABC):

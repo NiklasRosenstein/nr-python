@@ -20,3 +20,7 @@ changes:
   component: nr.appfire.tasks
   description: Add `Task.result`
   fixes: []
+- type: change
+  component: general
+  description: rename `TaskStatus.immutable` property to `TaskStatus.completed`
+  fixes: []
