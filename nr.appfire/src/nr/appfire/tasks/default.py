@@ -114,6 +114,7 @@ class Task(api.Task[T]):
 
   def __init__(self, runnable: Runnable[T], name: str) -> None:
     self._lock = threading.RLock()
+    self._cond = threading.Condition(self._lock)
     self._runnable = runnable
     self._id = type(self).__module__ + '.' + type(self).__name__ + '.' + str(uuid.uuid4())
     self._worker_id: t.Optional[str] = None
@@ -145,13 +146,14 @@ class Task(api.Task[T]):
     if result is not None and status != TaskStatus.SUCCEEDED:
       raise RuntimeError(f'cannot set result with status {status.name}')
 
-    with self._lock:
-      if (self._status.immutable and self._status != status) or (self._status == TaskStatus.RUNNING and status.idle):
+    with self._cond:
+      if (self._status.completed and self._status != status) or (self._status == TaskStatus.RUNNING and status.idle):
         raise RuntimeError(f'changing the task status from {self._status.name} to {status.name} is not allowed')
       invoke_callbacks = status != self._status
       self._status = status
       self._error = error
       self._result = result
+      self._cond.notify_all()
 
     if invoke_callbacks:
       self.callbacks._invoke()
@@ -257,6 +259,10 @@ class Task(api.Task[T]):
     if self._cancelled is None:
       raise RuntimeError('Task is not connected to a worker')
     return not self._cancelled.wait(duration)
+
+  def join(self, timeout: t.Optional[float] = None) -> bool:
+    with self._cond:
+      self._cond.wait_for(lambda: self._status.completed, timeout)
 
 
 class TaskPriorityQueue:

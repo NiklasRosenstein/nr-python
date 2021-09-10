@@ -272,3 +272,11 @@ class Task(abc.ABC, t.Generic[T]):
     Returns `True` if the sleep completed, `False` is the timeout triggered which means
     that the task has been cancelled.
     """
+
+  @abc.abstractmethod
+  def join(self, timeout: t.Optional[float] = None) -> bool:
+    """
+    Block until the task completes or until the *timeout* is exceeded. A task is complete when its
+    status is one of #TaskStatus.SUCCEEDED, #TaskStatus.FAILED or #TaskStatus.IGNORED. Returns `True`
+    if the join is complete, `False` if the timeout was exceeded.
+    """

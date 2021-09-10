@@ -24,3 +24,7 @@ changes:
   component: general
   description: rename `TaskStatus.immutable` property to `TaskStatus.completed`
   fixes: []
+- type: feature
+  component: general
+  description: add `Task.join()` method
+  fixes: []
