@@ -42,7 +42,7 @@ requirements = [
 
 setuptools.setup(
   name = 'nr.appfire',
-  version = '0.2.1',
+  version = '0.3.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Appfire is a toolkit that provides utilities for quickly building configurable microservices.',
