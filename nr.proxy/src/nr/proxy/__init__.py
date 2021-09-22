@@ -28,6 +28,7 @@ operations are forwarded to the wrapped object.
 """
 
 import copy
+import contextvars
 import threading
 import types
 from typing import cast, Any, Callable, Generic, List, Optional, Type, TypeVar
@@ -306,6 +307,53 @@ class threadlocal(stackable_proxy[T]):
     if not stack:
       name = self.__name__ or '<unnamed>'
       raise RuntimeError('there is no value to pop from threadlocal {}'.format(name))
+    return stack.pop()
+
+
+class contextlocal(stackable_proxy[T]):
+  """
+  A proxy that stores a stack of objects in a #contextvars.ContextVar (for async programs).
+  """
+
+  __contextvar: contextvars.ContextVar
+  __error_message: Optional[str]
+  __name__: Optional[str]
+
+  def __init__(self, name: Optional[str] = None, error_message: Optional[str] = None) -> None:
+    """
+    Create a new thread-local proxy. If an *error_message* is provided, it will be the
+    message of the #RuntimeError that will be raised if the thread local is accessed
+    without being initialized in the same thread first.
+    """
+
+    object.__setattr__(self, '_contextlocal__contextvar', contextvars.ContextVar('local'))
+    object.__setattr__(self, '_contextlocal__error_message', error_message)
+    object.__setattr__(self, '__name__', name)
+
+  def _get_current_object(self) -> T:
+    stack: List[T] = self.__contextvar.get(None)
+    if not stack:
+      message = self.__error_message or 'contextlocal {name} is not initialized in this thread'
+      raise RuntimeError(message.format(name=self.__name__ or '<unnamed>'))
+    return stack[-1]
+
+  def _empty(self) -> bool:
+    stack: List[T] = self.__contextvar.get(None)
+    return not stack
+
+  def _push(self, value: T) -> None:
+    assert value is not self, "cannot push contextlocal on itself"
+    stack: List[T] = self.__contextvar.get(None)
+    if stack is None:
+      stack = []
+      self.__contextvar.set(stack)
+    stack.append(value)
+
+  def _pop(self) -> T:
+    stack: List[T] = self.__contextvar.get(None)
+    if not stack:
+      name = self.__name__ or '<unnamed>'
+      raise RuntimeError('there is no value to pop from contextlocal {}'.format(name))
     return stack.pop()
 
 
