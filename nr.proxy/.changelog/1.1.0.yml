@@ -2,3 +2,4 @@ changes:
 - type: feature
   component: general
   description: add `nr.proxy.contextlocal`
+release_date: '2021-09-22'
