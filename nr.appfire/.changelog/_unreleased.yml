@@ -1,0 +1,4 @@
+changes:
+- type: feature
+  component: general
+  description: add `nr.appfire.application` and `nr.appfire.awsgi` packages

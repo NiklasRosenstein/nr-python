@@ -1,11 +1,18 @@
 name: nr.appfire
 version: 0.2.1
 author: Niklas Rosenstein <rosensteinniklas@gmail.com>
-description: Appfire is a toolkit that provides utilities for quickly building configurable
-  microservices.
+description: Appfire is a toolkit that provides utilities for quickly building configurable microservices.
 typed: true
 requirements:
+- databind.json ^1.2.3
+- nr.refreshable ^0.0.2
 - python ^3.7
+- PyYAML ^5.4.1
 - typing-extensions ^3.10.0.0
+entrypoints:
+  nr.appfire.application.config.logging.FormatterConfig:
+  - standard = nr.appfire.application.config.logging:StandardFormatterConfig
+  nr.appfire.application.config.logging.HandlerConfig:
+  - file = nr.appfire.application.config.logging:FileHandlerConfig
 test-drivers:
 - type: mypy

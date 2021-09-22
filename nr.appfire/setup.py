@@ -34,6 +34,9 @@ else:
   long_description = None
 
 requirements = [
+  'databind.json >=1.2.3,<2.0.0',
+  'nr.refreshable >=0.0.2,<1.0.0',
+  'PyYAML >=5.4.1,<6.0.0',
   'typing-extensions >=3.10.0.0,<4.0.0',
 ]
 
@@ -55,7 +58,14 @@ setuptools.setup(
   tests_require = [],
   python_requires = '>=3.7.0,<4.0.0',
   data_files = [],
-  entry_points = {},
+  entry_points = {
+    'nr.appfire.application.config.logging.FormatterConfig': [
+      'standard = nr.appfire.application.config.logging:StandardFormatterConfig',
+    ],
+    'nr.appfire.application.config.logging.HandlerConfig': [
+      'file = nr.appfire.application.config.logging:FileHandlerConfig',
+    ]
+  },
   cmdclass = {},
   keywords = [],
   classifiers = [],
