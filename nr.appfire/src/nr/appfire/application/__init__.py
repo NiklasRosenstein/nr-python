@@ -27,7 +27,7 @@ class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
   #ApplicationConfig model.
   """
 
-  model_class: t.ClassVar[T_ApplicationConfig]
+  model_class: t.ClassVar[t.Type[T_ApplicationConfig]]
 
   def __init__(self, config_loader: t.Optional[ConfigLoader[T_ApplicationConfig]] = None) -> None:
     """
@@ -37,7 +37,7 @@ class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
 
     if config_loader is None:
       if not hasattr(self, 'model_class'):
-        raise RuntimeError(f'missing config_loader argument to {type(self).__name__()}() or model_class class variable')
+        raise RuntimeError(f'missing config_loader argument to {type(self).__name__}() or model_class class variable')
       config_loader = DatabindConfigLoader(self.model_class)
 
     self._config: t.Optional[Refreshable[T_ApplicationConfig]] = None

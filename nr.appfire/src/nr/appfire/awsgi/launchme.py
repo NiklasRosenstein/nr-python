@@ -18,7 +18,7 @@ home = os.environ.pop('APPFIRE_HOME', None)
 if home is not None:
   os.chdir(home)
 
-entrypoint = os.environ.pop('APPFIRE_APP', None)
+entrypoint = os.environ.pop('APPFIRE_APP')
 module_name, class_name = entrypoint.split(':')
 module = importlib.import_module(module_name)
 class_ = getattr(module, class_name)

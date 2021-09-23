@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @union(
   union.Subtypes.entrypoint('nr.appfire.application.config.logging.FormatterConfig'),
   style=union.Style.flat)
-@dataclasses.dataclass
+@dataclasses.dataclass  # type: ignore
 class FormatterConfig(abc.ABC):
 
   @abc.abstractmethod
@@ -32,7 +32,7 @@ class FormatterConfig(abc.ABC):
 @union(
   union.Subtypes.entrypoint('nr.appfire.application.config.logging.HandlerConfig'),
   style=union.Style.flat)
-@dataclasses.dataclass
+@dataclasses.dataclass  # type: ignore
 class HandlerConfig(abc.ABC):
 
   level: t.Optional['LogLevel'] = None
