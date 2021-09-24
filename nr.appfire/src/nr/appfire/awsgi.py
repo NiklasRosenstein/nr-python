@@ -80,7 +80,7 @@ class AWSGILauncher(abc.ABC):
   """
 
   @abc.abstractmethod
-  def launch(self, entrypoint: t.Optional[str] = None) -> None: ...
+  def launch(self, entrypoint: str) -> None: ...
 
 
 @dataclasses.dataclass
@@ -120,7 +120,7 @@ class UvicornLauncher(AWSGILauncher):
 
     os.environ['APPFIRE_APP'] = entrypoint
 
-    import uvicorn
+    import uvicorn  # type: ignore
     try:
       sys.exit(uvicorn.run(
         __name__ + ':app',
