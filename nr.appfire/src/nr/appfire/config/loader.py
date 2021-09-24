@@ -1,8 +1,5 @@
 
-from .logging import LoggerConfig
-
 import abc
-import dataclasses
 import logging
 import typing as t
 from pathlib import Path
@@ -11,17 +8,9 @@ import databind.json
 import yaml
 from databind.core.annotations import collect_unknowns
 
+from .appconfig import ApplicationConfig, T_ApplicationConfig
+
 logger = logging.getLogger(__name__)
-T_ApplicationConfig = t.TypeVar('T_ApplicationConfig', bound='ApplicationConfig')
-
-
-@dataclasses.dataclass
-class ApplicationConfig:
-  """
-  Base class for application configurations.
-  """
-
-  logging: LoggerConfig = dataclasses.field(default_factory=LoggerConfig)
 
 
 class ConfigLoader(abc.ABC, t.Generic[T_ApplicationConfig]):
