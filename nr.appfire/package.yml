@@ -16,3 +16,5 @@ entrypoints:
   - file = nr.appfire.application.config.logging:FileHandlerConfig
 test-drivers:
 - type: mypy
+test-requirements:
+- types-PyYAML
