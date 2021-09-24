@@ -22,12 +22,12 @@ T_Application = t.TypeVar('T_Application', bound='Application')
 
 class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
   """
-  Abstract representation of an application which has a YAML configuration file under `var/conf/application.yml`.
+  Abstract representation of an application which has a YAML configuration file under `var/conf/app.yml`.
   The configuration model class is an argument to the #Application constructor, but it must be a subclass of the
   #ApplicationConfig model.
   """
 
-  model_class: t.ClassVar[t.Optional[t.Type[T_ApplicationConfig]]] = None
+  config_class: t.ClassVar[t.Optional[t.Type[T_ApplicationConfig]]] = None
 
   def __init__(self, config_loader: t.Optional[ConfigLoader[T_ApplicationConfig]] = None) -> None:
     """
@@ -36,9 +36,9 @@ class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
     """
 
     if config_loader is None:
-      if self.model_class is None:
-        raise RuntimeError(f'missing config_loader argument to {type(self).__name__}() or model_class class variable')
-      config_loader = DatabindConfigLoader(self.model_class)
+      if self.config_class is None:
+        raise RuntimeError(f'missing config_loader argument to {type(self).__name__}() or config_class class variable')
+      config_loader = DatabindConfigLoader(self.config_class)
 
     self._config: t.Optional[Refreshable[T_ApplicationConfig]] = None
     self._config_loader = config_loader

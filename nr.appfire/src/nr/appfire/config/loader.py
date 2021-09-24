@@ -30,7 +30,7 @@ class DatabindConfigLoader(ConfigLoader[T_ApplicationConfig]):
   def __init__(
     self,
     model: t.Type[T_ApplicationConfig],
-    filename: str = 'var/conf/application.yml',
+    filename: str = 'var/conf/app.yml',
     encoding: str = 'utf8',
     allow_unknown_keys: bool = False,
   ) -> None:

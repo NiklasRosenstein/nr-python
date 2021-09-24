@@ -2,13 +2,46 @@
 
 Appfire is a toolkit that provides utilities for quickly building configurable microservices.
 
-## Components
+## Examples
 
-### `nr.appfire.tasks`
+### ASGI / WSGI applications
 
-This package provides an easy-to-use framework for managing background tasks in a Python application.
+Using the `Application` class, your application is immediately configurable through a `var/conf/app.yml` file. It
+always comes with a logging configuration which, by default, logs to `var/log/app.log`. The `Application.initialize()`
+method gives you a chance to initialize global application state, if necessary, while having access to the your
+application configuration. The configuration can be extended by using a `@dataclass` and setting
+`Application.config_class`.
 
-__Example__
+```py
+from dataclasses import dataclass
+from nr.appfire.application import Application
+from nr.appfire.config import ApplicationConfig
+from nr.appfire.awsgi import AWSGIAppProvider, launch
+
+from .views import app
+from .db import init_database
+
+class MyConfig(ApplicationConfig):
+  host: str = 'localhost'
+  port: int = 8000
+  database_url: str = 'sqlite:///var/data/db.sqlite'
+
+class MyApp(Application, AWSGIAppProvider):
+
+  def initialize(self) -> None:
+    super().initalize()
+    config = self.config.get()
+    init_database(config.database_url)
+
+  def get_app(self):
+    return app
+
+if __name__ == '__main__':
+  config = MyApp().config.get()
+  launch(MyApp, 'uvicorn', host=config.host, port=config.port)
+```
+
+### Background tasks
 
 ```py
 import dataclasses
