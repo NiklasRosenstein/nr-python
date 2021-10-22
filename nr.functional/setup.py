@@ -37,7 +37,7 @@ requirements = []
 
 setuptools.setup(
   name = 'nr.functional',
-  version = '0.1.0',
+  version = '0.2.0',
   author = 'Niklas Rosenstein',
   author_email = 'nrosenstein@palantir.com',
   description = 'Tools for functional programming in Python.',
