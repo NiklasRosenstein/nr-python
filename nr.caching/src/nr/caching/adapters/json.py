@@ -3,15 +3,14 @@ import json
 import hashlib
 import sys
 import typing as t
-from dataclasses import dataclass
+import dataclasses
 
-from overrides import overrides  # type: ignore
-
-from .api import KeyValueStore, KeyDoesNotExist, NamespaceStore, NamespaceDoesNotExist
+from nr.caching.api import KeyValueStore, KeyDoesNotExist, NamespaceStore
+from nr.pylang.utils.singletons import NotSet
 
 JsonObject = t.Dict[str, t.Any]
 T = t.TypeVar('T')
-_NotSet = object()
+_NotSet = NotSet.Value
 
 
 def hash_args(*args: t.Any) -> str:
@@ -23,7 +22,7 @@ def hash_args(*args: t.Any) -> str:
   return hashlib.md5(json.dumps(args).encode('utf-8')).hexdigest()
 
 
-@dataclass
+@dataclasses.dataclass
 class _JsonCacheBase:
   default_exp: t.Optional[int] = None
   encoding: str = 'utf-8'
@@ -33,16 +32,11 @@ class _JsonCacheBase:
 
 class JsonCacheFactory(_JsonCacheBase):
   """
-  A caching layer on top of a #KeyValueStore that serializes/deserializes values to and from
-  JSON. It provides a few useful methods to streamline cache integration in code with as little
-  intrusion into the readability as possible.
+  A caching layer on top of a {@link NamespaceStore} that serializes/deserializes values to and from
+  JSON. It provides a few useful methods to streamline cache integration in code with as little intrusion
+  into the readability as possible.
 
   Values stored in this cache can only be JSON objects.
-
-  # Arguments
-
-  implict_namespaces (bool): Enabled by default. If enabled, #load_or_none() and #loading() will
-    interpret #NamespaceDoesNotExist the same as a #KeyDoesNotExist.
   """
 
   def __init__(self,
@@ -52,6 +46,14 @@ class JsonCacheFactory(_JsonCacheBase):
     encoder: t.Type[json.JSONEncoder] = json.JSONEncoder,
     decoder: t.Type[json.JSONDecoder] = json.JSONDecoder,
   ) -> None:
+    """
+    Create a new cache factory based on the given {@link NamespaceStore} implementation.
+
+    @param default_exp: The default expiration time (in seconds) for values written into the store.
+    @param encoding: The encoding for dumped JSON values before passing it into the underlying {@link KeyValueStore}.
+    @param encoder: The JSON encoder.
+    @param decoder: The JSON decoder.
+    """
 
     super().__init__(default_exp, encoding, encoder, decoder)
     self._store = store
@@ -66,6 +68,10 @@ class JsonCacheFactory(_JsonCacheBase):
 
 
 class JsonCache(_JsonCacheBase):
+  """
+  A wrapper for {@link KeyValueStore} implementations to expose a JSON based read/write API, particularly
+  useful for implementing quick, easy and unobtrusive caching of JSON serializable data.
+  """
 
   def __init__(self,
     store: KeyValueStore,

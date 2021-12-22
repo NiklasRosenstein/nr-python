@@ -25,7 +25,7 @@ def _tempcopy(src, dst):
 
 _tempcopy('../LICENSE.txt', 'LICENSE.txt')
 
-readme_file = 'README.md'
+readme_file = 'readme.md'
 if os.path.isfile(readme_file):
   with io.open(readme_file, encoding='utf8') as fp:
     long_description = fp.read()

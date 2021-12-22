@@ -4,14 +4,13 @@
 
 # nr.caching
 
-A simple key-value caching API with default implementations for an SQLite3 storage backend and
-a JSON convenience layer.
+A simple key-value API with implementations for local JSON and SQLite3 storage backends and a JSON convenience layer.
 
 ## Quickstart
 
 ```py
-from nr.caching.sqlite import SqliteStore
-from nr.caching.json import hash_args, JsonCacheFactory
+from nr.caching.stores.sqlite import SqliteStore
+from nr.caching.adapters.json import hash_args, JsonCacheFactory
 
 caching_backend = SqliteStore('.cache.db')
 cache_factory = JsonCacheFactory(caching_backend, default_exp=60)

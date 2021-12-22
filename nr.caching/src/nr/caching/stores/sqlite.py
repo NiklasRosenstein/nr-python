@@ -8,9 +8,7 @@ import time
 import typing as t
 from contextlib import closing
 
-from overrides import overrides  # type: ignore
-
-from .api import KeyValueStore, KeyDoesNotExist, NamespaceStore, NamespaceDoesNotExist
+from nr.caching.api import KeyValueStore, KeyDoesNotExist, NamespaceStore, NamespaceDoesNotExist
 
 
 def _fetch_all(cursor: sqlite3.Cursor) -> t.Iterable[t.Tuple]:
@@ -127,13 +125,11 @@ class SqliteStore(NamespaceStore):
 
       self._conn.commit()
 
-  @overrides
   def namespace(self, namespace: str) -> KeyValueStore:
     with self._locked_cursor() as cursor:
       self._ensure_namespace(cursor, namespace)
     return SqliteKeyValueStore(self, namespace)
 
-  @overrides
   def expunge(self, namespace: t.Optional[str] = None) -> None:
     with self._locked_cursor() as cursor:
       for namespace in [namespace] if namespace else list(self._get_namespaces(cursor)):
@@ -150,14 +146,11 @@ class SqliteKeyValueStore(KeyValueStore):
     self._store = store
     self._namespace = namespace
 
-  @overrides
   def load(self, key: str) -> bytes:
     return self._store.load(self._namespace, key)
 
-  @overrides
   def store(self, key: str, value: bytes, expires_in: t.Optional[int] = None) -> None:
     self._store.store(self._namespace, key, value, expires_in)
 
-  @overrides
   def expunge(self) -> None:
     self._store.expunge(self._namespace)

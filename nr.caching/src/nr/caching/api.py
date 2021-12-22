@@ -14,7 +14,7 @@ class KeyDoesNotExist(Exception):
   key: str
 
 
-class KeyValueStore(metaclass=abc.ABCMeta):
+class KeyValueStore(abc.ABC):
   """
   Interface for a simplistic key-value store based on unicode strings and binary values. On
   storing, values can be associated with an expiration time. The storage for expired values may
@@ -51,7 +51,7 @@ class KeyValueStore(metaclass=abc.ABCMeta):
     pass
 
 
-class NamespaceStore(metaclass=abc.ABCMeta):
+class NamespaceStore(abc.ABC):
   """
   Interface that provides key-value stores based on a namespace identifier.
   """
