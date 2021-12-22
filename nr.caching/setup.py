@@ -35,6 +35,7 @@ else:
 
 requirements = [
   'overrides >=3.1.0,<4.0.0',
+  'nr.pylang.utils >=0.1.3,<1.0.0',
 ]
 
 setuptools.setup(
