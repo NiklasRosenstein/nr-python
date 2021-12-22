@@ -2,3 +2,4 @@ changes:
 - type: fix
   component: general
   description: add missing `nr.pylang.utils` dependency
+release_date: '2021-12-22'
