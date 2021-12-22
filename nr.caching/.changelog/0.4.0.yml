@@ -2,3 +2,4 @@ changes:
 - type: change
   component: general
   description: restructure, add `MappingAdapter` and `JsonDirectoryStore`
+release_date: '2021-12-22'

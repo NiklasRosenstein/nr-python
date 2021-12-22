@@ -39,7 +39,7 @@ requirements = [
 
 setuptools.setup(
   name = 'nr.caching',
-  version = '0.3.2',
+  version = '0.4.0',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'A simple key-value caching API with default implementations for an SQLite3 storage backend and a JSON convenience layer.',
