@@ -11,6 +11,7 @@ The #nr.appfire.application defines an opinionated framework for applications. T
 import abc
 import logging
 import typing as t
+from nr.appfire.config.appconfig import T_ApplicationConfig
 
 from nr.refreshable import Refreshable
 
@@ -27,7 +28,11 @@ class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
   #ApplicationConfig model.
   """
 
-  config_class: t.ClassVar[t.Optional[t.Type[T_ApplicationConfig]]] = None
+  config_class: t.Type[T_ApplicationConfig]
+
+  def __init_subclass__(cls, config_class: t.Optional[t.Type[T_ApplicationConfig]] = None) -> None:
+    if config_class is not None:
+      cls.config_class = config_class
 
   def __init__(self, config_loader: t.Optional[ConfigLoader[T_ApplicationConfig]] = None) -> None:
     """
@@ -36,8 +41,6 @@ class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
     """
 
     if config_loader is None:
-      if self.config_class is None:
-        raise RuntimeError(f'missing config_loader argument to {type(self).__name__}() or config_class class variable')
       config_loader = DatabindConfigLoader(self.config_class)
 
     self._config: t.Optional[Refreshable[T_ApplicationConfig]] = None

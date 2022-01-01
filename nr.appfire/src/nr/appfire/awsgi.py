@@ -3,36 +3,51 @@ import abc
 import dataclasses
 import importlib
 import os
-import subprocess
 import sys
 import typing as t
 
+from databind.core.annotations import union
 from nr.appfire.application import Application
 
 
 @t.runtime_checkable
 class ASGIApp(t.Protocol):
 
-  def __call__(self, scope, receive, send): ...
+  def __call__(self, scope, receive, send): raise NotImplementedError
 
 
 @t.runtime_checkable
 class WSGIApp(t.Protocol):
 
-  def __call__(self, environ, start_response): ...
+  def __call__(self, environ, start_response): raise NotImplementedError
 
 
 @t.runtime_checkable
 class AWSGIAppProvider(t.Protocol):
 
-  def get_app(self) -> t.Union[ASGIApp, WSGIApp]: ...
+  def get_awsgi_app(self) -> t.Union[ASGIApp, WSGIApp]: raise NotImplementedError
+
+
+@t.runtime_checkable
+class ConfigWithLauncher(t.Protocol):
+  launcher: 'AWSGILauncher'
+
+
+T_ConfigWithLauncher = t.TypeVar('T_ConfigWithLauncher', bound=ConfigWithLauncher)
+
+
+class AWSGIApp(Application[T_ConfigWithLauncher], AWSGIAppProvider):
+
+  def launch(self) -> None:
+    config = self.config.get()
+    launch(self, config.launcher)
 
 
 def app() -> t.Union[ASGIApp, WSGIApp]:
   """
   Loads an #nr.appfire.application.Application class per the `APPFIRE_APP` or `AF_APP` environment variable. That
   application class must implement the #AWSGIAppProvider interface. The application will be initialized and
-  subsequently the result of #AWSGIAppProvider.get_app() will be returned.
+  subsequently the result of #AWSGIAppProvider.get_awsgi_app() will be returned.
 
   This function is supposed to be used as the entrypoint for production ASGI/WSGI servers. Examples:
 
@@ -63,17 +78,29 @@ def app() -> t.Union[ASGIApp, WSGIApp]:
 
   application = class_()
   application.initialize()
-  return application.get_app()
+  return application.get_awsgi_app()
 
 
-def entrypoint_for(app: t.Type) -> str:
+def entrypoint_for(app: t.Union[object, t.Type]) -> str:
   """
   Returns the entrypoint in `module:class` form for the given type.
   """
 
+  if not isinstance(app, type):
+    app = type(app)
   return app.__module__ + ':' + app.__name__
 
 
+_AWSGILauncher_Subtypes = union.Subtypes.dynamic()
+
+@union(
+  union.Subtypes.chain(
+    # union.Subtypes.entrypoint('nr.appfire.awsgi.launchers'),
+    # union.Subtypes.import_(),
+    _AWSGILauncher_Subtypes,
+  ),
+  style=union.Style.flat
+)
 class AWSGILauncher(abc.ABC):
   """
   Interface for AWSGI/WSGI application launchers.
@@ -138,10 +165,17 @@ class UvicornLauncher(AWSGILauncher):
       sys.exit(1)
 
 
-def launch(app: t.Union[str, t.Type[Application]], type_: str, **kwargs) -> None:
-  launchers[type_](**kwargs).launch(app if isinstance(app, str) else entrypoint_for(app))
+def launch(app: t.Union[str, Application, t.Type[Application]], type_: t.Union[str, AWSGILauncher], **kwargs) -> None:
+  if isinstance(type_, str):
+    type_ = launchers[type_](**kwargs)
+  else:
+    if kwargs:
+      raise TypeError('no additional **kwargs can be specified if a AWSGILauncher instance is passed directlty')
+  type_.launch(app if isinstance(app, str) else entrypoint_for(app))
 
 
 launchers = {
   'uvicorn': UvicornLauncher,
 }
+
+_AWSGILauncher_Subtypes.add_type('uvicorn', UvicornLauncher)

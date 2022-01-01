@@ -6,39 +6,37 @@ Appfire is a toolkit that provides utilities for quickly building configurable m
 
 ### ASGI / WSGI applications
 
-Using the `Application` class, your application is immediately configurable through a `var/conf/app.yml` file. It
-always comes with a logging configuration which, by default, logs to `var/log/app.log`. The `Application.initialize()`
-method gives you a chance to initialize global application state, if necessary, while having access to the your
-application configuration. The configuration can be extended by using a `@dataclass` and setting
-`Application.config_class`.
+Using the `AWSGIApp` class, your application is immediately configurable through a `var/conf/app.yml` file. It
+always comes with a logging configuration which, by default, logs to `var/log/app.log`. The `initialize()` method
+gives you a chance to initialize global application state, if necessary, while having access to the your application
+configuration. The configuration can be extended by using a `@dataclass`.
 
 ```py
-from dataclasses import dataclass
-from nr.appfire.application import Application
+from dataclasses import dataclass, field
 from nr.appfire.config import ApplicationConfig
-from nr.appfire.awsgi import AWSGIAppProvider, launch
+from nr.appfire.awsgi import AWSGIApp, AWSGILauncher, UvicornLauncher
 
 from .views import app
 from .db import init_database
 
+@dataclass
 class MyConfig(ApplicationConfig):
+  launcher: AWSGILauncher = field(default_factory=lambda: UvicornLauncher(host='localhost', port='8000'))
   host: str = 'localhost'
   port: int = 8000
   database_url: str = 'sqlite:///var/data/db.sqlite'
 
-class MyApp(Application, AWSGIAppProvider):
+class MyApp(AWSGIApp[MyConfig], config_class=MyConfig):
 
   def initialize(self) -> None:
     super().initalize()
-    config = self.config.get()
-    init_database(config.database_url)
+    init_database(self.config.get().database_url)
 
-  def get_app(self):
+  def get_awsgi_app(self):
     return app
 
 if __name__ == '__main__':
-  config = MyApp().config.get()
-  launch(MyApp, 'uvicorn', host=config.host, port=config.port)
+  MyApp().launch)
 ```
 
 ### Background tasks
