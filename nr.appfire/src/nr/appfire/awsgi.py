@@ -8,6 +8,7 @@ import typing as t
 
 from databind.core.annotations import union
 from nr.appfire.application import Application
+from nr.appfire.config import ApplicationConfig
 
 
 @t.runtime_checkable
@@ -28,8 +29,7 @@ class AWSGIAppProvider(t.Protocol):
   def get_awsgi_app(self) -> t.Union[ASGIApp, WSGIApp]: raise NotImplementedError
 
 
-@t.runtime_checkable
-class ConfigWithLauncher(t.Protocol):
+class ConfigWithLauncher(ApplicationConfig):
   launcher: 'AWSGILauncher'
 
 

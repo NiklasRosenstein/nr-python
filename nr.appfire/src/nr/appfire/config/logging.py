@@ -60,7 +60,7 @@ class StandardFormatterConfig(FormatterConfig):
 
   fmt: t.Optional[str] = None
   datefmt: t.Optional[str] = None
-  style: str = '%'
+  style: t.Literal['%', '{', '$'] = '%'
   validate: bool = True
 
   def get_formatter(self) -> logging.Formatter:
