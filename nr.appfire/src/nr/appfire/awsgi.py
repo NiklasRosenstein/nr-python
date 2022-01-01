@@ -29,7 +29,7 @@ class AWSGIAppProvider(t.Protocol):
   def get_awsgi_app(self) -> t.Union[ASGIApp, WSGIApp]: raise NotImplementedError
 
 
-class ConfigWithLauncher(ApplicationConfig):
+class ConfigWithLauncher(t.Protocol):
   launcher: 'AWSGILauncher'
 
 

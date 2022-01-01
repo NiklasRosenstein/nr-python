@@ -11,6 +11,7 @@ The #nr.appfire.application defines an opinionated framework for applications. T
 import abc
 import logging
 import typing as t
+import warnings
 from nr.appfire.config.appconfig import T_ApplicationConfig
 
 from nr.refreshable import Refreshable
@@ -33,6 +34,13 @@ class Application(abc.ABC, t.Generic[T_ApplicationConfig]):
   def __init_subclass__(cls, config_class: t.Optional[t.Type[T_ApplicationConfig]] = None) -> None:
     if config_class is not None:
       cls.config_class = config_class
+
+    if cls.__module__ == '__main__':
+      warnings.warn(
+        'An Application subclass defined in __main__ will not usually play well with FQNs to '
+        'determine the application entrypoint for subprocesses (such as most ASGI/WSGI launchers '
+        'that spawn multiple subprocesses). It is recommended that you move your Application '
+        f'subclass ({cls.__name__}) out of the __main__ module and import it from another module.', UserWarning)
 
   def __init__(self, config_loader: t.Optional[ConfigLoader[T_ApplicationConfig]] = None) -> None:
     """
