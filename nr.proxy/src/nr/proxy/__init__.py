@@ -31,7 +31,7 @@ import copy
 import contextvars
 import threading
 import types
-from typing import cast, Any, Callable, Generic, List, Optional, Type, TypeVar
+from typing import cast, Any, Callable, Generic, List, Optional, Type, TypeVar, Union
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
 __version__ = '1.1.0'
@@ -357,7 +357,7 @@ class contextlocal(stackable_proxy[T]):
     return stack.pop()
 
 
-def get_name(p: proxy_base[T]) -> Optional[str]:
+def get_name(p: Union[proxy_base[T], T]) -> Optional[str]:
   """
   Returns the name of a proxy object.
   """
@@ -368,7 +368,7 @@ def get_name(p: proxy_base[T]) -> Optional[str]:
     return None
 
 
-def get(p: proxy_base[T]) -> T:
+def get(p: Union[proxy_base[T], T]) -> T:
   """
   Dereference the proxy to get it's current value.
   """
@@ -376,13 +376,13 @@ def get(p: proxy_base[T]) -> T:
   return p._get_current_object()
 
 
-def set_value(p: proxy[T], value: T) -> None:
+def set_value(p: Union[proxy[T], T], value: T) -> None:
   """ Permanently override the value of a #proxy. This will turn the proxy "lazy". """
 
   p._set(value)
 
 
-def bind(p: bindable_proxy[T], func: Optional[Callable[[], T]]) -> None:
+def bind(p: Union[bindable_proxy[T], T], func: Optional[Callable[[], T]]) -> None:
   """
   (Re-) bind the function for a proxy. The *func* will be called in the future when the
   current value of the proxy is required.
@@ -391,15 +391,15 @@ def bind(p: bindable_proxy[T], func: Optional[Callable[[], T]]) -> None:
   p._bind(func)
 
 
-def is_bound(p: bindable_proxy[T]) -> bool:
+def is_bound(p: Union[bindable_proxy[T], T]) -> bool:
   return p._is_bound()
 
 
-def empty(p: stackable_proxy[T]) -> bool:
+def empty(p: Union[stackable_proxy[T], T]) -> bool:
   return p._empty()
 
 
-def push(p: stackable_proxy[T], value: T) -> None:
+def push(p: Union[stackable_proxy[T], T], value: T) -> None:
   """
   Push a value on a stackable proxy.
   """
@@ -407,7 +407,7 @@ def push(p: stackable_proxy[T], value: T) -> None:
   p._push(value)
 
 
-def pop(p: stackable_proxy[T]) -> T:
+def pop(p: Union[stackable_proxy[T], T]) -> T:
   """
   Pop a value from a stackable proxy.
   """
