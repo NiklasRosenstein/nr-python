@@ -42,7 +42,7 @@ extras_require['test'] = test_requirements
 
 setuptools.setup(
   name = 'nr.proxy',
-  version = '1.1.0',
+  version = '1.1.1',
   author = 'Niklas Rosenstein',
   author_email = 'rosensteinniklas@gmail.com',
   description = 'Provides proxy classes that allow accessing objects that are usually only accessible via function calls as objects directly.',

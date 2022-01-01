@@ -34,7 +34,7 @@ import types
 from typing import cast, Any, Callable, Generic, List, Optional, Type, TypeVar, Union
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas@gmail.com>'
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 __all__ = [
   'proxy',

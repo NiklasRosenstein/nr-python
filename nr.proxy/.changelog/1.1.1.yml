@@ -4,3 +4,4 @@ changes:
   description: '`nr.proxy` functions that accept a proxy object now accept the proxy
     type or directly the type itself to accomodate for use cases where the proxy is
     cast to the wrapped type'
+release_date: '2022-01-01'
